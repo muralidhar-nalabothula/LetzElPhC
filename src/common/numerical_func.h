@@ -9,6 +9,17 @@ ND_int find_kidx_in_list(ND_int nkpts, const ELPH_float* kpts_list,
 void get_KplusQ_idxs(const ND_int Nbz, const ELPH_float* kpoints,
                      const ELPH_float* Q_pt, int* KplusQidxs);
 
+// macro functions
+#define dot3_macro(a, b) ((a)[0] * (b)[0] + (a)[1] * (b)[1] + (a)[2] * (b)[2])
+
+#if !defined(MIN)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#if !defined(MAX)
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
 /* numerical_func.c */
 ELPH_float legendre(int l_val, int m_val, ELPH_float x_in);
 ELPH_float Ylm(int l_val, int m_val, ELPH_float* vec);

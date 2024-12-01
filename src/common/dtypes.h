@@ -141,6 +141,11 @@ struct Phonon
     // (nq_BZ,2), (qpt_iBZ,nph_sym)
     ND_int* nqstar;
     // number of elements in each qstar of iBZ qpoints
+    ELPH_float* epsilon;
+    // Dielectric tensor (3,3) , is set to NULL, if not found
+    ELPH_float* Zborn;
+    // born charges (natom,3,3)
+    // Note Zborn == NULL if there is not born charges/epsilon
     // -------------------------------------------------------
 };
 
@@ -217,6 +222,7 @@ struct WFC
     // reciprocal space wavefunction (nspin,nbnd,nspinor,npw_loc)
     ELPH_float* gvec;
     // gvectors for which wfc is defined. (npw_loc,3)
+    // in cart units (no 2*pi)
     ELPH_float* Fk;
     // (nltimesj, ntype, npw_loc)
     // klein-bylander in reciprocal space (Fk in Eq. 6 of

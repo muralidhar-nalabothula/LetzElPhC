@@ -759,6 +759,8 @@ void free_phonon_data(struct Phonon* phonon)
     free(phonon->ph_syms);
     free(phonon->qmap);
     free(phonon->nqstar);
+    free(phonon->epsilon);
+    free(phonon->Zborn);
 }
 
 void free_save_data(struct WFC* wfcs, struct Lattice* lattice,

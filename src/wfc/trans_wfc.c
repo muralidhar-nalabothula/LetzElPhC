@@ -7,10 +7,9 @@
 #include <stdbool.h>
 
 #include "../common/constants.h"
+#include "../common/numerical_func.h"
 #include "../elphC.h"
 #include "wfc.h"
-
-#define dot3_macro(a, b) ((a)[0] * (b)[0] + (a)[1] * (b)[1] + (a)[2] * (b)[2])
 
 void apply_trans_wfc(const ELPH_float* trans_vec, const ELPH_float* kvec,
                      const ND_int nsets, const ND_int npw,
