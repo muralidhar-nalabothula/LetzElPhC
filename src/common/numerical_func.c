@@ -335,6 +335,14 @@ void transpose3x3f(const ELPH_float* restrict inmat,
     outmat[8] = inmat[8];
 }
 
+void transpose3x3f_inplace(ELPH_float* mat)
+{
+    /* inplace Transpose 3x3 matrix */
+    swap_floats(mat + 1, mat + 3);
+    swap_floats(mat + 2, mat + 6);
+    swap_floats(mat + 5, mat + 7);
+}
+
 ND_int find_maxint(ND_int* in_arr, ND_int nelements)
 {
     ND_int max = in_arr[0];
@@ -524,9 +532,16 @@ void get_KplusQ_idxs(const ND_int Nbz, const ELPH_float* kpoints,
 }
 
 // some helper functions
-void swap_ints(int* restrict a, int* restrict b)
+void swap_ints(int* a, int* b)
 {
     const int c = *b;
+    *b = *a;
+    *a = c;
+}
+
+void swap_floats(ELPH_float* a, ELPH_float* b)
+{
+    const ELPH_float c = *b;
     *b = *a;
     *a = c;
 }

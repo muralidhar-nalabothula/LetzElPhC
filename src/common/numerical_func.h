@@ -40,6 +40,9 @@ void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* restrict X,
           ELPH_cmplx* restrict Y);
 void transpose3x3f(const ELPH_float* restrict inmat,
                    ELPH_float* restrict outmat);
+
+void transpose3x3f_inplace(ELPH_float* mat);
+
 ND_int find_maxint(ND_int* in_arr, ND_int nelements);
 ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements);
 void Gemm3x3f(const ELPH_float* restrict A, const char transA,
@@ -53,7 +56,8 @@ int get_fft_idx(ELPH_float idx_in, int FFT_dimension);
 ND_int get_miller_idx(ND_int idx_in, ND_int FFT_dimension);
 
 // swap functions
-void swap_ints(int* restrict a, int* restrict b);
+void swap_ints(int* a, int* b);
+void swap_floats(ELPH_float* a, ELPH_float* b);
 
 /* spline.c*/
 // spline interpolation functions
