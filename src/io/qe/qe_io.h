@@ -12,18 +12,17 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
                  char*** pseudo_pots);
 
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,
-                     ELPH_cmplx* restrict pat_vecs);
+                     ELPH_cmplx* pat_vecs);
 
 void read_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
                    const ELPH_cmplx* eig, const ELPH_cmplx* pats,
-                   ELPH_cmplx* restrict dvscf_out, MPI_Comm commK);
+                   ELPH_cmplx* dvscf_out, MPI_Comm commK);
 
 void read_qpts_qe(const char* dyn0_file, ND_int* nqpt_iBZ, ND_int* nqpt_fullBZ,
                   ELPH_float** qpts);
 
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
-                   ELPH_float* restrict qpts, ELPH_float* restrict omega,
-                   ELPH_cmplx* restrict pol_vecs);
+                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs);
 
 void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
                       const char* ph_save_dir, char*** pseudo_pots,

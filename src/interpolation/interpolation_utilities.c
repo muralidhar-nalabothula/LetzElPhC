@@ -45,7 +45,7 @@ void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices)
 }
 
 void rearrange_qpt_grid(const ND_int nqpts, const ELPH_cmplx* in_buf,
-                        const ND_int* idx, ELPH_cmplx* restrict out_buf)
+                        const ND_int* idx, ELPH_cmplx* out_buf)
 {
     // out[i] = in[idx[i]]
     for (ND_int i = 0; i < nqpts; ++i)
@@ -54,8 +54,7 @@ void rearrange_qpt_grid(const ND_int nqpts, const ELPH_cmplx* in_buf,
     }
 }
 
-void find_qpt_grid(const ND_int nqpts, const ELPH_float* qpts,
-                   ND_int* restrict q_grid)
+void find_qpt_grid(const ND_int nqpts, const ELPH_float* qpts, ND_int* q_grid)
 {
     // given list of qpoints, it finds the phonon grid.
     // q_grid is 3 ints

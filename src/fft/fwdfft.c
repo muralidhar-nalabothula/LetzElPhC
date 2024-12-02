@@ -41,7 +41,7 @@ void fft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcr,
     for (ND_int iset = 0; iset < nsets; ++iset)
     {
         ELPH_cmplx* wfcr_tmp = wfcr + iset * fft_buf_size;
-        ELPH_cmplx* restrict wfcG_tmp = wfcG + iset * plan->ngvecs_loc;
+        ELPH_cmplx* wfcG_tmp = wfcG + iset * plan->ngvecs_loc;
 
         ND_int ia = fftw_fun(alignment_of)((void*)wfcr_tmp);
         ia /= sizeof(ELPH_cmplx);
@@ -83,7 +83,7 @@ void fft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcr,
         ND_int igvec = 0;
         for (ND_int ixy = 0; ixy < plan->nGxyloc; ++ixy)
         {
-            ELPH_cmplx* restrict zfft_ptr = plan->nz_buf + ixy * Nz;
+            ELPH_cmplx* zfft_ptr = plan->nz_buf + ixy * Nz;
             for (ND_int ig = 0; ig < plan->ngxy_z[ixy]; ++ig)
             {
                 ND_int Gz = plan->gvecs[3 * igvec + 2];

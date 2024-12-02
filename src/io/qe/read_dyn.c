@@ -27,8 +27,7 @@ void zheev_(char* jobz, char* uplo, int* n, double _Complex* a, int* lda,
 #define DYN_FLOAT_BUF_SIZE 200
 
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
-                   ELPH_float* restrict qpts, ELPH_float* restrict omega,
-                   ELPH_cmplx* restrict pol_vecs)
+                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs)
 {
     /*
     // reads all the dynamical matrices in the file
@@ -153,7 +152,7 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
         fgets(read_buf, DYN_READ_BUF_SIZE, fp);  // empty
         fgets(read_buf, DYN_READ_BUF_SIZE, fp);  // qpoint
 
-        ELPH_float* restrict qpt_tmp = qpts + nq_found * 3;
+        ELPH_float* qpt_tmp = qpts + nq_found * 3;
 
         if (parser_doubles_from_string(read_buf, qpt_tmp) != 3)
         {
@@ -162,8 +161,8 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
 
         fgets(read_buf, DYN_READ_BUF_SIZE, fp);  // empty
 
-        ELPH_cmplx* restrict eig = pol_vecs + nq_found * nmodes * nmodes;
-        ELPH_float* restrict omega_q = omega + nq_found * nmodes;
+        ELPH_cmplx* eig = pol_vecs + nq_found * nmodes * nmodes;
+        ELPH_float* omega_q = omega + nq_found * nmodes;
 
         for (ND_int ia = 0; ia < natom; ++ia)
         {

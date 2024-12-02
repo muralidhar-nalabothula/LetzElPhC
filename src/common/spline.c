@@ -11,9 +11,8 @@ https://en.wikipedia.org/wiki/Spline_interpolation
 // int xin_xmp(const void* a, const void* b);
 
 ELPH_float spline_interpolate(const ELPH_float x, ND_int inear,
-                              const ELPH_float* restrict xi,
-                              const ELPH_float* restrict yi,
-                              const ELPH_float* restrict dy)
+                              const ELPH_float* xi, const ELPH_float* yi,
+                              const ELPH_float* dy)
 {
     ELPH_float tx = (x - xi[inear]) / (xi[inear + 1] - xi[inear]);
     ELPH_float ax =
@@ -24,8 +23,8 @@ ELPH_float spline_interpolate(const ELPH_float x, ND_int inear,
            tx * (1 - tx) * ((1 - tx) * ax + tx * bx);
 }
 
-void prepare_spline(const ND_int nvals, ELPH_float* restrict xin,
-                    ELPH_float* restrict yin, ELPH_float* restrict dy)
+void prepare_spline(const ND_int nvals, ELPH_float* xin, ELPH_float* yin,
+                    ELPH_float* dy)
 {
     /*
     Compute the derivate for given tabulated data.
@@ -51,10 +50,10 @@ void prepare_spline(const ND_int nvals, ELPH_float* restrict xin,
     // }
 
     /* Now Compute the derivates */
-    ELPH_float* restrict ai = buf;
-    ELPH_float* restrict bi = buf + nvals;
-    ELPH_float* restrict ci = buf + 2 * nvals;
-    ELPH_float* restrict di = buf + 3 * nvals;
+    ELPH_float* ai = buf;
+    ELPH_float* bi = buf + nvals;
+    ELPH_float* ci = buf + 2 * nvals;
+    ELPH_float* di = buf + 3 * nvals;
 
     // not a knot BCs
     /* create a small scope */

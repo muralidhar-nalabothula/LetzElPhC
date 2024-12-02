@@ -151,8 +151,8 @@ ELPH_float Ylm(int l_val, int m_val, ELPH_float* vec)
 }
 
 /* Function for simpson integration*/
-ELPH_float simpson(const ELPH_float* restrict func_vals,
-                   const ELPH_float* restrict dx, ND_int npts)
+ELPH_float simpson(const ELPH_float* func_vals, const ELPH_float* dx,
+                   ND_int npts)
 {
     /*
     Compute the integral using simpson 1/3 rules i.e /int f(x) dx
@@ -228,8 +228,8 @@ ELPH_float dotVec3(const ELPH_float* vec1, const ELPH_float* vec2)
     return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
 }
 
-void MatVec3f(const ELPH_float* restrict Mat, const ELPH_float* restrict vec,
-              const bool trans, ELPH_float* restrict out)
+void MatVec3f(const ELPH_float* Mat, const ELPH_float* vec, const bool trans,
+              ELPH_float* out)
 {
     if (trans)
     {
@@ -282,8 +282,7 @@ ELPH_float det3x3(const ELPH_float* mat)
     return det;
 }
 
-void reciprocal_vecs(const ELPH_float* restrict lat_vec,
-                     ELPH_float* restrict blat)
+void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* blat)
 {
     /*
     a[:,i]  are latvecs
@@ -307,8 +306,8 @@ void reciprocal_vecs(const ELPH_float* restrict lat_vec,
     blat[8] = (lat_vec[0] * lat_vec[4] - lat_vec[1] * lat_vec[3]) * det;
 }
 
-void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* restrict X,
-          ELPH_cmplx* restrict Y)
+void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* X,
+          ELPH_cmplx* Y)
 {
     /* computes y= aX + y */
     // ELPH_OMP_PAR_FOR_SIMD
@@ -318,8 +317,7 @@ void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* restrict X,
     }
 }
 
-void transpose3x3f(const ELPH_float* restrict inmat,
-                   ELPH_float* restrict outmat)
+void transpose3x3f(const ELPH_float* inmat, ELPH_float* outmat)
 {
     /* Transpose 3x3 matrix */
     outmat[0] = inmat[0];
@@ -371,9 +369,8 @@ ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements)
     return max;
 }
 
-void Gemm3x3f(const ELPH_float* restrict A, const char transA,
-              const ELPH_float* restrict B, const char transB,
-              ELPH_float* restrict C)
+void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
+              const char transB, ELPH_float* C)
 {
     if (transA == 'N' && transB == 'N')
     {
@@ -430,8 +427,7 @@ void Gemm3x3f(const ELPH_float* restrict A, const char transA,
     return;
 }
 
-void matmul_Cmpl2x2(ELPH_cmplx* restrict mat1, ELPH_cmplx* restrict mat2,
-                    ELPH_cmplx* restrict out)
+void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2, ELPH_cmplx* out)
 {
     out[0] = mat1[0] * mat2[0] + mat1[1] * mat2[2];
     out[1] = mat1[0] * mat2[1] + mat1[1] * mat2[3];

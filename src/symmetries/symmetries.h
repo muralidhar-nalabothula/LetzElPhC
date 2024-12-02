@@ -16,8 +16,8 @@ void electronic_reps(const struct WFC* wfcs, const struct Lattice* lattice,
 
 void elph_q_rotate(const ELPH_cmplx* Dmats_l, const ELPH_cmplx* elph_mat_q,
                    const ELPH_cmplx* Dmats_r, const struct Lattice* lattice,
-                   const bool tim_rev, ELPH_cmplx* restrict elph_mat_Sq);
+                   const bool tim_rev, ELPH_cmplx* elph_mat_Sq);
 
 void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
                      const ELPH_float* qpt, const ELPH_cmplx* eig_q,
-                     ELPH_cmplx* restrict eig_Sq);
+                     ELPH_cmplx* eig_Sq);

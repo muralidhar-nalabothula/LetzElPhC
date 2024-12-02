@@ -16,7 +16,7 @@ This file contains function that parses pattern.xml files
 #include "qe_io.h"
 
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,
-                     ELPH_cmplx* restrict pat_vecs)
+                     ELPH_cmplx* pat_vecs)
 {
     /*
     patvec dim (nmodes, natom, 3)

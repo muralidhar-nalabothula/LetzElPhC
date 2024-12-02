@@ -13,7 +13,7 @@
 
 void apply_trans_wfc(const ELPH_float* trans_vec, const ELPH_float* kvec,
                      const ND_int nsets, const ND_int npw,
-                     const ELPH_float* gvecs, ELPH_cmplx* restrict wfc_G,
+                     const ELPH_float* gvecs, ELPH_cmplx* wfc_G,
                      const bool conjugate)
 {
     /*
@@ -31,7 +31,7 @@ void apply_trans_wfc(const ELPH_float* trans_vec, const ELPH_float* kvec,
 
     for (ND_int iset = 0; iset < nsets; ++iset)
     {
-        ELPH_cmplx* restrict wfc_G_tmp = wfc_G + iset * npw;
+        ELPH_cmplx* wfc_G_tmp = wfc_G + iset * npw;
 
         for (ND_int ig = 0; ig < npw; ++ig)
         {
