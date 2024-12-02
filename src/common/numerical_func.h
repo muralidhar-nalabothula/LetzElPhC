@@ -27,26 +27,32 @@ ELPH_float simpson(const ELPH_float* func_vals, const ELPH_float* dx,
                    ND_int npts);
 
 ELPH_float cos_angle_bw_Vec(const ELPH_float* vec1, const ELPH_float* vec2);
-ELPH_float dotVec3(const ELPH_float* vec1, const ELPH_float* vec2);
+
 void MatVec3f(const ELPH_float* Mat, const ELPH_float* vec, const bool trans,
-              ELPH_float* out);
+              ELPH_float* restrict out);
+
 ELPH_cmplx Cmplxdot(const ELPH_cmplx* vec1, const ELPH_cmplx* vec2,
                     const ND_int n);
 void normalize_Cmplx_vec(ELPH_cmplx* vec, const ND_int n);
 ELPH_float det3x3(const ELPH_float* mat);
-void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* blat);
+
+void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* restrict blat);
+
 void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* X,
           ELPH_cmplx* Y);
-void transpose3x3f(const ELPH_float* inmat, ELPH_float* outmat);
+
+void transpose3x3f(const ELPH_float* inmat, ELPH_float* restrict outmat);
 
 void transpose3x3f_inplace(ELPH_float* mat);
 
 ND_int find_maxint(ND_int* in_arr, ND_int nelements);
 ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements);
-void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
-              const char transB, ELPH_float* C);
 
-void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2, ELPH_cmplx* out);
+void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
+              const char transB, ELPH_float* restrict C);
+
+void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2,
+                    ELPH_cmplx* restrict out);
 
 int get_fft_idx(ELPH_float idx_in, int FFT_dimension);
 ND_int get_miller_idx(ND_int idx_in, ND_int FFT_dimension);

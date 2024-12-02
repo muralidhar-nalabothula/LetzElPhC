@@ -221,15 +221,8 @@ static ELPH_float factorial(ND_int n)
     return tgamma(n + 1);
 }
 
-/* Better to inline them ? */
-/**This are hardcoded to avoid over heads */
-ELPH_float dotVec3(const ELPH_float* vec1, const ELPH_float* vec2)
-{
-    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
-}
-
 void MatVec3f(const ELPH_float* Mat, const ELPH_float* vec, const bool trans,
-              ELPH_float* out)
+              ELPH_float* restrict out)
 {
     if (trans)
     {
@@ -282,7 +275,7 @@ ELPH_float det3x3(const ELPH_float* mat)
     return det;
 }
 
-void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* blat)
+void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* restrict blat)
 {
     /*
     a[:,i]  are latvecs
@@ -317,7 +310,7 @@ void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* X,
     }
 }
 
-void transpose3x3f(const ELPH_float* inmat, ELPH_float* outmat)
+void transpose3x3f(const ELPH_float* inmat, ELPH_float* restrict outmat)
 {
     /* Transpose 3x3 matrix */
     outmat[0] = inmat[0];
@@ -370,7 +363,7 @@ ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements)
 }
 
 void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
-              const char transB, ELPH_float* C)
+              const char transB, ELPH_float* restrict C)
 {
     if (transA == 'N' && transB == 'N')
     {
@@ -427,7 +420,8 @@ void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
     return;
 }
 
-void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2, ELPH_cmplx* out)
+void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2,
+                    ELPH_cmplx* restrict out)
 {
     out[0] = mat1[0] * mat2[0] + mat1[1] * mat2[2];
     out[1] = mat1[0] * mat2[1] + mat1[1] * mat2[3];
