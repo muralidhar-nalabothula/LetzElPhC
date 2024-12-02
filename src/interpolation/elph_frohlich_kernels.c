@@ -13,24 +13,22 @@
 #include "../common/numerical_func.h"
 #include "../elphC.h"
 
-static void frohlich_dip2D_kernel(const ELPH_float* restrict qplusG,
-                                  const ELPH_float* restrict Zborn_k,
-                                  const ELPH_float* restrict alpha,
-                                  const ELPH_float* restrict tau_k,
+static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
+                                  const ELPH_float* Zborn_k,
+                                  const ELPH_float* alpha,
+                                  const ELPH_float* tau_k,
                                   ELPH_cmplx* restrict out_buf);
 
-static void frohlich_dip3D_kernel(const ELPH_float* restrict qplusG,
-                                  const ELPH_float* restrict Zborn_k,
-                                  const ELPH_float* restrict epslion,
-                                  const ELPH_float* restrict tau_k,
+static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
+                                  const ELPH_float* Zborn_k,
+                                  const ELPH_float* epslion,
+                                  const ELPH_float* tau_k,
                                   ELPH_cmplx* restrict out_buf);
 
-void frohlich_lr_vertex(const ELPH_float* restrict qpt,
-                        const ELPH_float* restrict gvec, const ND_int npw_loc,
-                        const ELPH_float* restrict epslion,
-                        const ELPH_float* restrict Zeu,
-                        const ELPH_float* restrict Qpole, const ND_int natom,
-                        const ELPH_float* restrict atom_pos,
+void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
+                        const ND_int npw_loc, const ELPH_float* epslion,
+                        const ELPH_float* Zeu, const ELPH_float* Qpole,
+                        const ND_int natom, const ELPH_float* atom_pos,
                         const char diminsion, const ELPH_float volume,
                         const ELPH_float zlat, ELPH_cmplx* restrict elph_lr_out)
 {
@@ -82,15 +80,15 @@ void frohlich_lr_vertex(const ELPH_float* restrict qpt,
 
     for (ND_int ia = 0; ia < natom; ++ia)
     {
-        const ELPH_float* restrict Z_k = Zeu + 9 * ia;
-        const ELPH_float* restrict tau_k = atom_pos + 3 * ia;
+        const ELPH_float* Z_k = Zeu + 9 * ia;
+        const ELPH_float* tau_k = atom_pos + 3 * ia;
 
-        ELPH_cmplx* restrict out_tmp_buf = elph_lr_out + ia * 3;
+        ELPH_cmplx* out_tmp_buf = elph_lr_out + ia * 3;
 
         // No Openmp here. not thread safe !!
         for (ND_int ig = 0; ig < npw_loc; ++ig)
         {
-            const ELPH_float* restrict gtmp = gvec + 3 * ig;
+            const ELPH_float* gtmp = gvec + 3 * ig;
 
             ELPH_float qplusG[3];
             for (int i = 0; i < 3; ++i)
@@ -119,10 +117,10 @@ void frohlich_lr_vertex(const ELPH_float* restrict qpt,
     return;
 }
 
-static void frohlich_dip3D_kernel(const ELPH_float* restrict qplusG,
-                                  const ELPH_float* restrict Zborn_k,
-                                  const ELPH_float* restrict epslion,
-                                  const ELPH_float* restrict tau_k,
+static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
+                                  const ELPH_float* Zborn_k,
+                                  const ELPH_float* epslion,
+                                  const ELPH_float* tau_k,
                                   ELPH_cmplx* restrict out_buf)
 {
     // G space dipole term for frohlich in 3D
@@ -165,10 +163,10 @@ static void frohlich_dip3D_kernel(const ELPH_float* restrict qplusG,
     return;
 }
 
-static void frohlich_dip2D_kernel(const ELPH_float* restrict qplusG,
-                                  const ELPH_float* restrict Zborn_k,
-                                  const ELPH_float* restrict alpha,
-                                  const ELPH_float* restrict tau_k,
+static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
+                                  const ELPH_float* Zborn_k,
+                                  const ELPH_float* alpha,
+                                  const ELPH_float* tau_k,
                                   ELPH_cmplx* restrict out_buf)
 {
     // G space dipole term for frohlich in 2D
@@ -181,7 +179,7 @@ static void frohlich_dip2D_kernel(const ELPH_float* restrict qplusG,
     // alpha = c/2 * (epslion-1)
     //
     // Eq. 5 of PHYSICAL REVIEW B 103, 075410 (2021)
-    // Note 1 : We donot take into \hat{z} term as we restrict interpolation
+    // Note 1 : We donot take into \hat{z} term as we  interpolation
     // only in the inplane q direction. This avoids clumsy sgn(z-zk) term
     // computation
     //
