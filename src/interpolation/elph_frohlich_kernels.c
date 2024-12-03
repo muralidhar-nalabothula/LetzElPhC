@@ -23,6 +23,7 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* epslion,
                                   const ELPH_float* tau_k, ELPH_cmplx* out_buf);
 
+// FIX ME : Allreduce call
 void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
                         const ND_int npw_loc, const ELPH_float* epslion,
                         const ELPH_float* Zeu, const ELPH_float* Qpole,
