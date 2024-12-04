@@ -2,11 +2,11 @@ CC                  :=  mpicc
 
 ### if you are using yambo <= 5.1.2, you need to add "-DYAMBO_LT_5_1" to cflags
 ### add -DCOMPILE_ELPH_DOUBLE if you want to compile the code in double precession to cflags
-#CFLAGS             := -O3 -march=native  -fopenmp
+#CFLAGS             := -O3 -Wall -Wextra -march=native  -fopenmp
 #LD_FLAGS           := -fopenmp 
 
 ##Debug flags, incase of testing always turn on the address sanitizer ! (clang is recommanded for this)
-CFLAGS       	    := -g -fsanitize=address,undefined -fno-omit-frame-pointer # for mkl add 
+CFLAGS       	    := -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer # for mkl add 
 LD_FLAGS            := -g -fsanitize=address,undefined  -Wl,-no_compact_unwind
 
 OPENMP_FLAGS   	    :=  #-DELPH_OMP_PARALLEL_BUILD ## uncomment for openmp build

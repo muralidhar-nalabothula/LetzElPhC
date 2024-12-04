@@ -287,7 +287,7 @@ static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo)
     strcpy(xml_buf, "<root>");
     xml_buf[6] = '\n';
 
-    if (fread(xml_buf + 7, 1, length - 15, fp) != (length - 15))
+    if (fread(xml_buf + 7, 1, length - 15, fp) != (size_t)(length - 15))
     {
         error_msg("Reading loading data from pseudo potential file failed");
     }

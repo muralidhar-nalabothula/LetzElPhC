@@ -9,6 +9,17 @@
 #define ERR_FILE_OPEN_WRITE 2  // cannot open file to write
 #define ERR_FILE_COPY_FAIL 3   // copying files failed
 
+// check overflow
+#define CHECK_OVERFLOW_ERROR(var, max_var_limit)                        \
+    {                                                                   \
+        if ((var) >= (max_var_limit))                                   \
+        {                                                               \
+            elph_error_msg("Over flow of variable " #var                \
+                           " over the provided limit, " #max_var_limit, \
+                           __FILE__, __LINE__, __func__);               \
+        }                                                               \
+    }
+
 /* Function to print error message to the the file */
 #define MPI_error_msg(err_code)                                         \
     {                                                                   \
@@ -19,7 +30,7 @@
     }
 
 #define error_msg(print_str) \
-    elph_error_msg(print_str, __FILE__, __LINE__, __func__)
+    elph_error_msg(print_str, __FILE__, __LINE__, __func__);
 
 #define CHECK_ALLOC(ptr)                                     \
     {                                                        \

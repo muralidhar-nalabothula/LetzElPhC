@@ -1220,7 +1220,7 @@ void ezxml_free(ezxml_t xml)
             free(root->pi);  // free processing instructions
         }
 
-        if (root->len == -1)
+        if (root->len == (size_t)-1)
         {
             free(root->m);  // malloced xml data
         }
