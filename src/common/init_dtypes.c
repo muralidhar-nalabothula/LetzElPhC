@@ -6,6 +6,14 @@
 #include "../elphC.h"
 #include "dtypes.h"
 
+/*
+ * Note : Always set pointers to NULL even after memset as
+ * all 0 bits does not need to represent a NULL pointer.
+ * Let us leave these optimizations to compilers.
+ * Almost all the compilers are good at removing this.
+ * but still let's stick to the stardard !
+ * */
+
 void init_lattice_type(struct Lattice* lattice)
 {
     memset(lattice, 0, sizeof(*lattice));
