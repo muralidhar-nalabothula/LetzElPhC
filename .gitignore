@@ -14,6 +14,8 @@ docs/*
 !docs/refs.bib
 !docs/splncs04.bst
 !docs/main.pdf
+!docs/logo.pdf
+!docs/logo.png
 examples/qe/silicon/*/*
 !examples/qe/silicon/nscf/*.in
 !examples/qe/silicon/ph/*.in
