@@ -1,3 +1,5 @@
+![screenshot](docs/logo.png)
+
 Please read docs/main.pdf for installing and usage. A simple example can
 be found in ```examples/qe/silicon``` folder
 
@@ -9,6 +11,7 @@ Ludger Wirtz (Supervisor)
 Fulvio Paleari (Testing and Yambopy interface)  
 University of Luxembourg (Funding)  
 HPC @ Uni.lu (Computing resources)  
+Henry Fried (Logo)
 
 # TODO  
 1) Support XML format for dynamical matrices
