@@ -1,8 +1,8 @@
-#include "print_letz_logo.h"
+#include "print_ELPH_logo.h"
 
 #include <stdio.h>
 
-void print_letz_logo(FILE* output)
+void print_ELPH_logo(FILE* output)
 {
     fprintf(output,
             "       */*                                                        "
