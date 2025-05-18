@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../../common/cblas.h"
 #include "../../common/constants.h"
 #include "../../common/dtypes.h"
 #include "../../common/error.h"
@@ -16,10 +17,6 @@
 File contains function to read dynamical matrix file (in the old format)
 and outputs phonon polarization vectors
 */
-
-void zheev_(char* jobz, char* uplo, int* n, double _Complex* a, int* lda,
-            double* w, double _Complex* work, int* lwork, double* rwork,
-            int* info);
 
 // only one cpu calls the routine
 
