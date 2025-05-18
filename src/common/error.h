@@ -23,7 +23,7 @@
 /* Function to print error message to the the file */
 #define MPI_error_msg(err_code)                                         \
     {                                                                   \
-        if (err_code != MPI_SUCCESS)                                    \
+        if ((err_code) != MPI_SUCCESS)                                  \
         {                                                               \
             ELPH_MPI_error_msg(err_code, __FILE__, __LINE__, __func__); \
         }                                                               \
