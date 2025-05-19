@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../../common/constants.h"
+#include "../../common/cwalk/cwalk.h"
 #include "../../common/dtypes.h"
 #include "../../common/error.h"
 #include "../../common/numerical_func.h"
@@ -26,15 +27,16 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     int mpi_error;
 
     char* tmp_buffer = NULL;
+    size_t temp_str_len = 1;
     if (Comm->commW_rank == 0)
     {
-        tmp_buffer = calloc(1024 + strlen(ph_save_dir), 1);
+        temp_str_len = 1024 + strlen(ph_save_dir);
+        tmp_buffer = calloc(temp_str_len, 1);
         CHECK_ALLOC(tmp_buffer);
     }
     if (Comm->commW_rank == 0)
     {
-        strcpy(tmp_buffer, ph_save_dir);
-        strcat(tmp_buffer, "/dyn0");
+        cwk_path_join(ph_save_dir, "dyn0", tmp_buffer, temp_str_len);
         read_qpts_qe(tmp_buffer, &phonon->nq_iBZ, &phonon->nq_BZ,
                      &phonon->qpts_iBZ);
     }
@@ -78,8 +80,8 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     ELPH_float lat_vec[9];  // a[:,i] is ith lattice vector
     if (Comm->commW_rank == 0)
     {
-        strcpy(tmp_buffer, ph_save_dir);
-        strcat(tmp_buffer, "/data-file-schema.xml");
+        cwk_path_join(ph_save_dir, "data-file-schema.xml", tmp_buffer,
+                      temp_str_len);
         parse_qexml(tmp_buffer, lat_vec, alat, &lattice->dimension,
                     &lattice->is_soc_present, &lattice->nmag, lattice->fft_dims,
                     &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_tim_rev,

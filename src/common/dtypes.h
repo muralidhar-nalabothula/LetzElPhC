@@ -145,7 +145,7 @@ struct Phonon
     // Dielectric tensor (3,3) , is set to NULL, if not found
     ELPH_float* Zborn;
     // born charges (natom,3,3)
-    // Note Zborn == NULL if there is not born charges/epsilon
+    // Note Zborn == NULL if there is no born charges/epsilon
     // -------------------------------------------------------
 };
 
