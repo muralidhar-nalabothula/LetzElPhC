@@ -5,11 +5,11 @@
 #include "../../common/dtypes.h"
 #include "../../elphC.h"
 
-void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
-                 char* dim, bool* is_soc_present, ND_int* nmag,
-                 ND_int* fft_dims, ND_int* nph_sym, ELPH_float** ph_sym_mats,
-                 ELPH_float** ph_sym_tau, bool* ph_tim_rev, char** pseudo_dir,
-                 char*** pseudo_pots);
+void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
+                 ELPH_float* alat, char* dim, bool* is_soc_present,
+                 ND_int* nmag, ND_int* fft_dims, ND_int* nph_sym,
+                 ELPH_float** ph_sym_mats, ELPH_float** ph_sym_tau,
+                 bool* ph_tim_rev, char** pseudo_dir, char*** pseudo_pots);
 
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,
                      ELPH_cmplx* pat_vecs);

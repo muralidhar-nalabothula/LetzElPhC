@@ -17,11 +17,11 @@ This file contains function that parses data-file-schema.xml file
 
 #define ELPH_XML_READ_LINE_SIZE 1000
 
-void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
-                 char* dim, bool* is_soc_present, ND_int* nmag,
-                 ND_int* fft_dims, ND_int* nph_sym, ELPH_float** ph_sym_mats,
-                 ELPH_float** ph_sym_tau, bool* ph_tim_rev, char** pseudo_dir,
-                 char*** pseudo_pots)
+void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
+                 ELPH_float* alat, char* dim, bool* is_soc_present,
+                 ND_int* nmag, ND_int* fft_dims, ND_int* nph_sym,
+                 ELPH_float** ph_sym_mats, ELPH_float** ph_sym_tau,
+                 bool* ph_tim_rev, char** pseudo_dir, char*** pseudo_pots)
 {
     /*
     get pseudo potential information, fft information from xml file
@@ -111,6 +111,10 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
         strcpy(pot_tmp[itype], tmp_str);
     }
 
+    // get number of atoms
+    *natoms = atoll(ezxml_attr(
+        ezxml_get(qexml, "output", 0, "atomic_structure", -1), "nat"));
+    //
     // get alat
     alat[0] = atof(ezxml_attr(
         ezxml_get(qexml, "output", 0, "atomic_structure", -1), "alat"));

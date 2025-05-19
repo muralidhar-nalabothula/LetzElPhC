@@ -74,6 +74,8 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     char* PSEUDO_DIR = NULL;
     bool ph_tim_rev;
 
+    ND_int natoms = 0;
+
     ELPH_float* ph_sym_mats = NULL;
     ELPH_float* ph_sym_tau = NULL;
 
@@ -82,7 +84,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     {
         cwk_path_join(ph_save_dir, "data-file-schema.xml", tmp_buffer,
                       temp_str_len);
-        parse_qexml(tmp_buffer, lat_vec, alat, &lattice->dimension,
+        parse_qexml(tmp_buffer, &natoms, lat_vec, alat, &lattice->dimension,
                     &lattice->is_soc_present, &lattice->nmag, lattice->fft_dims,
                     &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_tim_rev,
                     &PSEUDO_DIR, pseudo_pots);
@@ -92,6 +94,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     }
 
     // Bcast all the variables
+    //
+    mpi_error = MPI_Bcast(&natoms, 1, ELPH_MPI_ND_INT, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(lat_vec, 9, ELPH_MPI_float, 0, Comm->commW);
     MPI_error_msg(mpi_error);
