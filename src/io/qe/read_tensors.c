@@ -20,6 +20,7 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
 {
     phonon->Zborn = NULL;
     phonon->epsilon = NULL;
+    phonon->Qpole = NULL;
 
     FILE* fp = fopen(tensor_xml_file, "r");
     if (NULL == fp)

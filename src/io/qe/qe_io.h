@@ -11,6 +11,9 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
                  ELPH_float** ph_sym_mats, ELPH_float** ph_sym_tau,
                  bool* ph_tim_rev, char** pseudo_dir, char*** pseudo_pots);
 
+void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
+                        struct Phonon* phonon);
+
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,
                      ELPH_cmplx* pat_vecs);
 

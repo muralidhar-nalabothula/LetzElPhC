@@ -79,6 +79,10 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     ELPH_float* ph_sym_mats = NULL;
     ELPH_float* ph_sym_tau = NULL;
 
+    phonon->Zborn = NULL;
+    phonon->epsilon = NULL;
+    phonon->Qpole = NULL;
+
     ELPH_float lat_vec[9];  // a[:,i] is ith lattice vector
     if (Comm->commW_rank == 0)
     {
@@ -91,6 +95,11 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         // free pseudo pots, no longer need
         free(PSEUDO_DIR);
         PSEUDO_DIR = NULL;
+
+        // read dielectric and other relevent tensors from tensors.xml (if
+        // exists)
+        cwk_path_join(ph_save_dir, "tensors.xml", tmp_buffer, temp_str_len);
+        read_ph_tensors_qe(tmp_buffer, natoms, phonon);
     }
 
     // Bcast all the variables
