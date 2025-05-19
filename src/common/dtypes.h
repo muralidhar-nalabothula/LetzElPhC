@@ -147,6 +147,7 @@ struct Phonon
     // born charges (natom,3,3)
     // Note Zborn == NULL if there is no born charges/epsilon
     ELPH_float* Qpole;
+    // (natom,3,3,3)
     // Quadrapole tensor. for now not used is kept to NULL.
     // -------------------------------------------------------
 };

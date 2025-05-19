@@ -38,9 +38,9 @@ void init_phonon_type(struct Phonon* phonon)
     phonon->nqstar = NULL;
     phonon->epsilon = NULL;
     phonon->Zborn = NULL;
-    phonon->Qpole = NULL
+    phonon->Qpole = NULL;
 
-        return;
+    return;
 }
 
 void init_Vloc_table_type(struct Vloc_table* vloc_tab)

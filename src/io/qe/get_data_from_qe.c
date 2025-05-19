@@ -82,6 +82,8 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     phonon->Zborn = NULL;
     phonon->epsilon = NULL;
     phonon->Qpole = NULL;
+    bool phTensors_present[3] = {false, false, false};
+    // {epsilon, Zborn, Qpole}
 
     ELPH_float lat_vec[9];  // a[:,i] is ith lattice vector
     if (Comm->commW_rank == 0)
@@ -100,11 +102,26 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         // exists)
         cwk_path_join(ph_save_dir, "tensors.xml", tmp_buffer, temp_str_len);
         read_ph_tensors_qe(tmp_buffer, natoms, phonon);
+        if (phonon->epsilon)
+        {
+            phTensors_present[0] = true;
+        }
+        if (phonon->Zborn)
+        {
+            phTensors_present[1] = true;
+        }
+        if (phonon->Qpole)
+        {
+            phTensors_present[2] = true;
+        }
     }
 
     // Bcast all the variables
     //
     mpi_error = MPI_Bcast(&natoms, 1, ELPH_MPI_ND_INT, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(phTensors_present, 3, MPI_C_BOOL, 0, Comm->commW);
     MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(lat_vec, 9, ELPH_MPI_float, 0, Comm->commW);
@@ -138,6 +155,39 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     for (int ix = 0; ix < 9; ++ix)
     {
         blat[ix] /= (2.0f * ELPH_PI);
+    }
+
+    // allocate and bcast dielectric, born charges, Quadrapoles (if present)
+    // Quadrapoles not supported yet
+    if (phTensors_present[0])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
+        }
+        mpi_error =
+            MPI_Bcast(phonon->epsilon, 9, ELPH_MPI_float, 0, Comm->commW);
+        MPI_error_msg(mpi_error);
+    }
+    if (phTensors_present[1])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->Zborn = malloc(9 * natoms * sizeof(*phonon->Zborn));
+        }
+        mpi_error = MPI_Bcast(phonon->Zborn, natoms * 9, ELPH_MPI_float, 0,
+                              Comm->commW);
+        MPI_error_msg(mpi_error);
+    }
+    if (phTensors_present[2])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->Qpole = malloc(27 * natoms * sizeof(*phonon->Qpole));
+        }
+        mpi_error = MPI_Bcast(phonon->Qpole, natoms * 27, ELPH_MPI_float, 0,
+                              Comm->commW);
+        MPI_error_msg(mpi_error);
     }
 
     // allocate memory for phonon symmetric matrices on rest of the cpus
