@@ -164,6 +164,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         if (Comm->commW_rank)
         {
             phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
+            CHECK_ALLOC(phonon->epsilon);
         }
         mpi_error =
             MPI_Bcast(phonon->epsilon, 9, ELPH_MPI_float, 0, Comm->commW);
@@ -174,6 +175,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         if (Comm->commW_rank)
         {
             phonon->Zborn = malloc(9 * natoms * sizeof(*phonon->Zborn));
+            CHECK_ALLOC(phonon->Zborn);
         }
         mpi_error = MPI_Bcast(phonon->Zborn, natoms * 9, ELPH_MPI_float, 0,
                               Comm->commW);
@@ -184,6 +186,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         if (Comm->commW_rank)
         {
             phonon->Qpole = malloc(27 * natoms * sizeof(*phonon->Qpole));
+            CHECK_ALLOC(phonon->Qpole);
         }
         mpi_error = MPI_Bcast(phonon->Qpole, natoms * 27, ELPH_MPI_float, 0,
                               Comm->commW);

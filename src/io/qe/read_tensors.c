@@ -61,7 +61,10 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
     if (epsilon_exists && Zeu_exists)
     {
         phonon->Zborn = malloc(9 * natom * sizeof(*phonon->Zborn));
+        CHECK_ALLOC(phonon->Zborn);
+
         phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
+        CHECK_ALLOC(phonon->epsilon);
         // read dielectric tensor
         tmp_str =
             ezxml_get(tensor_xml, "EF_TENSORS", 0, "DIELECTRIC_CONSTANT", -1)

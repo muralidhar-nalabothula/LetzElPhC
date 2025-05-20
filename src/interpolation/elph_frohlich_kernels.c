@@ -13,14 +13,16 @@
 #include "../common/numerical_func.h"
 #include "../elphC.h"
 
-static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
-                                  const ELPH_float* Zborn_k,
-                                  const ELPH_float* alpha,
-                                  const ELPH_float* tau_k, ELPH_cmplx* out_buf);
-
 static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* Zborn_k,
+                                  const ELPH_float* Qpole_k,
                                   const ELPH_float* epslion,
+                                  const ELPH_float* tau_k, ELPH_cmplx* out_buf);
+
+static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
+                                  const ELPH_float* Zborn_k,
+                                  const ELPH_float* Qpole_k,
+                                  const ELPH_float* alpha,
                                   const ELPH_float* tau_k, ELPH_cmplx* out_buf);
 
 // FIX ME : Allreduce call
@@ -57,11 +59,13 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
         elph_lr_out[i] = 0.0;
     }
 
-    if (!epslion || !Zeu)
+    if (!epslion)
     {
         return;
     }
 
+    // Note we called 2*pi in numerator with 2*pi comping from (q+G) vectors in
+    // denominators. so (q+G) much in the (2*pi) units
     ELPH_cmplx factor = 2.0 * I * ELPH_e2 / volume;  // prefactor
     ELPH_float eps_alpha[9];
 
@@ -79,7 +83,8 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
     for (ND_int ia = 0; ia < natom; ++ia)
     {
-        const ELPH_float* Z_k = Zeu + 9 * ia;
+        const ELPH_float* Z_k = Zeu ? (Zeu + 9 * ia) : NULL;
+        const ELPH_float* Q_k = Qpole ? (Qpole + 27 * ia) : NULL;
         const ELPH_float* tau_k = atom_pos + 3 * ia;
 
         ELPH_cmplx* out_tmp_buf = elph_lr_out + ia * 3;
@@ -97,12 +102,12 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
             if (diminsion == '3')
             {
-                frohlich_dip3D_kernel(qplusG, Z_k, eps_alpha, tau_k,
+                frohlich_dip3D_kernel(qplusG, Z_k, Q_k, eps_alpha, tau_k,
                                       out_tmp_buf);
             }
             else if (diminsion == '2')
             {
-                frohlich_dip2D_kernel(qplusG, Z_k, eps_alpha, tau_k,
+                frohlich_dip2D_kernel(qplusG, Z_k, Q_k, eps_alpha, tau_k,
                                       out_tmp_buf);
             }
         }
@@ -118,6 +123,7 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
 static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* Zborn_k,
+                                  const ELPH_float* Qpole_k,
                                   const ELPH_float* epslion,
                                   const ELPH_float* tau_k, ELPH_cmplx* out_buf)
 {
@@ -140,7 +146,7 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
     ELPH_cmplx qdot_tau =
         cexp(-2.0 * ELPH_PI * I * (dot3_macro(qplusG, tau_k)));
 
-    ELPH_float tmp_buf[3];
+    ELPH_float tmp_buf[3] = {0.0, 0.0, 0.0};
     // compute (q+G).eps.(q+G)
     MatVec3f(epslion, qplusG, false, tmp_buf);
     ELPH_float q_eps_q = dot3_macro(tmp_buf, qplusG);
@@ -148,14 +154,34 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
     qdot_tau /= q_eps_q;
 
     // compute (q+G).Z
-    MatVec3f(Zborn_k, qplusG, true, tmp_buf);
-
+    if (Zborn_k)
+    {
+        MatVec3f(Zborn_k, qplusG, true, tmp_buf);
+    }
+    // compute (q+G)_x Q_xyz * (q+G)_y
+    ELPH_float Qpole_buf[3] = {0.0, 0.0, 0.0};
+    if (Qpole_k)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                for (int k = 0; k < 3; ++k)
+                {
+                    Qpole_buf[k] =
+                        Qpole_buf[k] +
+                        qplusG[i] * qplusG[j] * Qpole_k[k + 3 * j + 9 * i];
+                }
+            }
+        }
+    }
     // compute and multiply with a decay factor
     qdot_tau *= exp(-q_eps_q * 0.25);
 
     for (int i = 0; i < 3; ++i)
     {
-        out_buf[i] = out_buf[i] + qdot_tau * tmp_buf[i];
+        out_buf[i] =
+            out_buf[i] + qdot_tau * (tmp_buf[i] - I * 0.5 * Qpole_buf[i]);
     }
 
     return;
@@ -163,6 +189,7 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
 
 static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* Zborn_k,
+                                  const ELPH_float* Qpole_k,
                                   const ELPH_float* alpha,
                                   const ELPH_float* tau_k, ELPH_cmplx* out_buf)
 {
@@ -199,7 +226,7 @@ static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
     ELPH_cmplx qdot_tau =
         cexp(-2.0 * ELPH_PI * I * (dot3_macro(qplusG, tau_k)));
 
-    ELPH_float tmp_buf[3];
+    ELPH_float tmp_buf[3] = {0.0, 0.0, 0.0};
     // compute (q+G).alpha.(q+G)
     MatVec3f(alpha, qplusG, false, tmp_buf);
     ELPH_float q_eps_q = dot3_macro(tmp_buf, qplusG);
@@ -207,14 +234,34 @@ static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
     qdot_tau = qdot_tau / (q_eps_q + qplusG_abs);
 
     // compute (q+G).Z
-    MatVec3f(Zborn_k, qplusG, true, tmp_buf);
-
+    if (Zborn_k)
+    {
+        MatVec3f(Zborn_k, qplusG, true, tmp_buf);
+    }
+    // compute (q+G)_x Q_xyz * (q+G)_y
+    ELPH_float Qpole_buf[3] = {0.0, 0.0, 0.0};
+    if (Qpole_k)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                for (int k = 0; k < 3; ++k)
+                {
+                    Qpole_buf[k] =
+                        Qpole_buf[k] +
+                        qplusG[i] * qplusG[j] * Qpole_k[k + 3 * j + 9 * i];
+                }
+            }
+        }
+    }
     // compute and multiply with a decay factor
     qdot_tau *= exp(-q_eps_q * 0.25);
 
     for (int i = 0; i < 3; ++i)
     {
-        out_buf[i] = out_buf[i] + qdot_tau * tmp_buf[i];
+        out_buf[i] =
+            out_buf[i] + qdot_tau * (tmp_buf[i] - I * 0.5 * Qpole_buf[i]);
     }
 
     return;
