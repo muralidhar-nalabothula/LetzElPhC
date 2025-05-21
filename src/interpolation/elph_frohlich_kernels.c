@@ -7,11 +7,13 @@
 #include <math.h>
 #include <string.h>
 
+#include "../common/ELPH_timers.h"
 #include "../common/constants.h"
 #include "../common/dtypes.h"
 #include "../common/error.h"
 #include "../common/numerical_func.h"
 #include "../elphC.h"
+#include "elph_lr_kernels.h"
 
 static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* Zborn_k,
@@ -25,7 +27,6 @@ static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
                                   const ELPH_float* alpha,
                                   const ELPH_float* tau_k, ELPH_cmplx* out_buf);
 
-// FIX ME : Allreduce call
 void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
                         const ND_int npw_loc, const ELPH_float* epslion,
                         const ELPH_float* Zeu, const ELPH_float* Qpole,
@@ -45,9 +46,11 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
     // note that in ca
     //
-    // Donot forget to allreduce the result.
+    // NOTE: Donot forget to allreduce the result over plane waves.
 
     // do a basic check
+    ELPH_start_clock("Frohlich lr part");
+
     if (diminsion == '2' && fabs(qpt[2]) > ELPH_EPS)
     {
         error_msg(
@@ -61,6 +64,7 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
     if (!epslion)
     {
+        ELPH_stop_clock("Frohlich lr part");
         return;
     }
 
@@ -117,6 +121,8 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
             out_tmp_buf[i] *= factor;
         }
     }
+
+    ELPH_stop_clock("Frohlich lr part");
 
     return;
 }

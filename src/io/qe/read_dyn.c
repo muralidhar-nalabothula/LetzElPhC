@@ -34,8 +34,6 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
 
     ND_int nq_found = 0;  // function return value
 
-    char* fgets_err;  // error code for fgets
-
     // First, open the file
     FILE* fp = fopen(dyn_file, "r");
     if (fp == NULL)

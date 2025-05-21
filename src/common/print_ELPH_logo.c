@@ -1,9 +1,13 @@
-#include "print_ELPH_logo.h"
-
 #include <stdio.h>
 
-void print_ELPH_logo(FILE* output)
+#include "print_info.h"
+
+void print_ELPH_logo(int mpi_rank, FILE* output)
 {
+    if (mpi_rank)
+    {
+        return;
+    }
     fprintf(output,
             "       */*                                                        "
             "    *+        \n");
@@ -40,4 +44,5 @@ void print_ELPH_logo(FILE* output)
     fprintf(output,
             "                    +/////*+          +**+           */////+      "
             "              \n");
+    fprintf(output, "\n\n");
 }

@@ -1,6 +1,10 @@
 #pragma once
+#include <stdio.h>
+
 #include "../elphC.h"
 #include "dtypes.h"
+
+void print_ELPH_logo(int mpi_rank, FILE* output);
 
 void print_info_msg(int mpi_rank, const char* fmt, ...);
 

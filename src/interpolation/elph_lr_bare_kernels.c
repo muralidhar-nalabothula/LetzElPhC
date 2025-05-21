@@ -7,13 +7,14 @@
 #include <math.h>
 #include <string.h>
 
+#include "../common/ELPH_timers.h"
 #include "../common/constants.h"
 #include "../common/dtypes.h"
 #include "../common/error.h"
 #include "../common/numerical_func.h"
 #include "../elphC.h"
+#include "elph_lr_kernels.h"
 
-// FIX ME Allreduce call
 void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
                     const ND_int npw_loc, const ELPH_float* Zatoms,
                     const ND_int natom, const ELPH_float* atom_pos,
@@ -32,7 +33,9 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
 
     // note that in ca
     //
-    // Donot forget to allreduce the result.
+    // NOTE: Donot forget to allreduce the result over plane waves.
+
+    ELPH_start_clock("Bare lr part");
 
     for (ND_int i = 0; i < (3 * natom); ++i)
     {
@@ -95,5 +98,6 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
         }
     }
 
+    ELPH_stop_clock("Bare lr part");
     return;
 }

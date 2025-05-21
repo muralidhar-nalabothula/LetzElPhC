@@ -58,10 +58,13 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
         epsilon_exists = true;
     }
 
-    if (epsilon_exists && Zeu_exists)
+    if (epsilon_exists)
     {
-        phonon->Zborn = malloc(9 * natom * sizeof(*phonon->Zborn));
-        CHECK_ALLOC(phonon->Zborn);
+        if (Zeu_exists)
+        {
+            phonon->Zborn = malloc(9 * natom * sizeof(*phonon->Zborn));
+            CHECK_ALLOC(phonon->Zborn);
+        }
 
         phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
         CHECK_ALLOC(phonon->epsilon);
@@ -75,21 +78,26 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
             error_msg("Parsing epsilon failed");
         }
         // read effective charges
-        tmp_str =
-            ezxml_get(tensor_xml, "EF_TENSORS", 0, "EFFECTIVE_CHARGES_EU", -1)
-                ->txt;
-        if (parser_doubles_from_string(tmp_str, phonon->Zborn) != 9 * natom)
+        if (Zeu_exists)
         {
-            error_msg("Parsing Born charges failed");
+            tmp_str = ezxml_get(tensor_xml, "EF_TENSORS", 0,
+                                "EFFECTIVE_CHARGES_EU", -1)
+                          ->txt;
+            if (parser_doubles_from_string(tmp_str, phonon->Zborn) != 9 * natom)
+            {
+                error_msg("Parsing Born charges failed");
+            }
         }
-
         // transpose epsilon and born charges as they are stored in transpose
         // order
         transpose3x3f_inplace(phonon->epsilon);
 
-        for (ND_int ia = 0; ia < natom; ++ia)
+        if (Zeu_exists)
         {
-            transpose3x3f_inplace(phonon->Zborn + 9 * ia);
+            for (ND_int ia = 0; ia < natom; ++ia)
+            {
+                transpose3x3f_inplace(phonon->Zborn + 9 * ia);
+            }
         }
     }
     else
