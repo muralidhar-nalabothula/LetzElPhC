@@ -94,7 +94,7 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
         // multiply with prefactor
         for (int i = 0; i < 3; ++i)
         {
-            out_tmp_buf[i] *= factor * Z_k;
+            out_tmp_buf[i] *= (factor * Z_k);
         }
     }
 
