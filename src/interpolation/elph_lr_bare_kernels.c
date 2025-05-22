@@ -59,7 +59,7 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
             ELPH_float qplusG[3];
             for (int i = 0; i < 3; ++i)
             {
-                qplusG[i] = qpt[i] + gtmp[i];
+                qplusG[i] = 2.0 * ELPH_PI * (qpt[i] + gtmp[i]);
             }
 
             ELPH_float qplusG_abs2 = dot3_macro(qplusG, qplusG);
@@ -79,8 +79,7 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
             }
 
             // struture factor and multiply with cutoff factor
-            ELPH_cmplx qdot_tau =
-                cexp(-2.0 * ELPH_PI * I * (dot3_macro(qplusG, tau_k)));
+            ELPH_cmplx qdot_tau = cexp(-I * (dot3_macro(qplusG, tau_k)));
 
             // compute and multiply with a decay factor
             qdot_tau *= exp(-qplusG_abs2 * 0.25);

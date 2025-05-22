@@ -68,9 +68,7 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
         return;
     }
 
-    // Note we called 2*pi in numerator with 2*pi comping from (q+G) vectors in
-    // denominators. so (q+G) much in the (2*pi) units
-    ELPH_cmplx factor = 2.0 * I * ELPH_e2 / volume;  // prefactor
+    ELPH_cmplx factor = 4.0 * ELPH_PI * I * ELPH_e2 / volume;  // prefactor
     ELPH_float eps_alpha[9];
 
     memcpy(eps_alpha, epslion, sizeof(eps_alpha));
@@ -101,7 +99,7 @@ void frohlich_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
             ELPH_float qplusG[3];
             for (int i = 0; i < 3; ++i)
             {
-                qplusG[i] = qpt[i] + gtmp[i];
+                qplusG[i] = 2 * ELPH_PI * (qpt[i] + gtmp[i]);
             }
 
             if (diminsion == '3')
@@ -139,7 +137,7 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
     // approximate the bracket <K+q,n|e^{(q+G)ir}|k,m> = \delta_{nm}
 
     // tau_k are atomic coordinates of atom k in cart
-    // q+G in cart ,
+    // q+G in cart with 2*pi included ,
     // Zborn_k, born charges for atom k
 
     if (sqrt(dot3_macro(qplusG, qplusG)) < ELPH_EPS)
@@ -149,8 +147,7 @@ static void frohlich_dip3D_kernel(const ELPH_float* qplusG,
     }
 
     // struture factor
-    ELPH_cmplx qdot_tau =
-        cexp(-2.0 * ELPH_PI * I * (dot3_macro(qplusG, tau_k)));
+    ELPH_cmplx qdot_tau = cexp(-I * (dot3_macro(qplusG, tau_k)));
 
     ELPH_float tmp_buf[3] = {0.0, 0.0, 0.0};
     // compute (q+G).eps.(q+G)
@@ -204,7 +201,7 @@ static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
     // approximate the bracket <K+q,n|e^{(q+G)ir}|k,m> = \delta_{nm}
 
     // tau_k are atomic coordinates of atom k in cart
-    // q+G in cart ,
+    // q+G in cart with 2*pi included ,
     // Zborn_k, born charges for atom k
     // alpha = c/2 * (epslion-1)
     //
@@ -229,8 +226,7 @@ static void frohlich_dip2D_kernel(const ELPH_float* qplusG,
     }
 
     // struture factor
-    ELPH_cmplx qdot_tau =
-        cexp(-2.0 * ELPH_PI * I * (dot3_macro(qplusG, tau_k)));
+    ELPH_cmplx qdot_tau = cexp(-I * (dot3_macro(qplusG, tau_k)));
 
     ELPH_float tmp_buf[3] = {0.0, 0.0, 0.0};
     // compute (q+G).alpha.(q+G)

@@ -68,7 +68,7 @@ void compute_and_write_elph_lr(int ncid, const struct WFC* wfcs,
         Zvals[ia] = pseudo->loc_pseudo[itype].Zval;
     }
 
-    // start the progress bar for dmats
+    // start the progress bar
     struct progress_bar pbar[1];
     start_progressbar(pbar, Comm->commW_rank, nkpts_loc);
 
