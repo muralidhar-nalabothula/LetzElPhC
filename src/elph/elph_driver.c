@@ -307,14 +307,6 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 
     free(eig_Sq);
 
-    // finally compute the long range part of el-ph for interpolation
-    print_info_msg(mpi_comms->commW_rank,
-                   "=== Computing Long range part for interpolation ===");
-    //
-    compute_and_write_elph_lr(ncid_elph, wfcs, lattice, pseudo, phonon,
-                              kernel->screening != ELPH_DFPT_SCREENING,
-                              mpi_comms);
-
     if (mpi_comms->commK_rank == 0)
     {
         // close files

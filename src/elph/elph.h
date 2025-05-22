@@ -23,12 +23,6 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
                              const struct symmetry* sym_data,
                              const struct ELPH_MPI_Comms* Comm);
 
-void compute_and_write_elph_lr(int ncid, const struct WFC* wfcs,
-                               const struct Lattice* lattice,
-                               const struct Pseudo* pseudo,
-                               struct Phonon* phonon, bool is_bare,
-                               const struct ELPH_MPI_Comms* Comm);
-
 void init_kernel(struct kernel_info* kernel);
 
 void set_kernel(const char* kernel_str, struct kernel_info* kernel);
