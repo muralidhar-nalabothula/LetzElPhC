@@ -6,6 +6,7 @@
 
 #include "../common/dtypes.h"
 #include "../common/error.h"
+#include "../common/numerical_func.h"
 #include "../common/parallel.h"
 #include "../common/progess_bar.h"
 #include "../elphC.h"
@@ -79,7 +80,11 @@ void compute_and_write_elph_lr(int ncid, const struct WFC* wfcs,
         //
         const ELPH_float* gvec = wfcs[ikibz].gvec;
         const ND_int npw_loc = wfcs[ikibz].npw_loc;
-        const ELPH_float* qpt = lattice->kpt_fullBZ + 3 * ikBZ;
+        const ELPH_float* qpt_tmp = lattice->kpt_fullBZ_crys + 3 * ikBZ;
+        ELPH_float qpt[3];
+        // bring to first BZ. This is very important !
+        bring_to_1st_BZ(qpt_tmp, lattice->blat_vec, false, qpt);
+        // qpt here is in cart units
         //
         if (is_bare)
         {

@@ -34,6 +34,10 @@ void bare_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvec,
     // note that in ca
     //
     // NOTE: Donot forget to allreduce the result over plane waves.
+    /*
+     * NM : An important thing to note is that the qpt must be in first BZ i.e
+     * with least norm. This is important because we set (q+G)->0
+     * */
 
     ELPH_start_clock("Bare lr part");
 

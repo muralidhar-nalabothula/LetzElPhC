@@ -8,6 +8,7 @@ These functions are called with high frequency, so need a good optimization
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../elphC.h"
 #include "constants.h"
@@ -534,4 +535,49 @@ void swap_floats(ELPH_float* a, ELPH_float* b)
     const ELPH_float c = *b;
     *b = *a;
     *a = c;
+}
+
+void bring_to_1st_BZ(const ELPH_float* kvec_in_crys, const ELPH_float* blat,
+                     const bool out_in_crys, ELPH_float* restrict kvec_out)
+{
+    /*
+     * Brings a kvector inside first brillioun zone by minimizing the norm.
+     * kvec_in_crys (3) is kvec in crystal cocorindates
+     * blat. reciprocal lat vectors. bi = blat[:,i]
+     * out_in_crys is true then kvec_out is in crystal coordiantes else in cart
+     * */
+    ELPH_float ktmp[3];
+    MatVec3f(blat, kvec_in_crys, false, ktmp);
+    ELPH_float norm = sqrt(dot3_macro(ktmp, ktmp));
+    //
+    for (int i = -3; i < 4; ++i)
+    {
+        for (int j = -3; j < 4; ++j)
+        {
+            for (int k = -3; k < 4; ++k)
+            {
+                ktmp[0] = kvec_in_crys[0] - i - floor(kvec_in_crys[0]);
+                ktmp[1] = kvec_in_crys[1] - j - floor(kvec_in_crys[1]);
+                ktmp[2] = kvec_in_crys[2] - k - floor(kvec_in_crys[2]);
+                //
+                ELPH_float out_tmp[3];
+                MatVec3f(blat, ktmp, false, out_tmp);
+                //
+                ELPH_float norm_tmp = sqrt(dot3_macro(out_tmp, out_tmp));
+                //
+                if (norm_tmp < norm)
+                {
+                    norm = norm_tmp;
+                    if (out_in_crys)
+                    {
+                        memcpy(kvec_out, ktmp, sizeof(ktmp));
+                    }
+                    else
+                    {
+                        memcpy(kvec_out, out_tmp, sizeof(out_tmp));
+                    }
+                }
+            }
+        }
+    }
 }

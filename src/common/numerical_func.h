@@ -61,6 +61,9 @@ ND_int get_miller_idx(ND_int idx_in, ND_int FFT_dimension);
 void swap_ints(int* a, int* b);
 void swap_floats(ELPH_float* a, ELPH_float* b);
 
+void bring_to_1st_BZ(const ELPH_float* kvec_in_crys, const ELPH_float* blat,
+                     const bool out_in_crys, ELPH_float* restrict kvec_out);
+
 /* spline.c*/
 // spline interpolation functions
 ELPH_float spline_interpolate(const ELPH_float x, ND_int inear,
