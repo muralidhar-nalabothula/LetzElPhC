@@ -433,6 +433,23 @@ void create_ph_save_dir_pp_qe(const char* inp_file)
         }
     }
 
+    // 6) copy tensors.xml
+    snprintf(dest_file_tmp, PH_X_INP_READ_BUF_SIZE, "%s.phsave", scf_prefix);
+
+    cwk_path_join_multiple(
+        (const char*[]){out_dir, "_ph0", dest_file_tmp, "tensors.xml", NULL},
+        src_file_tmp, PH_X_INP_READ_BUF_SIZE);
+
+    cwk_path_join_multiple(
+        (const char*[]){PH_SAVE_DIR_NAME, "tensors.xml", NULL}, dest_file_tmp,
+        PH_X_INP_READ_BUF_SIZE);
+
+    if (0 != copy_files(src_file_tmp, dest_file_tmp))
+    {
+        printf("Warning : No tensors.xml found (or) error copying file %s.\n",
+               src_file_tmp);
+    }
+
     free(read_buf);
     free(inputs_vals);
 }
