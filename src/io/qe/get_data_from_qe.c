@@ -78,6 +78,8 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 
     ELPH_float* ph_sym_mats = NULL;
     ELPH_float* ph_sym_tau = NULL;
+    bool* ph_trevs = NULL;
+    bool ph_mag_symm = false;
 
     phonon->Zborn = NULL;
     phonon->epsilon = NULL;
@@ -92,8 +94,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
                       temp_str_len);
         parse_qexml(tmp_buffer, &natoms, lat_vec, alat, &lattice->dimension,
                     &lattice->is_soc_present, &lattice->nmag, lattice->fft_dims,
-                    &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_tim_rev,
-                    &PSEUDO_DIR, pseudo_pots);
+                    &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_trevs,
+                    &ph_mag_symm, &ph_tim_rev, &PSEUDO_DIR, pseudo_pots);
+
         // free pseudo pots, no longer need
         free(PSEUDO_DIR);
         PSEUDO_DIR = NULL;
@@ -148,6 +151,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(&ph_tim_rev, 1, MPI_C_BOOL, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(&ph_mag_symm, 1, MPI_C_BOOL, 0, Comm->commW);
     MPI_error_msg(mpi_error);
 
     ELPH_float blat[9];
@@ -207,11 +213,13 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     {
         for (ND_int isym = 0; isym < phonon->nph_sym; ++isym)
         {
-            // Note we also fill the second half but are only used when tim_rev
-            // is present
+            // Note we also fill the second half but are only used when nmag ==
+            // 1 is present
             ELPH_float* sym_tmp = ph_sym_mats + isym * 9;
             ELPH_float* sym_tmp_trev =
                 ph_sym_mats + (isym + phonon->nph_sym) * 9;
+
+            bool isym_trev = ph_trevs[isym];
 
             // It should be noted that we use Sx + v convention, but qe uses
             // S(x+v) so our v = S*tau_qe
@@ -227,6 +235,10 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 
             for (int ix = 0; ix < 9; ++ix)
             {
+                if (isym_trev)
+                {
+                    sym_tmp[ix] = -sym_tmp[ix];
+                }
                 if (fabs(sym_tmp[ix]) < ELPH_EPS)
                 {
                     sym_tmp[ix] = fabs(sym_tmp[ix]);
@@ -240,7 +252,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
             // compute S*tau
             MatVec3f(sym_tmp, vec_tmp_trev, false, vec_tmp);
             // we also negate the frac .tras. vec (just a convention used in
-            // this code)
+            // this code). THis is aleady done when we do S*tau if S is timerev.
+            // as S already contained -negation.
+            // if not the trev counterpart in nmag == 1 case must be reversed
             for (int ix = 0; ix < 3; ++ix)
             {
                 vec_tmp_trev[ix] = -vec_tmp[ix];
@@ -248,20 +262,20 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 
             memcpy(phonon->ph_syms[isym].Rmat, sym_tmp, sizeof(ELPH_float) * 9);
             memcpy(phonon->ph_syms[isym].tau, vec_tmp, sizeof(ELPH_float) * 3);
-            phonon->ph_syms[isym].time_rev = false;
+            phonon->ph_syms[isym].time_rev = isym_trev;
 
             memcpy(phonon->ph_syms[isym + phonon->nph_sym].Rmat, sym_tmp_trev,
                    sizeof(ELPH_float) * 9);
             memcpy(phonon->ph_syms[isym + phonon->nph_sym].tau, vec_tmp_trev,
                    sizeof(ELPH_float) * 3);
-            phonon->ph_syms[isym + phonon->nph_sym].time_rev = true;
+            phonon->ph_syms[isym + phonon->nph_sym].time_rev = !isym_trev;
         }
     }
 
     /* In case of time reversal symmetry :
      we double the number of symmetries and also use the second half of the
      symmetries */
-    if (ph_tim_rev)
+    if (ph_tim_rev && !ph_mag_symm)
     {
         phonon->nph_sym *= 2;
     }
@@ -269,6 +283,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     // bcast symetries
     Bcast_symmetries(phonon->nph_sym, phonon->ph_syms, 0, Comm->commW);
 
+    free(ph_trevs);
     free(ph_sym_mats);
     free(ph_sym_tau);
     free(tmp_buffer);
