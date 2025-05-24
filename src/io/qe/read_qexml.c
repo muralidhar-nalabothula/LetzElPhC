@@ -214,8 +214,6 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     if (lsda)
     {
         *nmag = 2;
-        // NM : This is can be changed later in this function for nmag == 2/4.
-        *ph_tim_rev = false;
     }
     else
     {
@@ -258,8 +256,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
         if (mag_system)
         {
-            // NM : This is can be changed later in this function for nmag ==
-            // 2/4.
+            // NM : This is can be changed later in this function
             *ph_tim_rev = false;
         }
     }
@@ -418,7 +415,10 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     // non mangetic materials.
     if (inversion_sym && !mag_sym_found)
     {
-        *ph_tim_rev = false;
+        if (*ph_tim_rev)
+        {
+            *ph_tim_rev = false;
+        }
     }
 
     free(tmp_read);
