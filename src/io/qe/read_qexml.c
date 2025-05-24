@@ -284,10 +284,17 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     *ph_sym_tau = malloc(sizeof(ELPH_float) * 3 * 2 * (*nph_sym));
     CHECK_ALLOC(*ph_sym_tau);
 
-    *ph_trevs = malloc(2 * (*nph_sym) * sizeof(bool));
+    *ph_trevs = calloc(2 * (*nph_sym), sizeof(bool));
     CHECK_ALLOC(*ph_trevs);
-
     bool* trev_ptr = *ph_trevs;
+
+    for (ND_int isym = 0; isym < 2 * (*nph_sym); ++isym)
+    {
+        // a  smart compiller will remove this loop.
+        // but lets stick to standard and leave these to compilers
+        trev_ptr[isym] = false;
+    }
+
     bool inversion_sym = false;
     bool mag_sym_found = false;
 
@@ -322,22 +329,25 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
                 "Error parsing frac. trans. vecs from data-file-schema.xml");
         }
         // check if this symmetry corresponds to time_reversal symmetry for nmag
-        // == 2/4
+        // == 4
         const char* trev_tmp_str =
             ezxml_attr(ezxml_get(sym_xml_tmp, "symmetry", isym, "info", -1),
                        "time_reversal");
-        strcpy(tmp_read, trev_tmp_str);
-        lowercase_str(tmp_read);
+        if (trev_tmp_str)
+        {
+            strcpy(tmp_read, trev_tmp_str);
+            lowercase_str(tmp_read);
 
-        if (strstr(tmp_read, "true"))
-        {
-            mag_sym_found = true;
-            *ph_tim_rev = true;
-            trev_ptr[isym] = true;
-        }
-        else
-        {
-            trev_ptr[isym] = false;
+            if (strstr(tmp_read, "true"))
+            {
+                mag_sym_found = true;
+                *ph_tim_rev = true;
+                trev_ptr[isym] = true;
+            }
+            else
+            {
+                trev_ptr[isym] = false;
+            }
         }
         //
 
@@ -415,10 +425,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     // non mangetic materials.
     if (inversion_sym && !mag_sym_found)
     {
-        if (*ph_tim_rev)
-        {
-            *ph_tim_rev = false;
-        }
+        *ph_tim_rev = false;
     }
 
     free(tmp_read);
