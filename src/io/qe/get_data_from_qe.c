@@ -213,8 +213,8 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     {
         for (ND_int isym = 0; isym < phonon->nph_sym; ++isym)
         {
-            // Note we also fill the second half but are only used when nmag ==
-            // 1 is present
+            // Note we also fill the second half but are only used when no
+            // magnetic symmetries and inversion are present
             ELPH_float* sym_tmp = ph_sym_mats + isym * 9;
             ELPH_float* sym_tmp_trev =
                 ph_sym_mats + (isym + phonon->nph_sym) * 9;
@@ -252,9 +252,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
             // compute S*tau
             MatVec3f(sym_tmp, vec_tmp_trev, false, vec_tmp);
             // we also negate the frac .tras. vec (just a convention used in
-            // this code). THis is aleady done when we do S*tau if S is timerev.
-            // as S already contained -negation.
-            // if not the trev counterpart in nmag == 1 case must be reversed
+            // this code) for time reversal symmetry. THis is aleady done when
+            // we do S*tau if S is timerev. as S already contained -negation.
+            // The trev counterpart case must be reversed
             for (int ix = 0; ix < 3; ++ix)
             {
                 vec_tmp_trev[ix] = -vec_tmp[ix];

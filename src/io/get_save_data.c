@@ -45,20 +45,10 @@ static void get_wfc_from_save(ND_int spin_stride_len, ND_int ik, ND_int nkiBZ,
 
 static void free_phonon_data(struct Phonon* phonon);
 
+static inline ND_int get_wf_io_pool(ND_int ik, ND_int q, ND_int r);
+
 static bool check_ele_in_array(ND_int* arr_in, ND_int nelements,
-                               ND_int check_ele)
-{
-    bool found = false;
-    for (int ii = 0; ii < nelements; ++ii)
-    {
-        if (arr_in[ii] == check_ele)
-        {
-            found = true;
-            break;
-        }
-    }
-    return found;
-}
+                               ND_int check_ele);
 
 /* Function body */
 void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
@@ -550,7 +540,13 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
     MPI_error_msg(mpi_error);
 
     // We read the wfcs from one k pool and then broad cast them over rest of
-    // the pools
+    // the pools. different pools read different wfcs
+    // NOte if we change how we divided them here, also edit the get_wf_io_pool
+    // function accordingly. better not to touch the distribution.
+    ND_int total_kpools = Comm->nkpools * Comm->nqpools;
+    ND_int q_kpool_read = nibz / total_kpools;
+    ND_int r_kpool_read = nibz % total_kpools;
+    //
     for (ND_int ik = 0; ik < nibz; ++ik)
     {
         /*set total pws */
@@ -577,7 +573,9 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
         // (nspin, bands, nspinor, npw)
         // only one K pool must read the wfc, we then bcast to rest of the k
         // pools
-        if (Comm->commR_rank == 0)
+        // The pool read this wfc is given by
+        ND_int ipool_iibz = get_wf_io_pool(ik, q_kpool_read, r_kpool_read);
+        if (Comm->commR_rank == ipool_iibz)
         {
             get_wfc_from_save(spin_stride_len, ik, nibz, lattice->nspin,
                               lattice->nspinor, lattice->start_band,
@@ -585,11 +583,6 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
                               temp_str, temp_str_len, (wfc_temp + ik)->wfc,
                               Comm->commK);
         }
-        // Bcast the wfc
-        mpi_error =
-            MPI_Bcast((wfc_temp + ik)->wfc, lattice->nspin * spin_stride_len,
-                      ELPH_MPI_cmplx, 0, Comm->commR);
-        MPI_error_msg(mpi_error);
 
         /* initiate, allocate and load Fk (Kleinbylander Coefficients)*/
         //(nltimesj, ntype, npw_loc)
@@ -603,7 +596,7 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
         cwk_path_join(SAVEdir, small_buf, temp_str, temp_str_len);
 
         /* Abinit has a aditional spin dimension instead of 2*n projectors */
-        if (Comm->commR_rank == 0)
+        if (Comm->commR_rank == ipool_iibz)
         {
             if ((retval = nc_open_par(temp_str, NC_NOWRITE, Comm->commK,
                                       MPI_INFO_NULL, &ppid)))
@@ -623,13 +616,31 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
                 ERR(retval);
             }
         }
-        // broadcast
+    }
+    //
+    //
+    // Now we broad cast wfcs to all pools
+    //
+    for (ND_int ik = 0; ik < nibz; ++ik)
+    {
+        ND_int ipool_iibz = get_wf_io_pool(ik, q_kpool_read, r_kpool_read);
+
+        ND_int pw_this_cpu = (wfc_temp + ik)->npw_loc;
+        ND_int spin_stride_len =
+            lattice->nbnds * lattice->nspinor * pw_this_cpu;
+        // Bcast the wfc
+        mpi_error =
+            MPI_Bcast((wfc_temp + ik)->wfc, lattice->nspin * spin_stride_len,
+                      ELPH_MPI_cmplx, ipool_iibz, Comm->commR);
+        MPI_error_msg(mpi_error);
+
+        // broadcast kb projector
         mpi_error = MPI_Bcast((wfc_temp + ik)->Fk,
                               pseudo->nltimesj * pseudo->ntype * pw_this_cpu,
-                              ELPH_MPI_float, 0, Comm->commR);
+                              ELPH_MPI_float, ipool_iibz, Comm->commR);
         MPI_error_msg(mpi_error);
     }
-    // MPI_Barrier(Comm->commW);
+    //
     /* Free temp gvec arrays */
     free(totalGvecs);
     free(Gvecidxs);
@@ -914,5 +925,35 @@ static void quick_read_sub(const int ncid, char* var_name, const size_t* startp,
     if ((retval = nc_get_vara(ncid, varid, startp, countp, data_out)))
     {
         ERR(retval);  // get data in floats
+    }
+}
+
+static bool check_ele_in_array(ND_int* arr_in, ND_int nelements,
+                               ND_int check_ele)
+{
+    bool found = false;
+    for (int ii = 0; ii < nelements; ++ii)
+    {
+        if (arr_in[ii] == check_ele)
+        {
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
+static inline ND_int get_wf_io_pool(ND_int ik, ND_int q, ND_int r)
+{
+    // a tiny helper function to find which pool should read the wfc
+    // We donot do any checks ik in [0,n)
+    ND_int offset = r * (q + 1);
+    if (ik < offset)
+    {
+        return ik / (q + 1);
+    }
+    else
+    {
+        return (ik - r) / q;
     }
 }
