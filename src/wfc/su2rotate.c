@@ -11,7 +11,7 @@ This function rotates the wave-function in spin space
 #include "wfc.h"
 
 void su2rotate(const int nspinor, const ND_int npw, const ND_int nsets,
-               const ELPH_cmplx* restrict su2mat, ELPH_cmplx* restrict wfc)
+               const ELPH_cmplx* su2mat, ELPH_cmplx* wfc)
 {
     /*
     \sum_j su_ij *wfc_njG -> wfc_niG
@@ -27,8 +27,8 @@ void su2rotate(const int nspinor, const ND_int npw, const ND_int nsets,
 
     for (ND_int iset = 0; iset < nsets; ++iset)
     {
-        ELPH_cmplx* restrict wfc_up = wfc + iset * stride_wfc;
-        ELPH_cmplx* restrict wfc_dw = wfc + iset * stride_wfc + npw;
+        ELPH_cmplx* wfc_up = wfc + iset * stride_wfc;
+        ELPH_cmplx* wfc_dw = wfc + iset * stride_wfc + npw;
 
         ELPH_OMP_PAR_FOR_SIMD
         for (ND_int ipw = 0; ipw < npw; ++ipw)

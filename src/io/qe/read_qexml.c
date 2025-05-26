@@ -17,11 +17,12 @@ This file contains function that parses data-file-schema.xml file
 
 #define ELPH_XML_READ_LINE_SIZE 1000
 
-void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
-                 char* dim, bool* is_soc_present, ND_int* nmag,
-                 ND_int* fft_dims, ND_int* nph_sym, ELPH_float** ph_sym_mats,
-                 ELPH_float** ph_sym_tau, bool* ph_tim_rev, char** pseudo_dir,
-                 char*** pseudo_pots)
+void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
+                 ELPH_float* alat, char* dim, bool* is_soc_present,
+                 ND_int* nmag, ND_int* fft_dims, ND_int* nph_sym,
+                 ELPH_float** ph_sym_mats, ELPH_float** ph_sym_tau,
+                 bool** ph_trevs, bool* ph_mag_symm, bool* ph_tim_rev,
+                 char** pseudo_dir, char*** pseudo_pots)
 {
     /*
     get pseudo potential information, fft information from xml file
@@ -111,6 +112,10 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
         strcpy(pot_tmp[itype], tmp_str);
     }
 
+    // get number of atoms
+    *natoms = atoll(ezxml_attr(
+        ezxml_get(qexml, "output", 0, "atomic_structure", -1), "nat"));
+    //
     // get alat
     alat[0] = atof(ezxml_attr(
         ezxml_get(qexml, "output", 0, "atomic_structure", -1), "alat"));
@@ -251,6 +256,7 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
 
         if (mag_system)
         {
+            // NM : This is can be changed later in this function
             *ph_tim_rev = false;
         }
     }
@@ -263,16 +269,34 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
 
     // create a temp buffers for reading
     // we create 2*nph_sym sets of symmetries (factor 2 to store the time rev
-    // case) Note: the second half([nph_sym:]) are only used when time reversal
-    // is present and these are not computed in this function. but we allocate
+    // case) The second half is used as temporary buffer
+    // and also to store time_rev symmetries in nmag == 1 case
+    // Note: the second half([nph_sym:]) are only used when nmag == 1
+    // and these are not computed in this function. but we allocate
     // the storage
+    //
+    // in case of nmag == 2 or nmag == 4, we donot have a pure time reversal
+    // symmetry but we can have a rotation + time rev
+    //
     *ph_sym_mats = malloc(sizeof(ELPH_float) * 3 * 3 * 2 * (*nph_sym));
     CHECK_ALLOC(*ph_sym_mats);
 
     *ph_sym_tau = malloc(sizeof(ELPH_float) * 3 * 2 * (*nph_sym));
     CHECK_ALLOC(*ph_sym_tau);
 
+    *ph_trevs = calloc(2 * (*nph_sym), sizeof(bool));
+    CHECK_ALLOC(*ph_trevs);
+    bool* trev_ptr = *ph_trevs;
+
+    for (ND_int isym = 0; isym < 2 * (*nph_sym); ++isym)
+    {
+        // a  smart compiller will remove this loop.
+        // but lets stick to standard and leave these to compilers
+        trev_ptr[isym] = false;
+    }
+
     bool inversion_sym = false;
+    bool mag_sym_found = false;
 
     ELPH_float I3x3[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
     for (ND_int isym = 0; isym < *nph_sym; ++isym)
@@ -304,6 +328,28 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
             error_msg(
                 "Error parsing frac. trans. vecs from data-file-schema.xml");
         }
+        // check if this symmetry corresponds to time_reversal symmetry for nmag
+        // == 4
+        const char* trev_tmp_str =
+            ezxml_attr(ezxml_get(sym_xml_tmp, "symmetry", isym, "info", -1),
+                       "time_reversal");
+        if (trev_tmp_str)
+        {
+            strcpy(tmp_read, trev_tmp_str);
+            lowercase_str(tmp_read);
+
+            if (strstr(tmp_read, "true"))
+            {
+                mag_sym_found = true;
+                *ph_tim_rev = true;
+                trev_ptr[isym] = true;
+            }
+            else
+            {
+                trev_ptr[isym] = false;
+            }
+        }
+        //
 
         // check if inversion is present
         ELPH_float sum = 0;
@@ -320,8 +366,64 @@ void parse_qexml(const char* xml_file, ELPH_float* lat_vec, ELPH_float* alat,
         }
     }
 
-    // set time reversal to false if inversion is present (no longer needed)
-    if (inversion_sym)
+    // incase magnetic symmetries found, we need to rearrange the symmetries and
+    // push back
+    if (mag_sym_found)
+    {
+        // send all timerev symmetries to end
+        // first make a temporary copy
+        ELPH_float* sym_src_ptr = *ph_sym_mats + (*nph_sym) * 9;
+        ELPH_float* sym_des_ptr = *ph_sym_mats;
+        memcpy(sym_src_ptr, sym_des_ptr, sizeof(ELPH_float) * 9 * (*nph_sym));
+
+        ELPH_float* tau_src_ptr = *ph_sym_tau + (*nph_sym) * 3;
+        ELPH_float* tau_des_ptr = *ph_sym_tau;
+        memcpy(tau_src_ptr, tau_des_ptr, sizeof(ELPH_float) * 3 * (*nph_sym));
+
+        bool* trev_src_ptr = *ph_trevs + (*nph_sym);
+        bool* trev_des_ptr = *ph_trevs;
+        memcpy(trev_src_ptr, trev_des_ptr, sizeof(bool) * (*nph_sym));
+
+        ND_int t_sym_copiled = 0;
+        ND_int n_sym_copiled = 0;
+
+        if (*nph_sym % 2)
+        {
+            error_msg("Wrong number of symmetries");
+        }
+        for (ND_int isym = 0; isym < *nph_sym; ++isym)
+        {
+            ND_int dest_shift = 0;
+            if (trev_src_ptr[isym])
+            {
+                dest_shift = (*nph_sym) / 2 + t_sym_copiled;
+                ++t_sym_copiled;
+            }
+            else
+            {
+                dest_shift = n_sym_copiled;
+                ++n_sym_copiled;
+            }
+            ELPH_float* sym_src_ptr_tmp = sym_src_ptr + 9 * isym;
+            ELPH_float* sym_des_ptr_tmp = sym_des_ptr + 9 * dest_shift;
+            memcpy(sym_des_ptr_tmp, sym_src_ptr_tmp, sizeof(ELPH_float) * 9);
+
+            ELPH_float* tau_src_ptr_tmp = tau_src_ptr + 3 * isym;
+            ELPH_float* tau_des_ptr_tmp = tau_des_ptr + 3 * dest_shift;
+            memcpy(tau_des_ptr_tmp, tau_src_ptr_tmp, sizeof(ELPH_float) * 3);
+
+            trev_des_ptr[dest_shift] = trev_src_ptr[isym];
+        }
+        if (t_sym_copiled != n_sym_copiled)
+        {
+            error_msg("Wrong number of symmetries");
+        }
+    }
+
+    *ph_mag_symm = mag_sym_found;
+    // set time reversal to false if inversion is present (no longer needed) for
+    // non mangetic materials.
+    if (inversion_sym && !mag_sym_found)
     {
         *ph_tim_rev = false;
     }

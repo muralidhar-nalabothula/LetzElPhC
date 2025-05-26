@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 try:
     from scipy.spatial import cKDTree
 except:
-    from scipy.spatial import KDTree
+    from scipy.spatial import KDTree as cKDTree
 
 
 rtol_elph = 1e-04  # relative tolerence used in allclose

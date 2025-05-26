@@ -15,7 +15,7 @@
 
 void elph_q_rotate(const ELPH_cmplx* Dmats_l, const ELPH_cmplx* elph_mat_q,
                    const ELPH_cmplx* Dmats_r, const struct Lattice* lattice,
-                   const bool tim_rev, ELPH_cmplx* restrict elph_mat_Sq)
+                   const bool tim_rev, ELPH_cmplx* elph_mat_Sq)
 {
     /*
     WARNING !! : Dmats must be for S symmetry and not for S^-1

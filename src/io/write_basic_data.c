@@ -157,4 +157,59 @@ void write_basic_data(const int ncid, struct Lattice* lattice,
 
     free(symm_mats);
     free(tau_vecs);
+
+    //
+    ELPH_float* tmp_buf = calloc(27 * lattice->natom, sizeof(*tmp_buf));
+    CHECK_ALLOC(tmp_buf);
+    //
+    for (ND_int i = 0; i < (27 * lattice->natom); ++i)
+    {
+        tmp_buf[i] = 0.0;
+    }
+
+    // write dielectric tensor
+    def_ncVar(ncid, &varid, 2, ELPH_NC4_IO_FLOAT, (ND_int[]){3, 3}, "epsilon",
+              (char*[]){"pol", "pol"}, NULL);
+    //
+    ELPH_float* write_tensor_buf = tmp_buf;
+    if (phonon->epsilon)
+    {
+        write_tensor_buf = phonon->epsilon;
+    }
+    if ((nc_err = nc_put_var(ncid, varid, write_tensor_buf)))
+    {
+        ERR(nc_err);
+    }
+
+    // write born charges
+    def_ncVar(ncid, &varid, 3, ELPH_NC4_IO_FLOAT,
+              (ND_int[]){lattice->natom, 3, 3}, "Born_charges",
+              (char*[]){"natoms", "pol", "pol"}, NULL);
+    //
+    write_tensor_buf = tmp_buf;
+    if (phonon->Zborn)
+    {
+        write_tensor_buf = phonon->Zborn;
+    }
+    if ((nc_err = nc_put_var(ncid, varid, write_tensor_buf)))
+    {
+        ERR(nc_err);
+    }
+
+    // write Quadrupole tensor
+    def_ncVar(ncid, &varid, 4, ELPH_NC4_IO_FLOAT,
+              (ND_int[]){lattice->natom, 3, 3, 3}, "Quadrupole_tensor",
+              (char*[]){"natoms", "pol", "pol", "pol"}, NULL);
+    //
+    write_tensor_buf = tmp_buf;
+    if (phonon->Qpole)
+    {
+        write_tensor_buf = phonon->Qpole;
+    }
+    if ((nc_err = nc_put_var(ncid, varid, write_tensor_buf)))
+    {
+        ERR(nc_err);
+    }
+
+    free(tmp_buf);
 }

@@ -8,7 +8,7 @@
 void elph_error_msg(const char* error_msg, const char* file,
                     const long long int line, const char* func_name)
 {
-    int my_rank, size_comm;
+    int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
     fprintf(stderr, "*************************************\n");

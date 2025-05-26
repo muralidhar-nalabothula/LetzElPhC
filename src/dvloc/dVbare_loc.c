@@ -38,7 +38,6 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     const ELPH_float* atom_pos = lattice->atomic_pos;
     const int* atom_type = lattice->atom_type;
     const char cutoff = lattice->dimension;
-    const ND_int ngrid_max = pseudo->ngrid_max;
     const ND_int natom = lattice->natom;
     const ND_int nmodes = 3 * natom;
     const ND_int FFTx = lattice->fft_dims[0];
