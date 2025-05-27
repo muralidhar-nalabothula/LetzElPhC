@@ -8,7 +8,7 @@ ELPH_float Vloc_Gspace(ELPH_float* work_arr, const char cutoff,
                        const ELPH_float* rab_grid, const ELPH_float Zval,
                        const ELPH_float eta, const ELPH_float volume);
 
-void add_dvscf_qe(ELPH_cmplx* restrict dVscf, const ELPH_cmplx* dVloc,
+void add_dvscf_qe(ELPH_cmplx* dVscf, const ELPH_cmplx* dVloc,
                   const struct Lattice* lattice);
 
 void elphLocal(const ELPH_float* qpt, struct WFC* wfcs, struct Lattice* lattice,

@@ -15,7 +15,7 @@ q -> Sq
 
 void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
                      const ELPH_float* qpt, const ELPH_cmplx* eig_q,
-                     ELPH_cmplx* restrict eig_Sq)
+                     ELPH_cmplx* eig_Sq)
 {
     // qpt is in crsytal coordinates (un rotated q point)
     ELPH_start_clock("Phonon eig rotation");
@@ -125,7 +125,7 @@ void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
 
     for (ND_int imode = 0; imode < nmodes; ++imode)
     {
-        ELPH_cmplx* restrict eig_Sq_mode = eig_Sq + imode * nmodes;
+        ELPH_cmplx* eig_Sq_mode = eig_Sq + imode * nmodes;
         const ELPH_cmplx* eig_q_mode = eig_q + imode * nmodes;
 
         // S@eig_q_mode.T  = (3,natom) eig_q_mode@S^T =
@@ -134,7 +134,7 @@ void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
 
         for (ND_int ia = 0; ia < natom; ++ia)
         {  // remove q phase
-            ELPH_cmplx* restrict rot_eig_ia = rot_eig + ia * 3;
+            ELPH_cmplx* rot_eig_ia = rot_eig + ia * 3;
             for (int ix = 0; ix < 3; ++ix)
             {
                 rot_eig_ia[ix] *= exp_qr[ia];
@@ -143,7 +143,7 @@ void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
 
             // index of atom that the symmetry maps ia atom
             ND_int ia_rot = rot_map[ia];
-            ELPH_cmplx* restrict eig_Sq_mode_ia = eig_Sq_mode + ia_rot * 3;
+            ELPH_cmplx* eig_Sq_mode_ia = eig_Sq_mode + ia_rot * 3;
 
             // add Sq phase back
             for (int ix = 0; ix < 3; ++ix)

@@ -9,7 +9,7 @@ d/dR(Ha + Vxc) i.e induced potential
 #include "../elphC.h"
 #include "dvloc.h"
 
-void add_dvscf_qe(ELPH_cmplx* restrict dVscf, const ELPH_cmplx* dVloc,
+void add_dvscf_qe(ELPH_cmplx* dVscf, const ELPH_cmplx* dVloc,
                   const struct Lattice* lattice)
 {
     /*
@@ -42,13 +42,13 @@ void add_dvscf_qe(ELPH_cmplx* restrict dVscf, const ELPH_cmplx* dVloc,
     }
     for (ND_int iv = 0; iv < nmodes; ++iv)
     {
-        ELPH_cmplx* restrict dVscf_mode = dVscf + iv * nffts * nmag;
-        const ELPH_cmplx* restrict dVbare = dVloc + iv * nffts;
+        ELPH_cmplx* dVscf_mode = dVscf + iv * nffts * nmag;
+        const ELPH_cmplx* dVbare = dVloc + iv * nffts;
 
         /* add local bare part of pseudo potential (i,e dVloc) to V_Ha + V_xc */
         for (ND_int im = 0; im < mag_iter; ++im)
         {
-            ELPH_cmplx* restrict temp_ptr = dVscf_mode + im * nffts;
+            ELPH_cmplx* temp_ptr = dVscf_mode + im * nffts;
             ELPH_OMP_PAR_FOR_SIMD
             for (ND_int i = 0; i < nffts; ++i)
             {
@@ -68,10 +68,10 @@ void add_dvscf_qe(ELPH_cmplx* restrict dVscf, const ELPH_cmplx* dVloc,
             This is an inplace operation to avoid creating a large buffer
             */
 
-            ELPH_cmplx* restrict Vxc_loc = dVscf_mode + 0 * nffts;
-            ELPH_cmplx* restrict Bx_loc = dVscf_mode + 1 * nffts;
-            ELPH_cmplx* restrict By_loc = dVscf_mode + 2 * nffts;
-            ELPH_cmplx* restrict Bz_loc = dVscf_mode + 3 * nffts;
+            ELPH_cmplx* Vxc_loc = dVscf_mode + 0 * nffts;
+            ELPH_cmplx* Bx_loc = dVscf_mode + 1 * nffts;
+            ELPH_cmplx* By_loc = dVscf_mode + 2 * nffts;
+            ELPH_cmplx* Bz_loc = dVscf_mode + 3 * nffts;
 
             ELPH_OMP_PAR_FOR_SIMD
             for (ND_int i = 0; i < nffts; ++i)

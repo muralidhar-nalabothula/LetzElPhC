@@ -339,10 +339,10 @@ void add_elphNonLocal(struct WFC* wfcs, struct Lattice* lattice,
                 ELPH_float* YlmKtemp = YlmK + (l * l + im1) * npwK;
                 ELPH_cmplx* betaK_temp = betaK + idxK * 4 * npwK;
 
-                ELPH_cmplx* restrict betaK0 = betaK_temp;
-                ELPH_cmplx* restrict betaK1 = betaK_temp + npwK;
-                ELPH_cmplx* restrict betaK2 = betaK_temp + 2 * npwK;
-                ELPH_cmplx* restrict betaK3 = betaK_temp + 3 * npwK;
+                ELPH_cmplx* betaK0 = betaK_temp;
+                ELPH_cmplx* betaK1 = betaK_temp + npwK;
+                ELPH_cmplx* betaK2 = betaK_temp + 2 * npwK;
+                ELPH_cmplx* betaK3 = betaK_temp + 3 * npwK;
                 /*** WARNING !! DO NOT PARALLELIZE LOOPS except this !! */
                 // ELPH_OMP_PAR_FOR_SIMD
                 for (ND_int ipw = 0; ipw < npwK; ++ipw)
@@ -369,10 +369,10 @@ void add_elphNonLocal(struct WFC* wfcs, struct Lattice* lattice,
                 ELPH_float* YlmKptemp = YlmKp + (l * l + im2) * npwKp;
                 ELPH_cmplx* betaKp_temp = betaKp + idxKp * 4 * npwKp;
 
-                ELPH_cmplx* restrict betaKp0 = betaKp_temp;
-                ELPH_cmplx* restrict betaKp1 = betaKp_temp + npwKp;
-                ELPH_cmplx* restrict betaKp2 = betaKp_temp + 2 * npwKp;
-                ELPH_cmplx* restrict betaKp3 = betaKp_temp + 3 * npwKp;
+                ELPH_cmplx* betaKp0 = betaKp_temp;
+                ELPH_cmplx* betaKp1 = betaKp_temp + npwKp;
+                ELPH_cmplx* betaKp2 = betaKp_temp + 2 * npwKp;
+                ELPH_cmplx* betaKp3 = betaKp_temp + 3 * npwKp;
                 //
                 /*** WARNING !! DO NOT PARALLELIZE LOOPS except this !! */
                 // ELPH_OMP_PAR_FOR_SIMD

@@ -16,7 +16,7 @@ This file contains routines to read dvscf/drho from qe output files
 
 void read_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
                    const ELPH_cmplx* eig, const ELPH_cmplx* pats,
-                   ELPH_cmplx* restrict dvscf_out, MPI_Comm commK)
+                   ELPH_cmplx* dvscf_out, MPI_Comm commK)
 {
     /*
     takes input dvscf file name, patterns and phonon polarization vectors

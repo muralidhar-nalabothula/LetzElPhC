@@ -100,6 +100,11 @@ extern "C"
 #define CBLAS_ORDER \
     CBLAS_LAYOUT /* this for backward compatibility with CBLAS_ORDER */
 
+    // lapack
+    void zheev_(char* jobz, char* uplo, CBLAS_INT* n, double _Complex* a,
+                CBLAS_INT* lda, double* w, double _Complex* work,
+                CBLAS_INT* lwork, double* rwork, CBLAS_INT* info);
+
     /*
      * ===========================================================================
      * Prototypes for level 1 BLAS functions (complex are recast as routines)

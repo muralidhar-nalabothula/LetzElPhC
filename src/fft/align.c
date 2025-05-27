@@ -12,7 +12,13 @@
 ND_int alignment_len(void)
 {
     /* get the aligment len in units of sizeof(ELPH_cmplx) bytes*/
-    ND_int align_len = ELPH_FFTW_SIMD_LEN + 10;
+    static ND_int align_len = -1;
+    if (align_len > 0)
+    {
+        return align_len;
+    }
+    //
+    align_len = ELPH_FFTW_SIMD_LEN + 10;
     ND_int temp_len = sizeof(ELPH_cmplx) * ELPH_FFTW_SIMD_LEN;
 
     ELPH_cmplx* temp = fftw_fun(malloc)(temp_len);

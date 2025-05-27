@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../../common/constants.h"
+#include "../../common/cwalk/cwalk.h"
 #include "../../common/dtypes.h"
 #include "../../common/error.h"
 #include "../../common/numerical_func.h"
@@ -26,15 +27,16 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     int mpi_error;
 
     char* tmp_buffer = NULL;
+    size_t temp_str_len = 1;
     if (Comm->commW_rank == 0)
     {
-        tmp_buffer = calloc(1024 + strlen(ph_save_dir), 1);
+        temp_str_len = 1024 + strlen(ph_save_dir);
+        tmp_buffer = calloc(temp_str_len, 1);
         CHECK_ALLOC(tmp_buffer);
     }
     if (Comm->commW_rank == 0)
     {
-        strcpy(tmp_buffer, ph_save_dir);
-        strcat(tmp_buffer, "/dyn0");
+        cwk_path_join(ph_save_dir, "dyn0", tmp_buffer, temp_str_len);
         read_qpts_qe(tmp_buffer, &phonon->nq_iBZ, &phonon->nq_BZ,
                      &phonon->qpts_iBZ);
     }
@@ -72,24 +74,58 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     char* PSEUDO_DIR = NULL;
     bool ph_tim_rev;
 
+    ND_int natoms = 0;
+
     ELPH_float* ph_sym_mats = NULL;
     ELPH_float* ph_sym_tau = NULL;
+    bool* ph_trevs = NULL;
+    bool ph_mag_symm = false;
+
+    phonon->Zborn = NULL;
+    phonon->epsilon = NULL;
+    phonon->Qpole = NULL;
+    bool phTensors_present[3] = {false, false, false};
+    // {epsilon, Zborn, Qpole}
 
     ELPH_float lat_vec[9];  // a[:,i] is ith lattice vector
     if (Comm->commW_rank == 0)
     {
-        strcpy(tmp_buffer, ph_save_dir);
-        strcat(tmp_buffer, "/data-file-schema.xml");
-        parse_qexml(tmp_buffer, lat_vec, alat, &lattice->dimension,
+        cwk_path_join(ph_save_dir, "data-file-schema.xml", tmp_buffer,
+                      temp_str_len);
+        parse_qexml(tmp_buffer, &natoms, lat_vec, alat, &lattice->dimension,
                     &lattice->is_soc_present, &lattice->nmag, lattice->fft_dims,
-                    &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_tim_rev,
-                    &PSEUDO_DIR, pseudo_pots);
+                    &phonon->nph_sym, &ph_sym_mats, &ph_sym_tau, &ph_trevs,
+                    &ph_mag_symm, &ph_tim_rev, &PSEUDO_DIR, pseudo_pots);
+
         // free pseudo pots, no longer need
         free(PSEUDO_DIR);
         PSEUDO_DIR = NULL;
+
+        // read dielectric and other relevent tensors from tensors.xml (if
+        // exists)
+        cwk_path_join(ph_save_dir, "tensors.xml", tmp_buffer, temp_str_len);
+        read_ph_tensors_qe(tmp_buffer, natoms, phonon);
+        if (phonon->epsilon)
+        {
+            phTensors_present[0] = true;
+        }
+        if (phonon->Zborn)
+        {
+            phTensors_present[1] = true;
+        }
+        if (phonon->Qpole)
+        {
+            phTensors_present[2] = true;
+        }
     }
 
     // Bcast all the variables
+    //
+    mpi_error = MPI_Bcast(&natoms, 1, ELPH_MPI_ND_INT, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(phTensors_present, 3, MPI_C_BOOL, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(lat_vec, 9, ELPH_MPI_float, 0, Comm->commW);
     MPI_error_msg(mpi_error);
@@ -117,11 +153,50 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     mpi_error = MPI_Bcast(&ph_tim_rev, 1, MPI_C_BOOL, 0, Comm->commW);
     MPI_error_msg(mpi_error);
 
+    mpi_error = MPI_Bcast(&ph_mag_symm, 1, MPI_C_BOOL, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
+
     ELPH_float blat[9];
     reciprocal_vecs(lat_vec, blat);
     for (int ix = 0; ix < 9; ++ix)
     {
         blat[ix] /= (2.0f * ELPH_PI);
+    }
+
+    // allocate and bcast dielectric, born charges, Quadrapoles (if present)
+    // Quadrapoles not supported yet
+    if (phTensors_present[0])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
+            CHECK_ALLOC(phonon->epsilon);
+        }
+        mpi_error =
+            MPI_Bcast(phonon->epsilon, 9, ELPH_MPI_float, 0, Comm->commW);
+        MPI_error_msg(mpi_error);
+    }
+    if (phTensors_present[1])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->Zborn = malloc(9 * natoms * sizeof(*phonon->Zborn));
+            CHECK_ALLOC(phonon->Zborn);
+        }
+        mpi_error = MPI_Bcast(phonon->Zborn, natoms * 9, ELPH_MPI_float, 0,
+                              Comm->commW);
+        MPI_error_msg(mpi_error);
+    }
+    if (phTensors_present[2])
+    {
+        if (Comm->commW_rank)
+        {
+            phonon->Qpole = malloc(27 * natoms * sizeof(*phonon->Qpole));
+            CHECK_ALLOC(phonon->Qpole);
+        }
+        mpi_error = MPI_Bcast(phonon->Qpole, natoms * 27, ELPH_MPI_float, 0,
+                              Comm->commW);
+        MPI_error_msg(mpi_error);
     }
 
     // allocate memory for phonon symmetric matrices on rest of the cpus
@@ -138,11 +213,13 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     {
         for (ND_int isym = 0; isym < phonon->nph_sym; ++isym)
         {
-            // Note we also fill the second half but are only used when tim_rev
-            // is present
+            // Note we also fill the second half but are only used when no
+            // magnetic symmetries and inversion are present
             ELPH_float* sym_tmp = ph_sym_mats + isym * 9;
             ELPH_float* sym_tmp_trev =
                 ph_sym_mats + (isym + phonon->nph_sym) * 9;
+
+            bool isym_trev = ph_trevs[isym];
 
             // It should be noted that we use Sx + v convention, but qe uses
             // S(x+v) so our v = S*tau_qe
@@ -158,6 +235,10 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 
             for (int ix = 0; ix < 9; ++ix)
             {
+                if (isym_trev)
+                {
+                    sym_tmp[ix] = -sym_tmp[ix];
+                }
                 if (fabs(sym_tmp[ix]) < ELPH_EPS)
                 {
                     sym_tmp[ix] = fabs(sym_tmp[ix]);
@@ -171,7 +252,9 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
             // compute S*tau
             MatVec3f(sym_tmp, vec_tmp_trev, false, vec_tmp);
             // we also negate the frac .tras. vec (just a convention used in
-            // this code)
+            // this code) for time reversal symmetry. THis is aleady done when
+            // we do S*tau if S is timerev. as S already contained -negation.
+            // The trev counterpart case must be reversed
             for (int ix = 0; ix < 3; ++ix)
             {
                 vec_tmp_trev[ix] = -vec_tmp[ix];
@@ -179,20 +262,20 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 
             memcpy(phonon->ph_syms[isym].Rmat, sym_tmp, sizeof(ELPH_float) * 9);
             memcpy(phonon->ph_syms[isym].tau, vec_tmp, sizeof(ELPH_float) * 3);
-            phonon->ph_syms[isym].time_rev = false;
+            phonon->ph_syms[isym].time_rev = isym_trev;
 
             memcpy(phonon->ph_syms[isym + phonon->nph_sym].Rmat, sym_tmp_trev,
                    sizeof(ELPH_float) * 9);
             memcpy(phonon->ph_syms[isym + phonon->nph_sym].tau, vec_tmp_trev,
                    sizeof(ELPH_float) * 3);
-            phonon->ph_syms[isym + phonon->nph_sym].time_rev = true;
+            phonon->ph_syms[isym + phonon->nph_sym].time_rev = !isym_trev;
         }
     }
 
     /* In case of time reversal symmetry :
      we double the number of symmetries and also use the second half of the
      symmetries */
-    if (ph_tim_rev)
+    if (ph_tim_rev && !ph_mag_symm)
     {
         phonon->nph_sym *= 2;
     }
@@ -200,6 +283,7 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
     // bcast symetries
     Bcast_symmetries(phonon->nph_sym, phonon->ph_syms, 0, Comm->commW);
 
+    free(ph_trevs);
     free(ph_sym_mats);
     free(ph_sym_tau);
     free(tmp_buffer);

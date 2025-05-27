@@ -56,7 +56,9 @@
    \begin{center}
         \huge\projecttitle\\
         \vspace{10pt}
-        \large{\projectauthor}\\
+        \large{Muralidhar Nalabothula}\\
+        \vspace{5pt}
+        \large{Fulvio Paleari}\\
         \vspace{10pt}
         \small{\projectmonth}\\
    \end{center}
@@ -115,7 +117,6 @@
 \lstset{style=mystyle}
 \addto\captionsenglish{\renewcommand{\figurename}{Fig.}}
 \renewcommand*{\lstlistlistingname}{List of Programs}
-\def\projectauthor{Muralidhar Nalabothula}
 \def\projecttitle{LetzElPhC Documentation}
 \def\projectmonth{\today}
 \def\projectdepartment{-}
@@ -359,42 +360,92 @@ A detailed description of the input file is provided below:
 %
 %
 %
+
+%% yambopy 
+\chapter{El-ph Calculation for Yambo via LetzElPhC}
+
+In this chapter, we demonstrate how Yambopy can be conveniently used to call \\
+LetzElPhC and generate NetCDF databases that can be directly fed into the Yambo code.
+\section{Requirements}
+\begin{itemize}
+    \item LetzElPhC installed
+    \item Yambopy installed
+    \item Having \texttt{pw.x}, \texttt{ph.x}, \texttt{p2y}, and \texttt{yambo} ready to run
+\end{itemize}
+
+\section{SCF Calculation}
+
+Run a standard SCF \texttt{pw.x} calculation. For now, stick to symmorphic symmetries with \texttt{force\_symmorphic=.true.} in the \texttt{system} card.
+
+\section{NSCF Calculation for Yambo}
+
+Copy the \texttt{save} directory from the SCF calculation and run the NSCF calculation for any number of empty states, with the correct \texttt{k}-grid we want to use in Yambo.
+
+\begin{lstlisting}[language=make]
+...
+K_POINTS automatic
+Nx Ny Nz 0 0 0
+\end{lstlisting}
+
+\subsection*{DVSCF Calculation}
+
+Copy the \texttt{save} directory from the SCF calculation and run \texttt{ph.x} for a DVSCF calculation with, for now, a standard \texttt{q}-grid matching the \texttt{k}-grid we want to use in Yambo.
+
+\begin{lstlisting}[language=make]
+prefix_dvscf
+&inputph
+  tr2_ph = 1.0d-14,
+  verbosity = `high'
+  prefix = `prefix',
+  fildvscf = `prefix-dvscf',
+  electron_phonon = `dvscf',
+  fildyn = `prefix.dyn',
+  epsil = .false.,
+  ldisp = .true.,
+  recover = .true.
+  nq1 = Nx,
+  nq2 = Ny,
+  nq3 = Nz
+/
+\end{lstlisting}
+
+For running \texttt{ph.x} in parallel, refer to the \href{https://www.quantum-espresso.org/Doc/ph_user_guide/node17.html}{ph.x user guide}. You can use what ever parallization that \texttt{ph.x} supports.
+
+\section{Create Yambo SAVE Directory}
+
+Run \texttt{p2y} and \texttt{yambo} on the NSCF save folder and then move the \texttt{SAVE} directory to a convenient place.
+
+\section{Obtain El-ph Databases}
+
+Run the following command in the same directory where the \texttt{SAVE} is located:
+
+\begin{lstlisting}[language=make]
+yambopy l2y
+\end{lstlisting}
+
+This command displays help for the calculation. For example, in order to run \texttt{LetzElPhC} serially for bands from \(n_i\) to \(n_f\), use:
+
+\begin{lstlisting}[]
+yambopy l2y -ph path/of/ph_input.in -b n_i n_f
+\end{lstlisting}
+
+where \(n_i\) and \(n_f\) are integers representing the initial and final band indices.
+
+For a parallel calculation with 4 \texttt{qpools} and 2 \texttt{kpools}, explicitly specifying the path to the \texttt{lelphc} executable, and avoiding automatic deletion of LetzElPhC logs and databases, use:
+
+\begin{lstlisting}[language=make]
+yambopy l2y -ph path/of/ph_input.in -b n_i n_f -par 4 2 -lelphc path/to/lelphc_exe -D
+\end{lstlisting}
+
+Finally, check the \texttt{SAVE} directory:
+
+\begin{lstlisting}[]
+ls SAVE/ndb.elph*
+\end{lstlisting}
+
+for the Yambo-compatible databases.
+
 %%%% BODY ends here 
-
-%\section{Installing the Code}
-% The author must take the following general rules into account when preparing the document:
-% \begin{itemize}
-% 	\item The document should be written in Portuguese or English with an appropriate and grammatically correct style (both syntactically and semantically);
-% 	\item Be especially careful with the use of adjectives (they easily lead to exaggeration), adverbs (they add nothing or almost nothing), and punctuation marks (especially the correct use of commas);
-% 	\item The style adopted for writing should be consistent with the requirements of a scientific paper found in printed publications;
-% 	\item You should generally use the 3rd person singular (possibly plural), except where this is inappropriate, for example in the acknowledgments section;
-% 	\item Use the \textit{it\'{a}lic} style whenever terms are used in languages other than the language adopted in the report, to write mathematical symbols
-%     	\item The correct use of units, their multiples and submultiples;
-% 	\item Images and Tables should, as a rule, appear at the top or bottom of the page. Figure legends should appear immediately after the Figures and, in the case of Tables, the legends should precede them;
-% 	\item All Figures, Tables, and other Listings should be mentioned in the text so that they fit in with the ideas conveyed by the author. As a general rule, this reference should be made before the figure, table or list occurs;
-% 	\item Indicate the documentary references used throughout the text, especially in quotations (pure or literal), marked with quotation marks, as well as in the case of the reuse of graphs, Figures, Tables, formulas, etc. from other sources;
-% \end{itemize}
-% More specifically, in this first compulsory chapter,  the author should \footnote{It is recommended to use a section for each item}:
-% \begin{itemize}
-% 	\item Contextualize the work proposal in the context of the company, other work already carried out, from a scientific and/or technological point of view, etc;
-% 	\item Clearly present the objectives you intend to achieve;
-% 	\item Briefly but objectively describe the recommended solution or hypothesis;
-% 	\item Briefly but present the developments made;
-% 	\item Identify how the solution was validated and evaluated;
-% 	\item Describe the organization of the document.
-% \end{itemize}
-
-
-
-
-
-
-
-
-
-
-
-
     
 \cleardoublepage
 \renewcommand{\sectionmark}[1]{\markright{#1}}

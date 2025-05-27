@@ -13,6 +13,7 @@ THe starting point for the entire code
 #include "../common/ELPH_timers.h"
 #include "../common/dtypes.h"
 #include "../common/error.h"
+#include "../common/init_dtypes.h"
 #include "../common/parallel.h"
 #include "../common/print_info.h"
 #include "../dvloc/dvloc.h"
@@ -48,6 +49,8 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
     create_parallel_comms(input_data->nqpool, input_data->nkpool, comm_world,
                           mpi_comms);
 
+    // print logo and stated message
+    print_ELPH_logo(mpi_comms->commW_rank, stdout);
     print_info_msg(mpi_comms->commW_rank,
                    "********** Program started **********");
     print_input_info(input_data->save_dir, input_data->ph_save_dir,
@@ -56,12 +59,15 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 
     struct Lattice* lattice = malloc(sizeof(struct Lattice));
     CHECK_ALLOC(lattice);
+    init_lattice_type(lattice);
 
     struct Pseudo* pseudo = malloc(sizeof(struct Pseudo));
     CHECK_ALLOC(pseudo);
+    init_Pseudo_type(pseudo);
 
     struct Phonon* phonon = malloc(sizeof(struct Phonon));
     CHECK_ALLOC(phonon);
+    init_phonon_type(phonon);
 
     struct WFC* wfcs;
 
