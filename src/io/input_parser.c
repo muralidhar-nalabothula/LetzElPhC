@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/string_func.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/string_func.h"
 #include "inih/ini.h"
 #include "io.h"
 

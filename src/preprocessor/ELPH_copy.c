@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "../common/error.h"
+#include "common/error.h"
 // above two headers are found in both windows and posix systems.
 
 int check_dir_exists(const char *dir_path)

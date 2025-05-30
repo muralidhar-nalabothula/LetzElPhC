@@ -1,9 +1,9 @@
 #include <math.h>
 
-#include "../common/constants.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/constants.h"
+#include "common/numerical_func.h"
 #include "dvloc.h"
+#include "elphC.h"
 
 /*Function to compute local short range bare potential of Each atom placed at
  * origin */

@@ -6,7 +6,7 @@ This is the header for functions related to wfcs
 #include <mpi.h>
 #include <stdbool.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 
 void rotateGvecs(const ELPH_float* Gvecs, const ELPH_float* sym,
                  const ND_int ngvecs, const ELPH_float* lat_vec,

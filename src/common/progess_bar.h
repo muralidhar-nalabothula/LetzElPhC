@@ -1,5 +1,5 @@
 #pragma once
-#include "../elphC.h"
+#include "elphC.h"
 
 #define PROGRESS_BAR_LEN 5
 #define PROGRESS_BAR_SIGN "#####"

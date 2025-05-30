@@ -1,5 +1,5 @@
 #pragma once
-#include "../elphC.h"
+#include "elphC.h"
 // complex.h must be before fftw3.h
 #include <complex.h>
 #include <fftw3.h>

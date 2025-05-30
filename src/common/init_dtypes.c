@@ -3,8 +3,8 @@
 #include <mpi.h>
 #include <string.h>
 
-#include "../elphC.h"
 #include "dtypes.h"
+#include "elphC.h"
 
 /*
  * Note : Always set pointers to NULL even after memset as

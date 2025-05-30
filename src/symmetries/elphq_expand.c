@@ -6,11 +6,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/ELPH_timers.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "symmetries.h"
 
 void elph_q_rotate(const ELPH_cmplx* Dmats_l, const ELPH_cmplx* elph_mat_q,

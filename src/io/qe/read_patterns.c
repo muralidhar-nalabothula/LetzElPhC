@@ -8,11 +8,11 @@ This file contains function that parses pattern.xml files
 #include <stdlib.h>
 #include <string.h>
 
-#include "../ezxml/ezxml.h"
 #include "common/dtypes.h"
 #include "common/error.h"
 #include "common/string_func.h"
 #include "elphC.h"
+#include "ezxml/ezxml.h"
 #include "qe_io.h"
 
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,

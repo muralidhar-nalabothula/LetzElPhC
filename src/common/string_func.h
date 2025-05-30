@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 
 // safer strncpy version
 char* strncpy_custom(char* dest, const char* src, size_t count);

@@ -6,8 +6,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "elphC.h"
 #include "fft.h"
 
 void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,

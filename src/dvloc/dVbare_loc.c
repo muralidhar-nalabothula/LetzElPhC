@@ -2,16 +2,16 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/constants.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../common/omp_pragma_def.h"
-#include "../common/parallel.h"
-#include "../elphC.h"
-#include "../fft/fft.h"
+#include "common/ELPH_timers.h"
+#include "common/constants.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "common/omp_pragma_def.h"
+#include "common/parallel.h"
 #include "dvloc.h"
+#include "elphC.h"
+#include "fft/fft.h"
 
 void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
             struct Pseudo* pseudo, const ELPH_cmplx* eigVec, ELPH_cmplx* Vlocr,

@@ -6,8 +6,8 @@ This file contains function which distributes cpus
 #include <mpi.h>
 #include <stddef.h>
 
-#include "../elphC.h"
 #include "dtypes.h"
+#include "elphC.h"
 #include "error.h"
 
 /*get block size and starting idx of dimension that is distrbuted amoung cpus*/

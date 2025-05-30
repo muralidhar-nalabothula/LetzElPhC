@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../elphC.h"
+#include "elphC.h"
 
 void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices);
 

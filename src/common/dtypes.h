@@ -17,7 +17,7 @@ Some comments :
 #include <mpi.h>
 #include <stdbool.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 #include "error.h"
 
 enum ELPH_dft_code

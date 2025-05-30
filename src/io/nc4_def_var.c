@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../common/error.h"
+#include "common/error.h"
 #include "io.h"
 
 /* ND_function to create a varible to netCDF */

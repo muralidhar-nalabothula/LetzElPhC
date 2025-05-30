@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../mpi_bcast.h"
 #include "common/constants.h"
 #include "common/cwalk/cwalk.h"
 #include "common/dtypes.h"
@@ -13,6 +12,7 @@
 #include "common/numerical_func.h"
 #include "common/parallel.h"
 #include "elphC.h"
+#include "mpi_bcast.h"
 #include "qe_io.h"
 #include "symmetries/symmetries.h"
 

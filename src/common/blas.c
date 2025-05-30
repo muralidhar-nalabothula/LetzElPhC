@@ -5,8 +5,8 @@ This file contails blas wrappers
 // note the above header must be called before #include "cblas.h"
 #include <limits.h>
 
-#include "../elphC.h"
 #include "cblas.h"
+#include "elphC.h"
 #include "error.h"
 #include "numerical_func.h"
 

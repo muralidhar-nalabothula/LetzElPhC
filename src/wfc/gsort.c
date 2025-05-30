@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "elphC.h"
 /*
 This file contain g vectors sorting functions
 */

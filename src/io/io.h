@@ -5,8 +5,8 @@
 #include <netcdf_par.h>
 #include <stddef.h>
 
-#include "../common/dtypes.h"
-#include "../elphC.h"
+#include "common/dtypes.h"
+#include "elphC.h"
 
 #define NC4_DEFAULT_CHUCK_KB 2048
 // default chunking for large nc varaibles (in Kilobytes)

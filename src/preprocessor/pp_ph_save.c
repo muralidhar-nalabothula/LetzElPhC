@@ -7,12 +7,12 @@ This file contains functions which are os dependent.
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/cwalk/cwalk.h"
-#include "../common/error.h"
-#include "../common/string_func.h"
-#include "../elphC.h"
-#include "../io/ezxml/ezxml.h"
 #include "ELPH_copy.h"
+#include "common/cwalk/cwalk.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
+#include "io/ezxml/ezxml.h"
 #include "preprocessor.h"
 
 #if defined(_WIN32)

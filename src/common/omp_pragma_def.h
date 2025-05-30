@@ -1,5 +1,5 @@
 #pragma once
-#include "../elphC.h"
+#include "elphC.h"
 
 #if defined(ELPH_OMP_PARALLEL_BUILD)
 #include <omp.h>

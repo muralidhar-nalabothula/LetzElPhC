@@ -8,11 +8,11 @@ This file contains function that parses data-file-schema.xml file
 #include <stdlib.h>
 #include <string.h>
 
-#include "../ezxml/ezxml.h"
 #include "common/constants.h"
 #include "common/error.h"
 #include "common/string_func.h"
 #include "elphC.h"
+#include "ezxml/ezxml.h"
 #include "qe_io.h"
 
 #define ELPH_XML_READ_LINE_SIZE 1000

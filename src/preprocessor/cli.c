@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../common/string_func.h"
-#include "../elphC.h"
 #include "ELPH_getopt.h"
+#include "common/string_func.h"
+#include "elphC.h"
 #include "preprocessor.h"
 
 void ELPH_cli_parser(int argc, char* argv[], struct calc_details* calc_info)

@@ -6,16 +6,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../common/parallel.h"
-#include "../common/progess_bar.h"
-#include "../dvloc/dvloc.h"
-#include "../elphC.h"
-#include "../nonloc/Vnonloc.h"
-#include "../symmetries/symmetries.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "common/parallel.h"
+#include "common/progess_bar.h"
+#include "dvloc/dvloc.h"
 #include "elph.h"
+#include "elphC.h"
+#include "nonloc/Vnonloc.h"
+#include "symmetries/symmetries.h"
 
 void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
                              struct Pseudo* pseudo, struct Phonon* phonon,

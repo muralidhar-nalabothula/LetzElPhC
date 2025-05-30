@@ -5,9 +5,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "../common/constants.h"
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/constants.h"
+#include "common/error.h"
+#include "elphC.h"
 
 static int qpt_sort_cmp(const void* a, const void* b);
 

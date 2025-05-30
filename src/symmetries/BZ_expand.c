@@ -1,9 +1,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "../common/dtypes.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/dtypes.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "symmetries.h"
 
 ND_int bz_expand(const ND_int Nibz, const ND_int Nsym,
