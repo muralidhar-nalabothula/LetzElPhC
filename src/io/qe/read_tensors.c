@@ -13,7 +13,7 @@
 #include "common/numerical_func.h"
 #include "common/string_func.h"
 #include "elphC.h"
-#include "ezxml/ezxml.h"
+#include "io/ezxml/ezxml.h"
 
 void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
                         struct Phonon* phonon)

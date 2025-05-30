@@ -12,7 +12,7 @@
 #include "common/numerical_func.h"
 #include "common/parallel.h"
 #include "elphC.h"
-#include "mpi_bcast.h"
+#include "io/mpi_bcast.h"
 #include "qe_io.h"
 #include "symmetries/symmetries.h"
 

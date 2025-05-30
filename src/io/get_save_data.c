@@ -20,9 +20,9 @@
 #include "dvloc/dvloc.h"
 #include "elphC.h"
 #include "io.h"
+#include "io/qe/qe_io.h"
 #include "mpi_bcast.h"
 #include "nonloc/fcoeff.h"
-#include "qe/qe_io.h"
 #include "symmetries/symmetries.h"
 
 /*static functions */
