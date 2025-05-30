@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../common/cblas.h"
-#include "../../common/constants.h"
-#include "../../common/dtypes.h"
-#include "../../common/error.h"
-#include "../../common/string_func.h"
-#include "../../elphC.h"
+#include "common/cblas.h"
+#include "common/constants.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
 #include "qe_io.h"
 
 /*

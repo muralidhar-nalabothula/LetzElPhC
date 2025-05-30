@@ -5,16 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../common/constants.h"
-#include "../../common/cwalk/cwalk.h"
-#include "../../common/dtypes.h"
-#include "../../common/error.h"
-#include "../../common/numerical_func.h"
-#include "../../common/parallel.h"
-#include "../../elphC.h"
-#include "../../symmetries/symmetries.h"
 #include "../mpi_bcast.h"
+#include "common/constants.h"
+#include "common/cwalk/cwalk.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "common/parallel.h"
+#include "elphC.h"
 #include "qe_io.h"
+#include "symmetries/symmetries.h"
 
 void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
                       const char* ph_save_dir, char*** pseudo_pots,
