@@ -115,10 +115,19 @@ ezxml_t ezxml_vget(ezxml_t xml, va_list ap)
     char* name = va_arg(ap, char*);
     int idx = -1;
 
+    if (!xml)
+    {
+        return NULL;  // Early exit if input XML is NULL
+    }
+
     if (name && *name)
     {
         idx = va_arg(ap, int);
         xml = ezxml_child(xml, name);
+        if (!xml)
+        {
+            return NULL;  // Return NULL if child not found
+        }
     }
     return (idx < 0) ? xml : ezxml_vget(ezxml_idx(xml, idx), ap);
 }
