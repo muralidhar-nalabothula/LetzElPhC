@@ -155,7 +155,7 @@ static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo)
     {
         error_msg("Reading mesh_size from pseudo potential file failed");
     }
-    ND_int ngrid = atoi(xml_attr);
+    ND_int ngrid = atoll(xml_attr);
 
     xml_attr = ezxml_attr(header, "pseudo_type");
     if (!xml_attr)

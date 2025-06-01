@@ -43,16 +43,28 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
     bool epsilon_exists = false;
     bool Zeu_exists = false;
 
-    tmp_str =
-        ezxml_get(tensor_xml, "EF_TENSORS", 0, "DONE_EFFECTIVE_CHARGE_EU", -1)
-            ->txt;
+    ezxml_t txml;
+
+    txml =
+        ezxml_get(tensor_xml, "EF_TENSORS", 0, "DONE_EFFECTIVE_CHARGE_EU", -1);
+    if (!txml)
+    {
+        error_msg(
+            "parsing DONE_EFFECTIVE_CHARGE_EU from tensor.xml file failed\n");
+    }
+    tmp_str = txml->txt;
     if ('t' == tolower(*tmp_str))
     {
         Zeu_exists = true;
     }
 
-    tmp_str =
-        ezxml_get(tensor_xml, "EF_TENSORS", 0, "DONE_ELECTRIC_FIELD", -1)->txt;
+    txml = ezxml_get(tensor_xml, "EF_TENSORS", 0, "DONE_ELECTRIC_FIELD", -1);
+    if (!txml)
+    {
+        error_msg(
+            "parsing DONE_EFFECTIVE_CHARGE_EU from tensor.xml file failed\n");
+    }
+    tmp_str = txml->txt;
     if ('t' == tolower(*tmp_str))
     {
         epsilon_exists = true;
@@ -69,9 +81,15 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
         phonon->epsilon = malloc(9 * sizeof(*phonon->epsilon));
         CHECK_ALLOC(phonon->epsilon);
         // read dielectric tensor
-        tmp_str =
-            ezxml_get(tensor_xml, "EF_TENSORS", 0, "DIELECTRIC_CONSTANT", -1)
-                ->txt;
+        txml =
+            ezxml_get(tensor_xml, "EF_TENSORS", 0, "DIELECTRIC_CONSTANT", -1);
+        if (!txml)
+        {
+            error_msg(
+                "parsing DIELECTRIC_CONSTANT from tensor.xml file failed\n");
+        }
+
+        tmp_str = txml->txt;
 
         if (parser_doubles_from_string(tmp_str, phonon->epsilon) != 9)
         {
@@ -80,9 +98,14 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
         // read effective charges
         if (Zeu_exists)
         {
-            tmp_str = ezxml_get(tensor_xml, "EF_TENSORS", 0,
-                                "EFFECTIVE_CHARGES_EU", -1)
-                          ->txt;
+            txml = ezxml_get(tensor_xml, "EF_TENSORS", 0,
+                             "EFFECTIVE_CHARGES_EU", -1);
+            if (!txml)
+            {
+                error_msg("parsing Born charges from tensor.xml file failed\n");
+            }
+            tmp_str = txml->txt;
+
             if (parser_doubles_from_string(tmp_str, phonon->Zborn) != 9 * natom)
             {
                 error_msg("Parsing Born charges failed");
