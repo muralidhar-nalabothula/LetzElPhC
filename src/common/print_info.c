@@ -65,13 +65,13 @@ void print_input_info(const char* save_dir, const char* ph_save_dir,
     print_info_msg(Comm->commW_rank,
                    "============== Parallelization info ==============");
     print_info_msg(Comm->commW_rank, "Total cpus              : %d",
-                   Comm->commW_size);
+                   (int)Comm->commW_size);
     print_info_msg(Comm->commW_rank, "Number of q-pools       : %d",
-                   Comm->nqpools);
+                   (int)Comm->nqpools);
     print_info_msg(Comm->commW_rank, "Number of k-pools       : %d",
-                   Comm->nkpools);
+                   (int)Comm->nkpools);
     print_info_msg(Comm->commW_rank, "Cpus per k-pool         : %d",
-                   Comm->commK_size);
+                   (int)Comm->commK_size);
 #if defined(ELPH_OMP_PARALLEL_BUILD)
     char* omp_n_threads = getenv("OMP_NUM_THREADS");
     if (omp_n_threads)
