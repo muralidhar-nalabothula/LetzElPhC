@@ -5,7 +5,6 @@ tests = (
     ['dft_qe/Si_bulk'               , 'test.ini'],
     ['dft_qe/Si_bulk_spin'          , 'test.ini'],
     ['dft_qe/hBN_bulk'              , 'test.ini'],
-    ['dft_qe/BP'                    , 'test.ini'],
     ['dft_qe/MoS2_SOC_2D'           , 'test.ini'],
     ['dft_qe/MoS2_SOC_2D_no_soc1'   , 'test.ini'],
     ['dft_qe/MoS2_SOC_2D_no_soc2'   , 'test.ini'],

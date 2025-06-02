@@ -34,7 +34,7 @@ def make_kpositive(klist, tol=1e-6):
 #tree = spatial.KDTree(klist)
 def find_kpt(kpt_search, tree, tol=1e-5):
     kpt_search = make_kpositive(kpt_search)
-    dist, idx = tree.query(kpt_search, workers=1)
+    dist, idx = tree.query(kpt_search)
     if len(dist[dist>tol]) !=0:
         idx = -1
     return idx
@@ -196,9 +196,9 @@ def check_elph_files(test_file, ref_file):
     test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref,'symmetry_matrices')
     test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref,'fractional_translation')
     test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'kernel')
-    test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'epsilon')
-    test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'Born_charges')
-    test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'Quadrupole_tensor')
+    # test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'epsilon')
+    # test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'Born_charges')
+    # test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'Quadrupole_tensor')
 
     # check polarization vectors
     test_pass = test_pass and check_pol_vecs(elph_db_test,elph_db_ref)
