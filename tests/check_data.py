@@ -57,10 +57,21 @@ def convert_yambo_to_std(eph_mat,kpts,qpts):
 
 def get_nc_strings(char_in):
     # Converts netcdf array of chars as python string.
-    convlist=[iconv.decode('utf-8') for iconv in char_in]
-    conv = ''
-    for iconv in convlist: conv = conv+iconv
-    return conv.strip()
+    if isinstance(char_in, np.ndarray):
+        # Handle NumPy array (common in NetCDF)
+        if char_in.dtype.kind == 'S':  # Byte string array (C char)
+            # Join bytes and decode as UTF-8
+            return b''.join(char_in).decode('utf-8').strip()
+        else:
+            # Fallback for non-byte arrays (unlikely in C char context)
+            return ''.join(str(x) for x in char_in).strip()
+    elif isinstance(char_in, bytes):
+        # Single byte string (e.g., scalar from NetCDF)
+        return char_in.decode('utf-8').strip()
+    else:
+        # Fallback (shouldn't happen for C char arrays)
+        return str(char_in).strip()
+
 
 def quick_check_char_db(nc_db_test, nc_db_ref, var_name):
     # if return_data is true, then funtcion will test data (not the reference data)
