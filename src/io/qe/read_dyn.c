@@ -479,8 +479,8 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
                     {
                         // Column-major storage for LAPACK
                         dyn_mat_tmp[(ix + ia * 3) + (iy + ib * 3) * nmodes] =
-                            (phi_vals[2 * iy + 6 * ix] +
-                             I * phi_vals[2 * iy + 6 * ix + 1]) *
+                            (phi_vals[2 * ix + 6 * iy] +
+                             I * phi_vals[2 * ix + 6 * iy + 1]) *
                             inv_mass_sqtr;
                     }
                 }
