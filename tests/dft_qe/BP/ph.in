@@ -3,7 +3,7 @@ phonons on a grid
   nq1 = 2, 
   nq2 = 1, 
   nq3 = 3, 
-  fildyn = 'BP.dyn', 
+  fildyn = 'BP.dyn.xml', 
   tr2_ph = 1e-15, 
   prefix = 'BP', 
   trans = .true., 
