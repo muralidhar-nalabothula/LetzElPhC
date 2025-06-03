@@ -5,12 +5,12 @@ q -> Sq
 #include <complex.h>
 #include <stdlib.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/constants.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/ELPH_timers.h"
+#include "common/constants.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "symmetries.h"
 
 void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,

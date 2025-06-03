@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../common/dtypes.h"
-#include "../../common/error.h"
-#include "../../common/numerical_func.h"
-#include "../../elphC.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "qe_io.h"
 /*
 This file contains routines to read dvscf/drho from qe output files

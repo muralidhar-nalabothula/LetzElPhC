@@ -9,8 +9,8 @@ These functions are called with high frequency, so need a good optimization
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../elphC.h"
 #include "constants.h"
+#include "elphC.h"
 #include "error.h"
 #include "omp_pragma_def.h"
 /*

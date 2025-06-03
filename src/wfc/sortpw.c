@@ -5,9 +5,9 @@ This file contains function which sorts gvectors
 #include <mpi.h>
 #include <stdlib.h>
 
-#include "../common/error.h"
-#include "../common/parallel.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "common/parallel.h"
+#include "elphC.h"
 #include "gsort.h"
 #include "wfc.h"
 

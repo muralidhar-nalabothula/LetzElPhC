@@ -1,6 +1,6 @@
 #pragma once
-#include "../elphC.h"
 #include "dtypes.h"
+#include "elphC.h"
 
 void init_lattice_type(struct Lattice* lattice);
 void init_phonon_type(struct Phonon* phonon);

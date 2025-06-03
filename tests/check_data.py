@@ -34,7 +34,7 @@ def make_kpositive(klist, tol=1e-6):
 #tree = spatial.KDTree(klist)
 def find_kpt(kpt_search, tree, tol=1e-5):
     kpt_search = make_kpositive(kpt_search)
-    dist, idx = tree.query(kpt_search, workers=1)
+    dist, idx = tree.query(kpt_search)
     if len(dist[dist>tol]) !=0:
         idx = -1
     return idx
@@ -57,10 +57,21 @@ def convert_yambo_to_std(eph_mat,kpts,qpts):
 
 def get_nc_strings(char_in):
     # Converts netcdf array of chars as python string.
-    convlist=[iconv.decode('utf-8') for iconv in char_in]
-    conv = ''
-    for iconv in convlist: conv = conv+iconv
-    return conv.strip()
+    if isinstance(char_in, np.ndarray):
+        # Handle NumPy array (common in NetCDF)
+        if char_in.dtype.kind == 'S':  # Byte string array (C char)
+            # Join bytes and decode as UTF-8
+            return b''.join(char_in).decode('utf-8').strip()
+        else:
+            # Fallback for non-byte arrays (unlikely in C char context)
+            return ''.join(str(x) for x in char_in).strip()
+    elif isinstance(char_in, bytes):
+        # Single byte string (e.g., scalar from NetCDF)
+        return char_in.decode('utf-8').strip()
+    else:
+        # Fallback (shouldn't happen for C char arrays)
+        return str(char_in).strip()
+
 
 def quick_check_char_db(nc_db_test, nc_db_ref, var_name):
     # if return_data is true, then funtcion will test data (not the reference data)
@@ -185,6 +196,9 @@ def check_elph_files(test_file, ref_file):
     test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref,'symmetry_matrices')
     test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref,'fractional_translation')
     test_pass = test_pass and quick_check_char_db(elph_db_test,elph_db_ref, 'kernel')
+    test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref, 'epsilon')
+    test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref, 'Born_charges')
+    test_pass = test_pass and quick_check_numeric_db(elph_db_test,elph_db_ref, 'Quadrupole_tensor')
 
     # check polarization vectors
     test_pass = test_pass and check_pol_vecs(elph_db_test,elph_db_ref)

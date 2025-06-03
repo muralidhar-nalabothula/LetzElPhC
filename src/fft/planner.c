@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/error.h"
-#include "../common/parallel.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "common/parallel.h"
+#include "elphC.h"
 #include "fft.h"
 
 /*

@@ -1,0 +1,41 @@
+&CONTROL
+  calculation = 'nscf'
+  outdir = '.'
+  prefix = 'BP'
+  pseudo_dir = '../../pseudos_dojo'
+  verbosity = 'high'
+  disk_io = 'low'
+/
+&SYSTEM
+  ecutwfc =  80
+  ibrav = 0
+  nat = 4
+  ntyp = 1
+  occupations = 'fixed'
+  force_symmorphic = .true.
+  nbnd = 20
+/
+&ELECTRONS
+  conv_thr =   1.0000000000d-10
+  electron_maxstep = 1000
+  diago_full_acc=.true.
+/&end
+&IONS
+/
+&cell
+  cell_dynamics = "bfgs"
+/
+ATOMIC_SPECIES
+P      30.973761 P.upf
+K_POINTS automatic
+8 1 9 0 0 0
+CELL_PARAMETERS (angstrom)
+   3.302469650   0.000000000   0.000000000
+   0.000000000  12.000000000   0.000000000
+   0.000000000   0.000000000   4.627711903
+
+ATOMIC_POSITIONS (crystal)
+P                0.0000000000        0.0878690395        0.9111317721
+P                0.5000000143        0.0878690395        0.5888683711
+P                0.0000000000       -0.0878690209        0.0888683966
+P                0.5000000143       -0.0878690209        0.4111317976

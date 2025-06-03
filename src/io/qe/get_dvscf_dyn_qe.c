@@ -6,10 +6,10 @@ This function gets the dvscf and eig vectors for q point from qe
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../common/cwalk/cwalk.h"
-#include "../../common/dtypes.h"
-#include "../../common/error.h"
-#include "../../elphC.h"
+#include "common/cwalk/cwalk.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "elphC.h"
 #include "qe_io.h"
 
 void get_dvscf_dyn_qe(const char* ph_save_dir, struct Lattice* lattice,

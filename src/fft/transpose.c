@@ -5,8 +5,8 @@
 #include <mpi.h>
 #include <string.h>
 
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "elphC.h"
 #include "fft.h"
 
 void fwd_transpose(struct ELPH_fft_plan* plan)

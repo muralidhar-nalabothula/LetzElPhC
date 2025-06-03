@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 #include "preprocessor.h"
 
 void ELPH_print_version(void)

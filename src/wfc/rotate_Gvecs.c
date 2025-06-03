@@ -6,9 +6,9 @@ This file contains helper functions that are use in wfc routines
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/numerical_func.h"
-#include "../common/omp_pragma_def.h"
-#include "../elphC.h"
+#include "common/numerical_func.h"
+#include "common/omp_pragma_def.h"
+#include "elphC.h"
 #include "wfc.h"
 
 /* rotate Gvectors */

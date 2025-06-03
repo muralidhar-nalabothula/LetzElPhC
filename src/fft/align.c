@@ -3,8 +3,8 @@
 #include <complex.h>
 #include <fftw3.h>
 
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "elphC.h"
 #include "fft.h"
 
 #define ELPH_FFTW_SIMD_LEN 64

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 
 ND_int find_kidx_in_list(ND_int nkpts, const ELPH_float* kpts_list,
                          const ELPH_float* kpt);

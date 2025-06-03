@@ -4,13 +4,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "../../common/cblas.h"
-#include "../../common/constants.h"
-#include "../../common/dtypes.h"
-#include "../../common/error.h"
-#include "../../common/string_func.h"
-#include "../../elphC.h"
+#include "common/cblas.h"
+#include "common/constants.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
+#include "io/ezxml/ezxml.h"
 #include "qe_io.h"
 
 /*
@@ -23,8 +25,72 @@ and outputs phonon polarization vectors
 #define DYN_READ_BUF_SIZE 10000
 #define DYN_FLOAT_BUF_SIZE 200
 
+static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
+                              ELPH_float* qpts, ELPH_float* omega,
+                              ELPH_cmplx* pol_vecs);
+
+static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
+                           ELPH_float* omega, ELPH_cmplx* pol_vecs);
+
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
                    ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs)
+{
+    // First, open the file
+    FILE* fp = fopen(dyn_file, "r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Opening file %s failed \n", dyn_file);
+        error_msg("Unable to open the dynmat file");
+    }
+
+    ND_int nq_found = 0;
+
+    bool is_xml_format = false;
+    // First check if it is xml file
+    if (true)
+    {
+        // the if(true) is to create a small scope
+        char line[1024];
+        while (fgets(line, sizeof(line), fp))
+        {
+            // Skip leading whitespace
+            char* p = line;
+            while (isspace(*p))
+            {
+                p++;
+            }
+
+            // Skip empty lines
+            if (*p == '\0')
+            {
+                continue;
+            }
+
+            // Check for '<?xml'
+            if (strstr(p, "<?xml") != NULL)
+            {
+                is_xml_format = true;
+            }
+            break;
+        }
+        rewind(fp);
+    }
+
+    if (is_xml_format)
+    {
+        nq_found = read_dyn_xml(fp, lattice, qpts, omega, pol_vecs);
+    }
+    else
+    {
+        nq_found = read_dyn_qe_old(fp, lattice, qpts, omega, pol_vecs);
+    }
+    fclose(fp);
+    return nq_found;
+}
+
+static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
+                              ELPH_float* qpts, ELPH_float* omega,
+                              ELPH_cmplx* pol_vecs)
 {
     /*
     // reads all the dynamical matrices in the file
@@ -33,14 +99,6 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
     */
 
     ND_int nq_found = 0;  // function return value
-
-    // First, open the file
-    FILE* fp = fopen(dyn_file, "r");
-    if (fp == NULL)
-    {
-        fprintf(stderr, "Opening file %s failed \n", dyn_file);
-        error_msg("Unable to open the dynmat file");
-    }
 
     char* read_buf = malloc(sizeof(char) * DYN_READ_BUF_SIZE);
     CHECK_ALLOC(read_buf);
@@ -129,7 +187,7 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
         error_msg(
             "Error in query request for zheev, when diagonalizing dyn mat");
     }
-    lwork = (int)rint(creal(tmp_work_var));
+    lwork = (int)rint(creal(tmp_work_var * 1.005));
 
     double _Complex* work_array = malloc(sizeof(double _Complex) * lwork);
     CHECK_ALLOC(work_array);
@@ -250,11 +308,235 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
     free(read_fbuf);
     free(read_buf);
     // close the file
-    fclose(fp);
 
     if (nq_found == 0)
     {
         error_msg("No dynamical matrices found in the dyn file");
+    }
+
+    return nq_found;
+}
+
+static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
+                           ELPH_float* omega, ELPH_cmplx* pol_vecs)
+{
+    /*
+    Reads dynamical matrices from QE XML format file.
+    Returns number of q-points found and read.
+    Updates qpts, omega, and pol_vecs arrays.
+    */
+
+    ND_int nq_found = 0;
+
+    ezxml_t xml = ezxml_parse_fp(fp);
+    if (xml == NULL)
+    {
+        error_msg("Error parsing dynamical xml file");
+    }
+
+    ezxml_t geom_info = ezxml_get(xml, "GEOMETRY_INFO", -1);
+    if (geom_info == NULL)
+    {
+        error_msg("No GEOMETRY_INFO tag found in XML file");
+    }
+
+    // Read basic parameters
+    int ntypes = atoi(ezxml_get(geom_info, "NUMBER_OF_TYPES", -1)->txt);
+    int natoms = atoi(ezxml_get(geom_info, "NUMBER_OF_ATOMS", -1)->txt);
+    int nmodes = natoms * 3;
+
+    if (natoms != lattice->natom)
+    {
+        error_msg("Wrong number of atoms in dyn file");
+    }
+
+    // Read atomic masses
+    ELPH_float* atm_mass = malloc(sizeof(ELPH_float) * (natoms + ntypes));
+    CHECK_ALLOC(atm_mass);
+
+    ELPH_float* atm_mass_type = atm_mass + natoms;
+    for (int it = 0; it < ntypes; it++)
+    {
+        char tag[50];
+        snprintf(tag, sizeof(tag), "MASS.%d", (int)(it + 1));
+
+        ezxml_t mass_tag = ezxml_get(geom_info, tag, -1);
+        if (!mass_tag)
+        {
+            error_msg("Cannot parse atomic mass for dyn.xml files");
+        }
+        // in xml files. it is in amu
+        atm_mass_type[it] = atof(mass_tag->txt) * 911.444243096;
+    }
+    // Find all atoms of this type and set their masses
+    for (int ia = 0; ia < natoms; ia++)
+    {
+        char atom_tag[50];
+        snprintf(atom_tag, sizeof(atom_tag), "ATOM.%d", (int)(ia + 1));
+        ezxml_t atom = ezxml_get(geom_info, atom_tag, -1);
+        if (atom)
+        {
+            const char* index = ezxml_attr(atom, "INDEX");
+            if (index)
+            {
+                int ia_idx = atoi(index) - 1;
+                atm_mass[ia] = atm_mass_type[ia_idx];
+            }
+            else
+            {
+                error_msg(
+                    "Cannot parse atomic index from atom for dyn.xml files");
+            }
+        }
+        else
+        {
+            error_msg("Cannot parse atomic mass for dyn.xml files");
+        }
+    }
+
+    // Allocate temporary buffers
+    double _Complex* dyn_mat_tmp =
+        malloc(sizeof(double _Complex) * nmodes * nmodes);
+    CHECK_ALLOC(dyn_mat_tmp);
+
+    double* omega2 = malloc(sizeof(double) * 4 * nmodes);  // (3N-2 + N) = 4N-2
+    CHECK_ALLOC(omega2);
+
+    double* rwork = omega2 + nmodes;
+
+    // Prepare for diagonalization
+    int info_z, lwork;
+    double _Complex tmp_work_var;
+    lwork = -1;  // set up a query request
+    zheev_("V", "U", &nmodes, dyn_mat_tmp, &nmodes, omega2, &tmp_work_var,
+           &lwork, rwork, &info_z);
+    if (info_z != 0)
+    {
+        error_msg("Error in query request for zheev");
+    }
+    lwork = (int)rint(creal(tmp_work_var * 1.005));
+
+    double _Complex* work_array = malloc(sizeof(double _Complex) * lwork);
+    CHECK_ALLOC(work_array);
+
+    // Read dynamical matrices for each q-point
+    while (!nq_found)
+    {
+        // we only need one dynamical matrix.
+        char dyn_tag[50];
+        snprintf(dyn_tag, sizeof(dyn_tag), "DYNAMICAL_MAT_.%d",
+                 (int)(nq_found + 1));
+        ezxml_t dyn_mat = ezxml_get(xml, dyn_tag, -1);
+        if (dyn_mat == NULL)
+        {
+            break;  // No more q-points
+        }
+
+        ELPH_float* qpt_tmp = qpts + nq_found * 3;
+        ELPH_cmplx* eig = pol_vecs + nq_found * nmodes * nmodes;
+        ELPH_float* omega_q = omega + nq_found * nmodes;
+
+        // Read q-point
+        ezxml_t qpt_xml = ezxml_get(dyn_mat, "Q_POINT", -1);
+        if (!qpt_xml)
+        {
+            error_msg("Error reading q-point from XML");
+        }
+        const char* q_str = qpt_xml->txt;
+        if (parser_doubles_from_string(q_str, qpt_tmp) != 3)
+        {
+            error_msg("Error reading q-point from XML");
+        }
+
+        // Read dynamical matrix
+        for (int ia = 0; ia < natoms; ++ia)
+        {
+            for (int ib = 0; ib < natoms; ++ib)
+            {
+                char phi_tag[50];
+                snprintf(phi_tag, sizeof(phi_tag), "PHI.%d.%d", (int)(ia + 1),
+                         (int)(ib + 1));
+                ezxml_t dynr_xml = ezxml_get(dyn_mat, phi_tag, -1);
+                if (!dynr_xml)
+                {
+                    error_msg("Error parsing dynamical matrix from XML");
+                }
+                const char* phi_str = dynr_xml->txt;
+
+                ELPH_float phi_vals[18];
+                if (parser_doubles_from_string(phi_str, phi_vals) != 18)
+                {
+                    error_msg("Error reading dynamical matrix from XML");
+                }
+
+                // Fill dynamical matrix (include mass factors)
+                ELPH_float inv_mass_sqtr = sqrt(atm_mass[ia] * atm_mass[ib]);
+                inv_mass_sqtr = 1.0 / inv_mass_sqtr;
+
+                for (int ix = 0; ix < 3; ix++)
+                {
+                    for (int iy = 0; iy < 3; iy++)
+                    {
+                        // Column-major storage for LAPACK
+                        dyn_mat_tmp[(ix + ia * 3) + (iy + ib * 3) * nmodes] =
+                            (phi_vals[2 * ix + 6 * iy] +
+                             I * phi_vals[2 * ix + 6 * iy + 1]) *
+                            inv_mass_sqtr;
+                    }
+                }
+            }
+        }
+
+        // Symmetrize the matrix
+        for (ND_int idim1 = 0; idim1 < nmodes; idim1++)
+        {
+            for (ND_int jdim1 = 0; jdim1 <= idim1; jdim1++)
+            {
+                dyn_mat_tmp[idim1 * nmodes + jdim1] =
+                    0.5 * (dyn_mat_tmp[idim1 * nmodes + jdim1] +
+                           conj(dyn_mat_tmp[jdim1 * nmodes + idim1]));
+            }
+        }
+
+        // Diagonalize the dynamical matrix
+        zheev_("V", "U", &nmodes, dyn_mat_tmp, &nmodes, omega2, work_array,
+               &lwork, rwork, &info_z);
+        if (info_z != 0)
+        {
+            error_msg("Error diagonalizing dynamical matrix");
+        }
+
+        // Store eigenvalues and eigenvectors
+        for (ND_int imode = 0; imode < nmodes; imode++)
+        {
+            omega_q[imode] = sqrt(fabs(omega2[imode]));
+            if (omega2[imode] < 0)
+            {
+                omega_q[imode] = -omega_q[imode];
+            }
+
+            ELPH_cmplx* eig_tmp_ptr = eig + imode * nmodes;
+            double _Complex* dyn_tmp_ptr = dyn_mat_tmp + imode * nmodes;
+            for (ND_int jmode = 0; jmode < nmodes; jmode++)
+            {
+                ND_int ia = jmode / 3;
+                eig_tmp_ptr[jmode] = dyn_tmp_ptr[jmode] / sqrt(atm_mass[ia]);
+            }
+        }
+
+        nq_found++;
+    }
+
+    // Clean up
+    free(atm_mass);
+    free(dyn_mat_tmp);
+    free(omega2);
+    free(work_array);
+    ezxml_free(xml);
+
+    if (nq_found == 0)
+    {
+        error_msg("No dynamical matrices found in the XML file");
     }
 
     return nq_found;

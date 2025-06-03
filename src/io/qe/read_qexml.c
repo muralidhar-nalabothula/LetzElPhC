@@ -8,11 +8,11 @@ This file contains function that parses data-file-schema.xml file
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../common/constants.h"
-#include "../../common/error.h"
-#include "../../common/string_func.h"
-#include "../../elphC.h"
-#include "../ezxml/ezxml.h"
+#include "common/constants.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
+#include "io/ezxml/ezxml.h"
 #include "qe_io.h"
 
 #define ELPH_XML_READ_LINE_SIZE 1000
@@ -42,45 +42,36 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         error_msg("Error opening data-file-schema.xml file");
     }
 
-    bool assume_isolated_found = false;
-
-    char* tmp_read = malloc(ELPH_XML_READ_LINE_SIZE);
-    CHECK_ALLOC(tmp_read);
-
-    while (fgets(tmp_read, ELPH_XML_READ_LINE_SIZE, fp))
-    {
-        if (strstr(tmp_read, "assume_isolated"))
-        {
-            assume_isolated_found =
-                true;  // if (strstr(tmp_read, "2D")) *dim = '2';
-            break;
-        }
-    }
-
-    rewind(fp);
-
-    char* tmp_str;  // tmp variable for ezxml char pointer
-
     ezxml_t qexml = ezxml_parse_fp(fp);
     if (qexml == NULL)
     {
         error_msg("Error parsing data-file-schema.xml file");
     }
 
-    if (assume_isolated_found)
+    char* tmp_read = malloc(ELPH_XML_READ_LINE_SIZE);
+    CHECK_ALLOC(tmp_read);
+
+    const char* tmp_str;  // tmp variable for ezxml char pointer
+    ezxml_t xml_tmp;
+
+    xml_tmp = ezxml_get(qexml, "output", 0, "boundary_conditions", 0,
+                        "assume_isolated", -1);
+    if (xml_tmp)
     {
-        char* assume_iso = ezxml_get(qexml, "output", 0, "boundary_conditions",
-                                     0, "assume_isolated", -1)
-                               ->txt;
+        char* assume_iso = xml_tmp->txt;
         if (string_start_with(assume_iso, "2D", true))
         {
             *dim = '2';
         }
     }
     // next get the pseudo pot directory
-    tmp_str =
-        ezxml_get(qexml, "input", 0, "control_variables", 0, "pseudo_dir", -1)
-            ->txt;
+    xml_tmp =
+        ezxml_get(qexml, "input", 0, "control_variables", 0, "pseudo_dir", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing pseudo_dir from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
 
     *pseudo_dir = malloc(strlen(tmp_str) +
                          1);  // we need to free this outside of this function
@@ -95,7 +86,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         error_msg("error reading atomic spices from data-file-schema.xml file");
     }
 
-    ND_int ntype = atoll(ezxml_attr(atom_specs, "ntyp"));
+    tmp_str = ezxml_attr(atom_specs, "ntyp");
+    if (!tmp_str)
+    {
+        error_msg("error ntyp attribute from data-file-schema.xml file");
+    }
+    ND_int ntype = atoll(tmp_str);
     *pseudo_pots = malloc(sizeof(char*) * ntype);
     CHECK_ALLOC(*pseudo_pots);
 
@@ -103,8 +99,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
     for (ND_int itype = 0; itype < ntype; ++itype)
     {
-        tmp_str =
-            ezxml_get(atom_specs, "species", itype, "pseudo_file", -1)->txt;
+        xml_tmp = ezxml_get(atom_specs, "species", itype, "pseudo_file", -1);
+        if (!xml_tmp)
+        {
+            error_msg("Parsing species from data-file-schema.xml file");
+        }
+        tmp_str = xml_tmp->txt;
         // printf("%d : %s \n",(int)itype, tmp_str);
         pot_tmp[itype] = malloc(1 + strlen(tmp_str));
         CHECK_ALLOC(pot_tmp[itype]);
@@ -113,28 +113,66 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     }
 
     // get number of atoms
-    *natoms = atoll(ezxml_attr(
-        ezxml_get(qexml, "output", 0, "atomic_structure", -1), "nat"));
+    xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing atomic_structure from data-file-schema.xml file");
+    }
+
+    tmp_str = ezxml_attr(xml_tmp, "nat");
+    if (!tmp_str)
+    {
+        error_msg("error nat attribute from data-file-schema.xml file");
+    }
+    *natoms = atoll(tmp_str);
     //
     // get alat
-    alat[0] = atof(ezxml_attr(
-        ezxml_get(qexml, "output", 0, "atomic_structure", -1), "alat"));
+    tmp_str = ezxml_attr(xml_tmp, "alat");
+    if (!tmp_str)
+    {
+        error_msg("error alat attribute from data-file-schema.xml file");
+    }
+    alat[0] = atof(tmp_str);
     alat[1] = alat[0];
     alat[2] = alat[0];
     // get fft dims
-    fft_dims[0] = atoll(ezxml_attr(
-        ezxml_get(qexml, "output", 0, "basis_set", 0, "fft_grid", -1), "nr1"));
-    fft_dims[1] = atoll(ezxml_attr(
-        ezxml_get(qexml, "output", 0, "basis_set", 0, "fft_grid", -1), "nr2"));
-    fft_dims[2] = atoll(ezxml_attr(
-        ezxml_get(qexml, "output", 0, "basis_set", 0, "fft_grid", -1), "nr3"));
+    xml_tmp = ezxml_get(qexml, "output", 0, "basis_set", 0, "fft_grid", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing fft_grid from data-file-schema.xml file");
+    }
+
+    tmp_str = ezxml_attr(xml_tmp, "nr1");
+    if (!tmp_str)
+    {
+        error_msg("error nr1 attribute from data-file-schema.xml file");
+    }
+    fft_dims[0] = atoll(tmp_str);
+
+    tmp_str = ezxml_attr(xml_tmp, "nr2");
+    if (!tmp_str)
+    {
+        error_msg("error nr2 attribute from data-file-schema.xml file");
+    }
+    fft_dims[1] = atoll(tmp_str);
+
+    tmp_str = ezxml_attr(xml_tmp, "nr3");
+    if (!tmp_str)
+    {
+        error_msg("error nr3 attribute from data-file-schema.xml file");
+    }
+    fft_dims[2] = atoll(tmp_str);
 
     // get lattice vectors
     ELPH_float a_tmp_read[3];
 
-    tmp_str = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
-                        "a1", -1)
-                  ->txt;
+    xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
+                        "a1", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing a1 from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
     if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
     {
         error_msg("Error parsing a1 vec from data-file-schema.xml");
@@ -144,9 +182,13 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         lat_vec[3 * ix + 0] = a_tmp_read[ix];  // a[:,i]
     }
 
-    tmp_str = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
-                        "a2", -1)
-                  ->txt;
+    xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
+                        "a2", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing a2 from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
     if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
     {
         error_msg("Error parsing a2 vec from data-file-schema.xml");
@@ -156,9 +198,13 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         lat_vec[3 * ix + 1] = a_tmp_read[ix];
     }
 
-    tmp_str = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
-                        "a3", -1)
-                  ->txt;
+    xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", 0, "cell", 0,
+                        "a3", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing a3 from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
     if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
     {
         error_msg("Error parsing a3 vec from data-file-schema.xml");
@@ -169,8 +215,16 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     }
 
     // check if soc is present
-    tmp_str =
-        ezxml_get(qexml, "output", 0, "magnetization", 0, "spinorbit", -1)->txt;
+    xml_tmp =
+        ezxml_get(qexml, "output", 0, "magnetization", 0, "spinorbit", -1);
+    //
+    if (!xml_tmp)
+    {
+        error_msg(
+            "Parsing magnetization,spinorbit from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
+    //
     strcpy(tmp_read, tmp_str);
     lowercase_str(tmp_read);
 
@@ -182,8 +236,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     // nmag
     // first check if this is a lsda calc
     bool lsda = false;
-    tmp_str =
-        ezxml_get(qexml, "output", 0, "magnetization", 0, "lsda", -1)->txt;
+    xml_tmp = ezxml_get(qexml, "output", 0, "magnetization", 0, "lsda", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing magnetization, lsda from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
     strcpy(tmp_read, tmp_str);
     lowercase_str(tmp_read);
 
@@ -196,8 +254,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
     // check if there is noinv flag
     bool no_inv = false;
-    tmp_str =
-        ezxml_get(qexml, "input", 0, "symmetry_flags", 0, "noinv", -1)->txt;
+    xml_tmp = ezxml_get(qexml, "input", 0, "symmetry_flags", 0, "noinv", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing noinv from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
     strcpy(tmp_read, tmp_str);
     lowercase_str(tmp_read);
 
@@ -220,9 +282,13 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         bool is_non_collinear = false;
         bool mag_system = false;
 
-        tmp_str =
-            ezxml_get(qexml, "output", 0, "magnetization", 0, "noncolin", -1)
-                ->txt;
+        xml_tmp =
+            ezxml_get(qexml, "output", 0, "magnetization", 0, "noncolin", -1);
+        if (!xml_tmp)
+        {
+            error_msg("Parsing noncolin from data-file-schema.xml file");
+        }
+        tmp_str = xml_tmp->txt;
         strcpy(tmp_read, tmp_str);
         lowercase_str(tmp_read);
 
@@ -233,9 +299,15 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
         if (is_non_collinear)
         {
-            tmp_str = ezxml_get(qexml, "output", 0, "magnetization", 0,
-                                "do_magnetization", -1)
-                          ->txt;
+            xml_tmp = ezxml_get(qexml, "output", 0, "magnetization", 0,
+                                "do_magnetization", -1);
+            if (!xml_tmp)
+            {
+                error_msg(
+                    "Parsing do_magnetization from data-file-schema.xml file");
+            }
+            tmp_str = xml_tmp->txt;
+
             strcpy(tmp_read, tmp_str);
             lowercase_str(tmp_read);
 
@@ -263,7 +335,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
     // Finally read the phonon symmetries from the xml file
     // first get number of symmetries
-    tmp_str = ezxml_get(qexml, "output", 0, "symmetries", 0, "nsym", -1)->txt;
+    xml_tmp = ezxml_get(qexml, "output", 0, "symmetries", 0, "nsym", -1);
+    if (!xml_tmp)
+    {
+        error_msg("Parsing nsym from data-file-schema.xml file");
+    }
+    tmp_str = xml_tmp->txt;
 
     *nph_sym = atoi(tmp_str);
 
@@ -310,7 +387,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         // rotation matrix (stored in transposed order) and frac .translation
         // are store in crystals coordinates parse rotation (in crystal units)
         // S_cart = (alat@S_crys^T@blat^T)
-        tmp_str = ezxml_get(sym_xml_tmp, "symmetry", isym, "rotation", -1)->txt;
+        xml_tmp = ezxml_get(sym_xml_tmp, "symmetry", isym, "rotation", -1);
+        if (!xml_tmp)
+        {
+            error_msg("Parsing rotation from data-file-schema.xml file");
+        }
+        tmp_str = xml_tmp->txt;
         if (parser_doubles_from_string(tmp_str, (*ph_sym_mats) + 9 * isym) != 9)
         {
             error_msg(
@@ -320,9 +402,15 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         // parse translation (in crystal units) tau_cart = alat@tau_crys
         // It should be noted that we use Sx + v convention, but qe uses S(x+v)
         // so our v = S*tau_qe
-        tmp_str = ezxml_get(sym_xml_tmp, "symmetry", isym,
-                            "fractional_translation", -1)
-                      ->txt;
+        xml_tmp = ezxml_get(sym_xml_tmp, "symmetry", isym,
+                            "fractional_translation", -1);
+        if (!xml_tmp)
+        {
+            error_msg(
+                "Parsing fractional_translation from data-file-schema.xml "
+                "file");
+        }
+        tmp_str = xml_tmp->txt;
         if (parser_doubles_from_string(tmp_str, (*ph_sym_tau) + 3 * isym) != 3)
         {
             error_msg(
@@ -330,9 +418,12 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         }
         // check if this symmetry corresponds to time_reversal symmetry for nmag
         // == 4
-        const char* trev_tmp_str =
-            ezxml_attr(ezxml_get(sym_xml_tmp, "symmetry", isym, "info", -1),
-                       "time_reversal");
+        xml_tmp = ezxml_get(sym_xml_tmp, "symmetry", isym, "info", -1);
+        if (!xml_tmp)
+        {
+            error_msg("Parsing symmetry info from data-file-schema.xml file");
+        }
+        const char* trev_tmp_str = ezxml_attr(xml_tmp, "time_reversal");
         if (trev_tmp_str)
         {
             strcpy(tmp_read, trev_tmp_str);

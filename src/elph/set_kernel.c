@@ -2,9 +2,9 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/string_func.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/string_func.h"
 #include "elph.h"
 
 void init_kernel(struct kernel_info* kernel)

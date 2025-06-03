@@ -2,14 +2,14 @@
 #include <mpi.h>
 #include <stdlib.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../common/parallel.h"
-#include "../elphC.h"
-#include "../wfc/wfc.h"
+#include "common/ELPH_timers.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "common/parallel.h"
 #include "dvloc.h"
+#include "elphC.h"
+#include "wfc/wfc.h"
 
 /* create a interpolation table on a coarse grid for short local potential in
  * Gspace*/

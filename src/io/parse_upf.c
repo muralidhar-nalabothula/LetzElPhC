@@ -9,12 +9,12 @@ yambo
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/string_func.h"
-#include "../elphC.h"
-#include "ezxml/ezxml.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
 #include "io.h"
+#include "io/ezxml/ezxml.h"
 
 static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo);
 
@@ -141,10 +141,28 @@ static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo)
         error_msg("Reading header from pseudo potential file failed");
     }
 
-    ELPH_float Zval = atof(ezxml_attr(header, "z_valence"));
-    ND_int ngrid = atoi(ezxml_attr(header, "mesh_size"));
+    const char* xml_attr;
 
-    if (strcmp(ezxml_attr(header, "pseudo_type"), "NC"))
+    xml_attr = ezxml_attr(header, "z_valence");
+    if (!xml_attr)
+    {
+        error_msg("Reading z_valence from pseudo potential file failed");
+    }
+    ELPH_float Zval = atof(xml_attr);
+
+    xml_attr = ezxml_attr(header, "mesh_size");
+    if (!xml_attr)
+    {
+        error_msg("Reading mesh_size from pseudo potential file failed");
+    }
+    ND_int ngrid = atoll(xml_attr);
+
+    xml_attr = ezxml_attr(header, "pseudo_type");
+    if (!xml_attr)
+    {
+        error_msg("Reading pseudo_type from pseudo potential file failed");
+    }
+    if (strcmp(xml_attr, "NC"))
     {
         error_msg("Pseudo potential is not norm conserving");
     }
@@ -380,7 +398,10 @@ static void get_upf2_element(FILE* fp, char* atomic_sym)
     }
 
     const char* temp_upf_ptr = ezxml_attr(header, "element");
-
+    if (temp_upf_ptr == NULL)
+    {
+        error_msg("Reading element from pseudo potential file failed");
+    }
     // get the element
     memcpy(atomic_sym, temp_upf_ptr, sizeof(char) * 2);
     ezxml_free(upfFP);

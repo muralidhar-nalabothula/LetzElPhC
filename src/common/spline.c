@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 #include "error.h"
 #include "numerical_func.h"
 /*

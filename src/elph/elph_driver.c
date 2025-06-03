@@ -10,19 +10,19 @@ THe starting point for the entire code
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/init_dtypes.h"
-#include "../common/parallel.h"
-#include "../common/print_info.h"
-#include "../dvloc/dvloc.h"
-#include "../elphC.h"
-#include "../fft/fft.h"
-#include "../io/io.h"
-#include "../io/qe/qe_io.h"
-#include "../symmetries/symmetries.h"
+#include "common/ELPH_timers.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/init_dtypes.h"
+#include "common/parallel.h"
+#include "common/print_info.h"
+#include "dvloc/dvloc.h"
 #include "elph.h"
+#include "elphC.h"
+#include "fft/fft.h"
+#include "io/io.h"
+#include "io/qe/qe_io.h"
+#include "symmetries/symmetries.h"
 
 void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
                  MPI_Comm comm_world)

@@ -6,8 +6,8 @@ This is a routine to perform 3D FFT in parallel
 #include <stdbool.h>
 #include <string.h>
 
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/error.h"
+#include "elphC.h"
 #include "fft.h"
 
 void invfft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcG,

@@ -2,7 +2,7 @@
 //
 //
 #pragma once
-#include "../elphC.h"
+#include "elphC.h"
 
 #if defined(COMPILE_ELPH_DOUBLE)
 

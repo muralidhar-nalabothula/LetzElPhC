@@ -7,12 +7,12 @@ This file contains functions which are os dependent.
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/cwalk/cwalk.h"
-#include "../common/error.h"
-#include "../common/string_func.h"
-#include "../elphC.h"
-#include "../io/ezxml/ezxml.h"
 #include "ELPH_copy.h"
+#include "common/cwalk/cwalk.h"
+#include "common/error.h"
+#include "common/string_func.h"
+#include "elphC.h"
+#include "io/ezxml/ezxml.h"
 #include "preprocessor.h"
 
 #if defined(_WIN32)
@@ -201,11 +201,10 @@ void create_ph_save_dir_pp_qe(const char* inp_file)
     //     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     // }
 
-    if (strstr(dyn_prefix, ".xml"))
+    char* xml_dyn_prefix = strstr(dyn_prefix, ".xml");
+    if (xml_dyn_prefix)
     {
-        fprintf(stderr,
-                "Error : xml format for dyn files not yet supported.\n");
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        *xml_dyn_prefix = '\0';
     }
 
     if (!ldisp)
@@ -330,8 +329,16 @@ void create_ph_save_dir_pp_qe(const char* inp_file)
 
     for (int idyn = 0; idyn < ndyn; ++idyn)
     {
-        snprintf(src_file_tmp, PH_X_INP_READ_BUF_SIZE, "%s%d", dyn_prefix,
-                 idyn + 1);
+        if (xml_dyn_prefix)
+        {
+            snprintf(src_file_tmp, PH_X_INP_READ_BUF_SIZE, "%s%d.xml",
+                     dyn_prefix, idyn + 1);
+        }
+        else
+        {
+            snprintf(src_file_tmp, PH_X_INP_READ_BUF_SIZE, "%s%d", dyn_prefix,
+                     idyn + 1);
+        }
 
         char dyn_tmp_str[32];
         snprintf(dyn_tmp_str, 32, "dyn%d", idyn + 1);

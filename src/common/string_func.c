@@ -34,14 +34,14 @@ void lowercase_str(char* str)
     }
 }
 
-ND_int parser_doubles_from_string(char* str, ELPH_float* out)
+ND_int parser_doubles_from_string(const char* str, ELPH_float* out)
 {
     /*
     Extract all float values from given string
 
     if out == NULL, it return number of float it parsed
     */
-    char* p = str;
+    const char* p = str;
     char* q;
     double temp_val;
     ND_int count = 0;

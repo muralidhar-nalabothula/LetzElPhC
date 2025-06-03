@@ -1,8 +1,8 @@
 #pragma once
 #include <stdio.h>
 
-#include "../elphC.h"
 #include "dtypes.h"
+#include "elphC.h"
 
 void print_ELPH_logo(int mpi_rank, FILE* output);
 

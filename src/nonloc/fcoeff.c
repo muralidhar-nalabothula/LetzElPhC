@@ -11,10 +11,10 @@ These routines contain functions related the pseudo potentials.
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../common/constants.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/constants.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "elphC.h"
 
 /** Static declarations*/
 static ELPH_cmplx Cmat(int m1, int m2);

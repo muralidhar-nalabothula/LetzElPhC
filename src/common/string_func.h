@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "../elphC.h"
+#include "elphC.h"
 
 // safer strncpy version
 char* strncpy_custom(char* dest, const char* src, size_t count);
@@ -12,7 +12,7 @@ void lowercase_str(char* str);
 
 // Extract all float values from given string
 // if out == NULL, it return number of float it parsed
-ND_int parser_doubles_from_string(char* str, ELPH_float* out);
+ND_int parser_doubles_from_string(const char* str, ELPH_float* out);
 
 // Check if given string starts with a substring
 bool string_start_with(char* str, char* compare_str, bool trim);

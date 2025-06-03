@@ -1,7 +1,7 @@
 // This file contains functions to perform fourier interpolate
 
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "fft.h"
 // complex.h must be before fftw3.h
 #include <complex.h>

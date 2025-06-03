@@ -4,10 +4,10 @@ d/dR(Ha + Vxc) i.e induced potential
 */
 #include <complex.h>
 
-#include "../common/dtypes.h"
-#include "../common/omp_pragma_def.h"
-#include "../elphC.h"
+#include "common/dtypes.h"
+#include "common/omp_pragma_def.h"
 #include "dvloc.h"
+#include "elphC.h"
 
 void add_dvscf_qe(ELPH_cmplx* dVscf, const ELPH_cmplx* dVloc,
                   const struct Lattice* lattice)

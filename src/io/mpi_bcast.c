@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../elphC.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "elphC.h"
 
 #ifdef MPI_Aint_diff
 #define MPI_Aint_diff_stub(addr1, addr2) MPI_Aint_diff(addr1, addr2)

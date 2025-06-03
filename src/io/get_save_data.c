@@ -10,20 +10,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/ELPH_timers.h"
-#include "../common/constants.h"
-#include "../common/cwalk/cwalk.h"
-#include "../common/dtypes.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../common/parallel.h"
-#include "../dvloc/dvloc.h"
-#include "../elphC.h"
-#include "../nonloc/fcoeff.h"
-#include "../symmetries/symmetries.h"
+#include "common/ELPH_timers.h"
+#include "common/constants.h"
+#include "common/cwalk/cwalk.h"
+#include "common/dtypes.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "common/parallel.h"
+#include "dvloc/dvloc.h"
+#include "elphC.h"
 #include "io.h"
+#include "io/qe/qe_io.h"
 #include "mpi_bcast.h"
-#include "qe/qe_io.h"
+#include "nonloc/fcoeff.h"
+#include "symmetries/symmetries.h"
 
 /*static functions */
 static void quick_read(const int ncid, char* var_name, void* data_out);

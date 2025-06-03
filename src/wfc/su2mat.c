@@ -6,10 +6,10 @@ given symmetry matrix
 #include <math.h>
 #include <stdbool.h>
 
-#include "../common/constants.h"
-#include "../common/error.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/constants.h"
+#include "common/error.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "wfc.h"
 
 /* SU2 mat */

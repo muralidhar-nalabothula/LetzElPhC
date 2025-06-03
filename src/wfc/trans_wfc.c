@@ -6,9 +6,9 @@
 #include <complex.h>
 #include <stdbool.h>
 
-#include "../common/constants.h"
-#include "../common/numerical_func.h"
-#include "../elphC.h"
+#include "common/constants.h"
+#include "common/numerical_func.h"
+#include "elphC.h"
 #include "wfc.h"
 
 void apply_trans_wfc(const ELPH_float* trans_vec, const ELPH_float* kvec,
