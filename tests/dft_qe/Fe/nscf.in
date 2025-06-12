@@ -1,6 +1,6 @@
 &CONTROL
   prefix = 'Fe'
-  pseudo_dir = '.' !'../../pseudos_dojo'
+  pseudo_dir = '../../pseudos_dojo'
   calculation = 'nscf'
   outdir = '.'
   verbosity = 'high'
