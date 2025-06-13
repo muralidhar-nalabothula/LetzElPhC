@@ -4,7 +4,7 @@ phonons on a grid
   nq2 = 2, 
   nq3 = 2, 
   fildyn = 'Fe.dyn', 
-  tr2_ph = 1e-14, 
+  tr2_ph = 1e-17, 
   prefix = 'Fe', 
   trans = .true., 
   fildvscf = 'dvscf', 
