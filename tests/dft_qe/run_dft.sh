@@ -36,6 +36,7 @@ test_systems=(\
     Si_bulk_spin \
     Si_bulk \
     hBN_bulk \
+    Fe \
     BP \
     NiO_SOC_mag \
     MoS2_SOC_2D \
