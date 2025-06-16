@@ -123,11 +123,17 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
              * broken */
             if (cutoff == '2')
             {
-                ELPH_float qGp =
-                    latvec[8] * sqrt(qGtempCart[0] * qGtempCart[0] +
-                                     qGtempCart[1] * qGtempCart[1]);
-                cutoff_fac -=
-                    exp(-qGp * 0.5) * cos(qGtempCart[2] * latvec[8] * 0.5);
+                ELPH_float Gp_norm = sqrt(qGtempCart[0] * qGtempCart[0] +
+                                          qGtempCart[1] * qGtempCart[1]);
+                ELPH_float qGp = latvec[8] * Gp_norm;
+                ELPH_float cos_sin_fac = cos(qGtempCart[2] * latvec[8] * 0.5);
+                if (Gp_norm > ELPH_EPS)
+                {
+                    cos_sin_fac =
+                        cos_sin_fac - sin(qGtempCart[2] * latvec[8] * 0.5) *
+                                          qGtempCart[2] / Gp_norm;
+                }
+                cutoff_fac = 1 - exp(-qGp * 0.5) * cos_sin_fac;
             }
 
             for (ND_int itype = 0; itype < ntype; ++itype)
