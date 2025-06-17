@@ -3,9 +3,6 @@
 // monopole + dipole + Quadrupole are coded
 //
 //
-
-#include "elph_lr_kernels.h"
-
 #include <complex.h>
 #include <math.h>
 #include <string.h>
@@ -16,6 +13,7 @@
 #include "common/error.h"
 #include "common/numerical_func.h"
 #include "common/omp_pragma_def.h"
+#include "dvloc.h"
 #include "elphC.h"
 
 static void long_range_3D_kernel(const ELPH_float* qplusG,
