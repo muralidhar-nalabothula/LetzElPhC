@@ -3,8 +3,9 @@
 
 #include "common/error.h"
 #include "elphC.h"
+#include "wfc.h"
 
-void Get_fft_box(const ELPH_float EcutRy, const ELPH_float* blat,
+void get_fft_box(const ELPH_float EcutRy, const ELPH_float* blat,
                  ND_int* fft_box, MPI_Comm commK)
 {
     /**
@@ -78,7 +79,8 @@ void Get_fft_box(const ELPH_float EcutRy, const ELPH_float* blat,
     // Make sure we have same number on all cpus. Does it happen?
     // Maybe who knows if we 4.499999999 and 4.5000000001
     // will yeild different numbers.
-    mpi_error = MPI_Bcast(fft_box, 3, ELPH_MPI_ND_INT, 0, commK);
+    mpi_error = MPI_Allreduce(MPI_IN_PLACE, fft_box, 3, ELPH_MPI_ND_INT,
+                              MPI_MAX, commK);
     MPI_error_msg(mpi_error);
 
     return;
