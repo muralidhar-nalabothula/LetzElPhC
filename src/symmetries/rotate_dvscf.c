@@ -180,7 +180,10 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
                 // check now if it is an integer.
                 if (fabs(tmp_diff) > ELPH_EPS)
                 {
-                    ELPH_OMP_PAR_CRITICAL { symm_fft_compat = false; }
+                    if (symm_fft_compat)
+                    {
+                        ELPH_OMP_PAR_CRITICAL { symm_fft_compat = false; }
+                    }
                     /* error_msg( */
                     /*     "Symmetry operation is incompatible with FFT grid.");
                      */
