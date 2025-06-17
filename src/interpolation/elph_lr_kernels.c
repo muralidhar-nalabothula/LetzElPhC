@@ -4,6 +4,8 @@
 //
 //
 
+#include "elph_lr_kernels.h"
+
 #include <complex.h>
 #include <math.h>
 #include <string.h>
@@ -14,7 +16,6 @@
 #include "../common/error.h"
 #include "../common/numerical_func.h"
 #include "../elphC.h"
-#include "elph_lr_kernels.h"
 
 static void long_range_3D_kernel(const ELPH_float* qplusG,
                                  const ELPH_float* Zval,
@@ -301,6 +302,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     // compute (q+G)_x Q_xyz * (q+G)_y
     if (Qpole_k)
     {
+        ELPH_float Q_mod_inplane = sqrt(Gp_norm * Gp_norm + qz * qz);
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
@@ -313,11 +315,11 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
                 }
             }
         }
-        // subtract Qzz*|q+G|^2
+        // subtract Qzz*(1+|qz+Gp|)*|q+G|^2-2qz*Gz
         for (int i = 0; i < 3; ++i)
         {
-            Qpole_buf[i] -=
-                ((q_G_square - 2.0 * qz * (qplusG[2] - qz)) * Qpole_k[i + 24]);
+            Qpole_buf[i] -= ((q_G_square - 2.0 * qz * (qplusG[2] - qz)) *
+                             (1 + Q_mod_inplane) * Qpole_k[i + 24]);
         }
     }
     // compute and multiply with a decay factor

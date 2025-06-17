@@ -149,8 +149,17 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
 
         ND_int Nyz = fft_dims[1] * fft_dims[2];
         // first find the rotation indices i.e S^{r-tau}
+        // check if symmetry is compatible with fft grid
+        volatile bool symm_fft_compat = true;
+        // volatile is important to insure we reload everytime (for example if
+        // other treads change the value)
+        ELPH_OMP_PAR_FOR_SIMD
         for (ND_int i = 0; i < nfft; ++i)
         {
+            if (!symm_fft_compat)
+            {
+                continue;
+            }
             ND_int ix = i / Nyz;
             ND_int iy = i % Nyz / fft_dims[2];
             ND_int iz = i % Nyz % fft_dims[2];
@@ -171,14 +180,25 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
                 // check now if it is an integer.
                 if (fabs(tmp_diff) > ELPH_EPS)
                 {
-                    error_msg(
-                        "Symmetry operation is incompatible with FFT grid.");
+                    ELPH_OMP_PAR_CRITICAL { symm_fft_compat = false; }
+                    /* error_msg( */
+                    /*     "Symmetry operation is incompatible with FFT grid.");
+                     */
                 }
+            }
+            if (!symm_fft_compat)
+            {
+                continue;
             }
             ix = rint(tmp_idxs_rot[0]);
             iy = rint(tmp_idxs_rot[1]);
             iz = rint(tmp_idxs_rot[2]);
             rot_idx[i] = ix * Nyz + iy * fft_dims[2] + iz;
+        }
+
+        if (!symm_fft_compat)
+        {
+            error_msg("Symmetry operation is incompatible with FFT grid.");
         }
     }
 
