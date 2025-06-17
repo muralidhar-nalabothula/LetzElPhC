@@ -39,7 +39,7 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
                     const ELPH_float* Qpole, const ND_int natom,
                     const ELPH_float* atom_pos, const char diminsion,
                     const ELPH_float volume, const ELPH_float zlat,
-                    ELPH_cmplx* elph_lr_out)
+                    const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out)
 {
     // gvecs in cartisian coordinates  ( no 2*pi)
     // qpt in cart units             ( no 2*pi)
@@ -55,7 +55,10 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
     // //
     // NOTE: Donot forget to allreduce the result over plane waves.
 
-    // do a basic check
+    // EcutRy : Energy cut off in Ry. The deformation potential pws for
+    // |q+G|^2 > EcutRy is set to zero.
+    // //
+    //
     ELPH_start_clock("dV_longrang");
 
     for (ND_int i = 0; i < (3 * natom * npw_loc); ++i)
@@ -69,27 +72,31 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
         return;
     }
 
-    ELPH_cmplx factor = 4.0 * ELPH_PI * I * ELPH_e2 / volume;  // prefactor
+    const ELPH_cmplx factor =
+        4.0 * ELPH_PI * I * ELPH_e2 / volume;  // prefactor
 
-    for (ND_int ia = 0; ia < natom; ++ia)
+    ELPH_OMP_PAR_FOR_SIMD
+    for (ND_int ig = 0; ig < npw_loc; ++ig)
     {
-        const ELPH_float* Zval = Zvals ? (Zvals + ia) : NULL;
-        const ELPH_float* Z_k = Zeu ? (Zeu + 9 * ia) : NULL;
-        const ELPH_float* Q_k = Qpole ? (Qpole + 27 * ia) : NULL;
-        const ELPH_float* tau_k = atom_pos + 3 * ia;
-
-        ELPH_OMP_PAR_FOR_SIMD
-        for (ND_int ig = 0; ig < npw_loc; ++ig)
+        const ELPH_float* gtmp = gvecs + 3 * ig;
+        ELPH_float qplusG[3];
+        for (int i = 0; i < 3; ++i)
         {
+            qplusG[i] = 2 * ELPH_PI * (qpt[i] + gtmp[i]);
+        }
+        const ELPH_float qplusG_norm2 = dot3_macro(qplusG, qplusG);
+        if (qplusG_norm2 > EcutRy)
+        {
+            continue;
+        }
+        for (ND_int ia = 0; ia < natom; ++ia)
+        {
+            const ELPH_float* Zval = Zvals ? (Zvals + ia) : NULL;
+            const ELPH_float* Z_k = Zeu ? (Zeu + 9 * ia) : NULL;
+            const ELPH_float* Q_k = Qpole ? (Qpole + 27 * ia) : NULL;
+            const ELPH_float* tau_k = atom_pos + 3 * ia;
+
             ELPH_cmplx* out_tmp_buf = elph_lr_out + ia * 3 + ig * natom * 3;
-
-            const ELPH_float* gtmp = gvecs + 3 * ig;
-
-            ELPH_float qplusG[3];
-            for (int i = 0; i < 3; ++i)
-            {
-                qplusG[i] = 2 * ELPH_PI * (qpt[i] + gtmp[i]);
-            }
 
             if (diminsion == '3')
             {
