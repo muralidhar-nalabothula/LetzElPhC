@@ -7,7 +7,6 @@
 #include <math.h>
 #include <string.h>
 
-#include "common/ELPH_timers.h"
 #include "common/constants.h"
 #include "common/dtypes.h"
 #include "common/error.h"
@@ -57,8 +56,6 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
     // |q+G|^2 > EcutRy is set to zero.
     // //
     //
-    ELPH_start_clock("dV_longrang");
-
     for (ND_int i = 0; i < (3 * natom * npw_loc); ++i)
     {
         elph_lr_out[i] = 0.0;
@@ -66,7 +63,6 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
 
     if (!epslion && !Zvals)
     {
-        ELPH_stop_clock("dV_longrang");
         return;
     }
 
@@ -113,8 +109,6 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
             }
         }
     }
-
-    ELPH_stop_clock("dV_longrang");
 
     return;
 }

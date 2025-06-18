@@ -17,20 +17,58 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
             struct Pseudo* pseudo, const ELPH_cmplx* eigVec, ELPH_cmplx* Vlocr,
             MPI_Comm commK)
 {
-    /*
-    Computes the change in local bare potential in real space
-
-    Input
-    qpt       : q-point in crystal coordinates (FIX ME. qpt must be in [-1,1]
-    atom_pos  : atomic positions in cart coordinates
-    nDim      : '3','2','1' for 3D, 2D, 1D cutoffs
-    eigVec    : eigen vectors , (nu,atom,3)
-    atom_type : atomic type array (natom)
-                atomic number of atom i
-    Out-put:
-            Vlocr
-            d Vloc/dtau (in cart) (nmode,nffts_this_cpu),
-    */
+    /**
+     * @brief Computes the change in local bare potential in real space due to
+     * atomic displacements.
+     *
+     * @details
+     * This function calculates the derivative of the local pseudopotential
+     * (dVloc/dtau) in real space for a given q-point, transforming from
+     * reciprocal space (G-vectors) using an inverse FFT. The result is
+     * projected onto phonon modes using the provided eigenvectors.
+     *
+     * ### Mathematical Formulation:
+     * - The local potential derivative in reciprocal space is:
+     *   \[
+     *   \frac{dV_{loc}(q+G)}{d\tau} = -i (q+G) \cdot V_{loc}(|q+G|) \cdot
+     * e^{-i(q+G)\cdot\tau}
+     *   \]
+     * - After interpolation and mode projection, an inverse FFT is applied to
+     * obtain the real-space result.
+     *
+     * @param[in] qpt         q-point in crystal coordinates (range: [-1, 1]).
+     * @param[in] lattice     Pointer to Lattice structure containing:
+     *                        - alat_vec/blat_vec (lattice/reciprocal vectors),
+     *                        - atomic_pos (Cartesian positions),
+     *                        - atom_type (atomic species indices),
+     *                        - fft_dims (FFT grid dimensions),
+     *                        - dimension (cutoff type: '3', '2', or '1' for
+     * 3D/2D/1D).
+     * @param[in] pseudo      Pointer to Pseudo structure with pseudopotential
+     * tables:
+     *                        - vloc_table (interpolation data for Vloc(G)),
+     *                        - loc_pseudo[itype].Zval (valence charge per
+     * species).
+     * @param[in] eigVec      Phonon eigenvectors (shape: [nmodes, 3*natom]),
+     *                        used to project onto modes.
+     * @param[out] Vlocr      Output array (shape: [nmodes, nffts_loc]) storing
+     * the real-space dVloc/dtau for each mode.
+     * @param[in] commK       MPI communicator for parallel FFT grid
+     * distribution.
+     *
+     * @note
+     * - The q-point must be in fractional coordinates (range [-1, 1]).
+     * - Memory for `Vlocr` must be pre-allocated by the caller.
+     * - Uses spline interpolation for Vloc(G) and includes a long-range Coulomb
+     * correction.
+     * - For 2D systems (`cutoff == '2'`), an analytic cutoff is applied to
+     * remove z-periodicity.
+     *
+     * @warning
+     * - Terminates with `error_msg` if:
+     *   - No G-vectors are assigned to a process (`G_vecs_xy < 1`).
+     *   - |q+G| exceeds the interpolation table bounds.
+     */
 
     ELPH_start_clock("dV_bare");
     const ELPH_float* latvec = lattice->alat_vec;
@@ -39,7 +77,7 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     const int* atom_type = lattice->atom_type;
     const char cutoff = lattice->dimension;
     const ND_int natom = lattice->natom;
-    const ND_int nmodes = 3 * natom;
+    const ND_int nmodes = lattice->nmodes;
     const ND_int FFTx = lattice->fft_dims[0];
     const ND_int FFTy = lattice->fft_dims[1];
     const ND_int FFTz = lattice->fft_dims[2];
@@ -83,6 +121,10 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     ELPH_float* VlocGtype = malloc(sizeof(ELPH_float) * (ntype));
     CHECK_ALLOC(VlocGtype);
 
+    ELPH_cmplx* VlocGz_mode = calloc(FFTz * nmodes, sizeof(ELPH_cmplx));
+    CHECK_ALLOC(VlocGz_mode);
+
+    // Note. No openmp par for, not thread safe for this outer most loop.
     for (ND_int ig = 0; ig < G_vecs_xy; ++ig)
     {
         const ND_int fft_glob_idx = Gxy_shift + ig;
@@ -116,7 +158,7 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
             }
             ND_int gidx = floor(qGnorm / dg);
 
-            ELPH_cmplx* tmp_ptr = VlocG + 3 * natom * (ig * FFTz + kz);
+            ELPH_cmplx* tmp_ptr = VlocGz_mode + kz * nmodes;
 
             ELPH_float cutoff_fac = 1;
             /* using analytic cutoff which works only when z periodicity is
@@ -166,29 +208,24 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
                 tmp_ptr[ia * 3 + 2] = factor * qGtempCart[2];
             }
         }
+        // VlocG -> (nffs,atom,3),
+        //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
+        matmul_cmplx('N', 'T', eigVec, VlocGz_mode, VlocG + FFTz * ig, 1.0, 0.0,
+                     nmodes, nmodes, size_G_vecs, nmodes, FFTz, nmodes);
     }
 
     free(VlocGtype);
-
-    ELPH_cmplx* VlocG_mode =
-        calloc(size_VG, sizeof(ELPH_cmplx));  // 3*natom* ix_s*jy_s*kz
-    CHECK_ALLOC(VlocG_mode);
-
-    // VlocG -> (nffs,atom,3),
-    //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
-    matmul_cmplx('N', 'T', eigVec, VlocG, VlocG_mode, 1.0, 0.0, nmodes, nmodes,
-                 size_G_vecs, nmodes, size_G_vecs, nmodes);
-    free(VlocG);
+    free(VlocGz_mode);
 
     struct ELPH_fft_plan fft_plan;
 
     wfc_plan(&fft_plan, size_G_vecs, lattice->nfftz_loc, G_vecs_xy, gvecs,
              lattice->fft_dims, FFTW_MEASURE, commK);
 
-    invfft3D(&fft_plan, nmodes, VlocG_mode, Vlocr, false);
+    invfft3D(&fft_plan, nmodes, VlocG, Vlocr, false);
 
     wfc_destroy_plan(&fft_plan);
     free(gvecs);
-    free(VlocG_mode);
+    free(VlocG);
     ELPH_stop_clock("dV_bare");
 }
