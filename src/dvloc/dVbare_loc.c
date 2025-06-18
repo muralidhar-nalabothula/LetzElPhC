@@ -121,8 +121,8 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     ELPH_float* VlocGtype = malloc(sizeof(ELPH_float) * (ntype));
     CHECK_ALLOC(VlocGtype);
 
-    ELPH_cmplx* VlocGz_mode = malloc(FFTz * nmodes * sizeof(ELPH_cmplx));
-    CHECK_ALLOC(VlocGz_mode);
+    ELPH_cmplx* VlocGz_cart = malloc(FFTz * nmodes * sizeof(ELPH_cmplx));
+    CHECK_ALLOC(VlocGz_cart);
 
     // Note. No openmp par for, not thread safe for this outer most loop.
     for (ND_int ig = 0; ig < G_vecs_xy; ++ig)
@@ -158,7 +158,7 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
             }
             ND_int gidx = floor(qGnorm / dg);
 
-            ELPH_cmplx* tmp_ptr = VlocGz_mode + kz * nmodes;
+            ELPH_cmplx* tmp_ptr = VlocGz_cart + kz * nmodes;
 
             ELPH_float cutoff_fac = 1;
             /* using analytic cutoff which works only when z periodicity is
@@ -210,12 +210,12 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
         }
         // VlocG -> (nffs,atom,3),
         //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
-        matmul_cmplx('N', 'T', eigVec, VlocGz_mode, VlocG + FFTz * ig, 1.0, 0.0,
+        matmul_cmplx('N', 'T', eigVec, VlocGz_cart, VlocG + FFTz * ig, 1.0, 0.0,
                      nmodes, nmodes, size_G_vecs, nmodes, FFTz, nmodes);
     }
 
     free(VlocGtype);
-    free(VlocGz_mode);
+    free(VlocGz_cart);
 
     struct ELPH_fft_plan fft_plan;
 
