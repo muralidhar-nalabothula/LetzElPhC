@@ -16,7 +16,7 @@
 #include "wfc/wfc.h"
 
 void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
-                      struct Pseudo* pseudo, struct Phonon* phonon,
+                      struct Phonon* phonon, const ELPH_float* Zvals,
                       const ELPH_cmplx* eigVec, ELPH_cmplx* dVscf,
                       const ND_int sign, const bool only_induced_part,
                       const ELPH_float EcutRy, const bool* nmags_add,
@@ -42,14 +42,9 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
      * @param[in] lattice     Pointer to Lattice structure containing:
      *                        - alat_vec/blat_vec (lattice/reciprocal vectors),
      *                        - atomic_pos (Cartesian positions),
-     *                        - atom_type (atomic species indices),
      *                        - fft_dims (FFT grid dimensions),
      *                        - dimension (cutoff type: '3', '2', or '1' for
      * 3D/2D/1D).
-     * @param[in] pseudo      Pointer to Pseudo structure with pseudopotential
-     * tables:
-     *                        - vloc_table (interpolation data for Vloc(G)),
-     *                        - loc_pseudo[itype].Zval (valence charge per
      * species).
      * @param[in] eigVec      Phonon eigenvectors (shape: [nmodes, 3*natom]),
      *                        used to project onto modes.
@@ -76,7 +71,6 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
     //
     const ELPH_float* latvec = lattice->alat_vec;
     const ELPH_float* atom_pos = lattice->atomic_pos;
-    const int* atom_type = lattice->atom_type;
     const char cutoff = lattice->dimension;
     const ND_int natom = lattice->natom;
     const ND_int nmodes = lattice->nmodes;
@@ -128,16 +122,10 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
         qcart[ii] /= (2.0 * ELPH_PI);
     }
     //
-    ELPH_float* Zvals = NULL;
-    if (!only_induced_part)
+    const ELPH_float* Zvals_tmp = Zvals;
+    if (only_induced_part)
     {
-        Zvals = malloc(natom * sizeof(*Zvals));
-        CHECK_ALLOC(Zvals);
-        for (ND_int ia = 0; ia < natom; ++ia)
-        {
-            const ND_int itype = atom_type[ia];
-            Zvals[ia] = pseudo->loc_pseudo[itype].Zval;
-        }
+        Zvals_tmp = NULL;
     }
     const ELPH_float* epslion = phonon->epsilon;
     const ELPH_float* Zeu = phonon->Zborn;
@@ -171,16 +159,15 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
                 Gvecs_z[kz * 3 + ii] /= (2.0 * ELPH_PI);
             }
         }
-        dVlong_range_kernel(qcart, Gvecs_z, Gbox[2], Zvals, epslion, Zeu, Qpole,
-                            natom, atom_pos, cutoff, volume, latvec[8], EcutRy,
-                            VlocGz_mode);
+        dVlong_range_kernel(qcart, Gvecs_z, Gbox[2], Zvals_tmp, epslion, Zeu,
+                            Qpole, natom, atom_pos, cutoff, volume, latvec[8],
+                            EcutRy, VlocGz_mode);
         // VlocG -> (nffs,atom,3),
         //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
         matmul_cmplx('N', 'T', eigVec, VlocGz_mode, VlocG + Gbox[2] * ig, 1.0,
                      0.0, nmodes, nmodes, size_G_vecs, nmodes, Gbox[2], nmodes);
     }
 
-    free(Zvals);
     free(Gvecs_z);
     free(VlocGz_mode);
 

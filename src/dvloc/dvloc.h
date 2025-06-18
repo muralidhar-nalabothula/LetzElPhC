@@ -30,7 +30,7 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
                          const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out);
 
 void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
-                      struct Pseudo* pseudo, struct Phonon* phonon,
+                      struct Phonon* phonon, const ELPH_float* Zvals,
                       const ELPH_cmplx* eigVec, ELPH_cmplx* dVscf,
                       const ND_int sign, const bool only_induced_part,
                       const ELPH_float EcutRy, const bool* nmags_add,
