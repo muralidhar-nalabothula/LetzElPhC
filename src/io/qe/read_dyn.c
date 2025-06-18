@@ -27,14 +27,18 @@ and outputs phonon polarization vectors
 
 static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
                               ELPH_float* qpts, ELPH_float* omega,
-                              ELPH_cmplx* pol_vecs);
+                              ELPH_cmplx* pol_vecs, ELPH_float* amass);
 
 static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
-                           ELPH_float* omega, ELPH_cmplx* pol_vecs);
+                           ELPH_float* omega, ELPH_cmplx* pol_vecs,
+                           ELPH_float* amass);
 
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
-                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs)
+                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs,
+                   ELPH_float* amass)
 {
+    // if amass (atomic masses in au) is NULL, will be ignored
+    //
     // First, open the file
     FILE* fp = fopen(dyn_file, "r");
     if (fp == NULL)
@@ -78,11 +82,11 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
 
     if (is_xml_format)
     {
-        nq_found = read_dyn_xml(fp, lattice, qpts, omega, pol_vecs);
+        nq_found = read_dyn_xml(fp, lattice, qpts, omega, pol_vecs, amass);
     }
     else
     {
-        nq_found = read_dyn_qe_old(fp, lattice, qpts, omega, pol_vecs);
+        nq_found = read_dyn_qe_old(fp, lattice, qpts, omega, pol_vecs, amass);
     }
     fclose(fp);
     return nq_found;
@@ -90,7 +94,7 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
 
 static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
                               ELPH_float* qpts, ELPH_float* omega,
-                              ELPH_cmplx* pol_vecs)
+                              ELPH_cmplx* pol_vecs, ELPH_float* amass)
 {
     /*
     // reads all the dynamical matrices in the file
@@ -301,6 +305,11 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
         ++nq_found;
     }
 
+    if (amass)
+    {
+        memcpy(amass, atm_mass, natom * sizeof(*amass));
+    }
+
     free(work_array);
     free(omega2);
     free(dyn_mat_tmp);
@@ -318,7 +327,8 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
 }
 
 static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
-                           ELPH_float* omega, ELPH_cmplx* pol_vecs)
+                           ELPH_float* omega, ELPH_cmplx* pol_vecs,
+                           ELPH_float* amass)
 {
     /*
     Reads dynamical matrices from QE XML format file.
@@ -525,6 +535,12 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
         }
 
         nq_found++;
+    }
+
+    // copy atomic masses
+    if (amass)
+    {
+        memcpy(amass, atm_mass, natoms * sizeof(*amass));
     }
 
     // Clean up

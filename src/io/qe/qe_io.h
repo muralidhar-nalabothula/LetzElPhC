@@ -26,7 +26,8 @@ void read_qpts_qe(const char* dyn0_file, ND_int* nqpt_iBZ, ND_int* nqpt_fullBZ,
                   ELPH_float** qpts);
 
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
-                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs);
+                   ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs,
+                   ELPH_float* amass);
 
 void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
                       const char* ph_save_dir, char*** pseudo_pots,
