@@ -20,9 +20,9 @@ static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo);
 
 static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo);
 
-static void get_upf2_element(FILE* fp, char* atomic_sym);
+static void get_upf2_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
 
-static void get_upf1_element(FILE* fp, char* atomic_sym);
+static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
 
 // ===================================================================================
 
@@ -70,8 +70,9 @@ void parse_upf(const char* filename, struct local_pseudo* loc_pseudo)
     fclose(fp);
 }
 
-void get_upf_element(const char* filename, char* atomic_sym)
+void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval)
 {
+    // if Zval is NULL, will be ignored
     FILE* fp = fopen(filename, "r");
     if (fp == NULL)
     {
@@ -101,11 +102,11 @@ void get_upf_element(const char* filename, char* atomic_sym)
 
     if (upf_version == 1)
     {
-        get_upf1_element(fp, atomic_sym);
+        get_upf1_element(fp, atomic_sym, Zval);
     }
     else if (upf_version == 2)
     {
-        get_upf2_element(fp, atomic_sym);
+        get_upf2_element(fp, atomic_sym, Zval);
     }
     else
     {
@@ -371,10 +372,11 @@ static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo)
 
 //----
 
-static void get_upf2_element(FILE* fp, char* atomic_sym)
+static void get_upf2_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
 {
     /*
     atomic_sym must be atleast 3 bytes long
+    if Zval is NULL, will be ignored
     */
     if (fseek(fp, 0, SEEK_SET) != 0)
     {
@@ -402,6 +404,16 @@ static void get_upf2_element(FILE* fp, char* atomic_sym)
     {
         error_msg("Reading element from pseudo potential file failed");
     }
+
+    if (Zval)
+    {
+        const char* xml_attr = ezxml_attr(header, "z_valence");
+        if (!xml_attr)
+        {
+            error_msg("Reading z_valence from pseudo potential file failed");
+        }
+        *Zval = atof(xml_attr);
+    }
     // get the element
     memcpy(atomic_sym, temp_upf_ptr, sizeof(char) * 2);
     ezxml_free(upfFP);
@@ -409,10 +421,11 @@ static void get_upf2_element(FILE* fp, char* atomic_sym)
 
 //----
 
-static void get_upf1_element(FILE* fp, char* atomic_sym)
+static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
 {
     /*
     atomic_sym must be atleast 3 bytes long
+    if Zval is NULL, will be ignored
     */
     if (fseek(fp, 0, SEEK_SET) != 0)
     {
@@ -458,6 +471,14 @@ static void get_upf1_element(FILE* fp, char* atomic_sym)
     if (!strstr(xml_buf, "NC"))
     {
         error_msg("Pseudo potential is not norm conserving");
+    }
+    if (Zval)
+    {
+        fgets(xml_buf, 1000, fp);  // nlcc
+        fgets(xml_buf, 1000, fp);  // XC info
+        fgets(xml_buf, 1000, fp);  // Valence electrons
+        char* tmp_token = strtok(xml_buf, " ");
+        sscanf(tmp_token, "%f", Zval);
     }
 
     free(xml_buf);

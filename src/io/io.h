@@ -23,7 +23,7 @@ void free_save_data(struct WFC* wfcs, struct Lattice* lattice,
 
 // parse_upf.c // get pseudo data from upfs
 void parse_upf(const char* filename, struct local_pseudo* loc_pseudo);
-void get_upf_element(const char* filename, char* atomic_sym);
+void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval);
 
 void init_usr_input(struct usr_input** input);
 void free_usr_input(struct usr_input* input);

@@ -668,7 +668,7 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
                           temp_str_len);
 
             /* read elements from pseudo pots */
-            get_upf_element(temp_str, temp_ele);  // only single process !
+            get_upf_element(temp_str, temp_ele, NULL);  // only single process !
             bool found = false;
 
             for (ND_int ipot2 = 0; ipot2 < pseudo->ntype; ++ipot2)
