@@ -33,10 +33,10 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
     dVscf : (nmodes, nmag, nfft_loc)
     Assumes dVscf is already initialized, else UB.
     only_induced_part : If only_induced_part is true, then only dipoles and
-    nmags_add : is list of bools for which the potential is add or subtraced
-    (dimension) if nmags_add[imag] == true, the potential is added to
-    dvscf[:,imag,:] quadrupoles are considered else Valance charge( Z_val/r),
+     quadrupoles are considered else Valance charge( Z_val/r),
     dipoles and quadrupoles are consider.
+    nmags_add : is list of bools for which the potential is add or subtraced
+    if nmags_add[imag] == true, the potential is added/sub to dvscf[:,imag,:]
      *
      * @param[in] qpt         q-point in crystal coordinates (range: [-1, 1]).
      * @param[in] lattice     Pointer to Lattice structure containing:
