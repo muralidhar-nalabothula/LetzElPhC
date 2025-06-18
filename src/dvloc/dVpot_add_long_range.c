@@ -112,8 +112,8 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
     ELPH_float* Gvecs_z = malloc(3 * Gbox[2] * sizeof(*Gvecs_z));
     CHECK_ALLOC(gvecs);
 
-    ELPH_cmplx* VlocGz_mode = calloc(Gbox[2] * nmodes, sizeof(ELPH_cmplx));
-    CHECK_ALLOC(VlocGz_mode);
+    ELPH_cmplx* VlocGz_cart = calloc(Gbox[2] * nmodes, sizeof(ELPH_cmplx));
+    CHECK_ALLOC(VlocGz_cart);
 
     ELPH_float qcart[3];
     MatVec3f(blat, qpt, false, qcart);
@@ -161,15 +161,15 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
         }
         dVlong_range_kernel(qcart, Gvecs_z, Gbox[2], Zvals_tmp, epslion, Zeu,
                             Qpole, natom, atom_pos, cutoff, volume, latvec[8],
-                            EcutRy, VlocGz_mode);
+                            EcutRy, VlocGz_cart);
         // VlocG -> (nffs,atom,3),
         //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
-        matmul_cmplx('N', 'T', eigVec, VlocGz_mode, VlocG + Gbox[2] * ig, 1.0,
+        matmul_cmplx('N', 'T', eigVec, VlocGz_cart, VlocG + Gbox[2] * ig, 1.0,
                      0.0, nmodes, nmodes, size_G_vecs, nmodes, Gbox[2], nmodes);
     }
 
     free(Gvecs_z);
-    free(VlocGz_mode);
+    free(VlocGz_cart);
 
     struct ELPH_fft_plan fft_plan;
 
