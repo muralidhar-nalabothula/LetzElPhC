@@ -153,7 +153,7 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
         volatile bool symm_fft_compat = true;
         // volatile is important to insure we reload everytime (for example if
         // other treads change the value)
-        ELPH_OMP_PAR_FOR_SIMD
+        ELPH_OMP_PAR_FOR
         for (ND_int i = 0; i < nfft; ++i)
         {
             if (!symm_fft_compat)
