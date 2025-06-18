@@ -30,13 +30,13 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
                                  const ELPH_float* tau_k, const ELPH_float zlat,
                                  const ELPH_float qz, ELPH_cmplx* out_buf);
 
-void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
-                    const ND_int npw_loc, const ELPH_float* Zvals,
-                    const ELPH_float* epslion, const ELPH_float* Zeu,
-                    const ELPH_float* Qpole, const ND_int natom,
-                    const ELPH_float* atom_pos, const char diminsion,
-                    const ELPH_float volume, const ELPH_float zlat,
-                    const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out)
+void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
+                         const ND_int npw_loc, const ELPH_float* Zvals,
+                         const ELPH_float* epslion, const ELPH_float* Zeu,
+                         const ELPH_float* Qpole, const ND_int natom,
+                         const ELPH_float* atom_pos, const char diminsion,
+                         const ELPH_float volume, const ELPH_float zlat,
+                         const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out)
 {
     // gvecs in cartisian coordinates  ( no 2*pi)
     // qpt in cart units             ( no 2*pi)
@@ -69,7 +69,6 @@ void elph_lr_vertex(const ELPH_float* qpt, const ELPH_float* gvecs,
     const ELPH_cmplx factor =
         4.0 * ELPH_PI * I * ELPH_e2 / volume;  // prefactor
 
-    ELPH_OMP_PAR_FOR_SIMD
     for (ND_int ig = 0; ig < npw_loc; ++ig)
     {
         const ELPH_float* gtmp = gvecs + 3 * ig;
