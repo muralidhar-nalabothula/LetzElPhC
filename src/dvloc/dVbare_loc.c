@@ -103,8 +103,8 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     const ND_int size_G_vecs = G_vecs_xy * lattice->fft_dims[2];
     const ND_int size_VG = nmodes * size_G_vecs;
 
-    ELPH_cmplx* VlocG =
-        malloc(size_VG * sizeof(ELPH_cmplx));  // 3*natom* ix_s*jy_s*kz
+    // this must be calloc
+    ELPH_cmplx* VlocG = calloc(size_VG, sizeof(ELPH_cmplx));
     CHECK_ALLOC(VlocG);
 
     int* gvecs = malloc(3 * size_G_vecs * sizeof(int));
@@ -121,7 +121,7 @@ void dVlocq(const ELPH_float* qpt, struct Lattice* lattice,
     ELPH_float* VlocGtype = malloc(sizeof(ELPH_float) * (ntype));
     CHECK_ALLOC(VlocGtype);
 
-    ELPH_cmplx* VlocGz_mode = calloc(FFTz * nmodes, sizeof(ELPH_cmplx));
+    ELPH_cmplx* VlocGz_mode = malloc(FFTz * nmodes * sizeof(ELPH_cmplx));
     CHECK_ALLOC(VlocGz_mode);
 
     // Note. No openmp par for, not thread safe for this outer most loop.
