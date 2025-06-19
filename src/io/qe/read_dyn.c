@@ -33,6 +33,8 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
                            ELPH_float* omega, ELPH_cmplx* pol_vecs,
                            ELPH_float* amass);
 
+static bool is_dyn_xml(FILE* fp);
+
 ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
                    ELPH_float* qpts, ELPH_float* omega, ELPH_cmplx* pol_vecs,
                    ELPH_float* amass)
@@ -49,36 +51,8 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
 
     ND_int nq_found = 0;
 
-    bool is_xml_format = false;
+    bool is_xml_format = is_dyn_xml(fp);
     // First check if it is xml file
-    if (true)
-    {
-        // the if(true) is to create a small scope
-        char line[1024];
-        while (fgets(line, sizeof(line), fp))
-        {
-            // Skip leading whitespace
-            char* p = line;
-            while (isspace(*p))
-            {
-                p++;
-            }
-
-            // Skip empty lines
-            if (*p == '\0')
-            {
-                continue;
-            }
-
-            // Check for '<?xml'
-            if (strstr(p, "<?xml") != NULL)
-            {
-                is_xml_format = true;
-            }
-            break;
-        }
-        rewind(fp);
-    }
 
     if (is_xml_format)
     {
@@ -616,4 +590,36 @@ void read_qpts_qe(const char* dyn0_file, ND_int* nqpt_iBZ, ND_int* nqpt_fullBZ,
 
     free(read_buf);
     fclose(fp);
+}
+
+static bool is_dyn_xml(FILE* fp)
+{
+    // must be rewind(fp) at the end.
+    // the if(true) is to create a small scope
+    bool is_xml_format = false;
+    char line[1024];
+    while (fgets(line, sizeof(line), fp))
+    {
+        // Skip leading whitespace
+        char* p = line;
+        while (isspace(*p))
+        {
+            p++;
+        }
+
+        // Skip empty lines
+        if (*p == '\0')
+        {
+            continue;
+        }
+
+        // Check for '<?xml'
+        if (strstr(p, "<?xml") != NULL)
+        {
+            is_xml_format = true;
+        }
+        break;
+    }
+    rewind(fp);
+    return is_xml_format;
 }

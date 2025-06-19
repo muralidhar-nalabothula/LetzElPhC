@@ -24,6 +24,7 @@ static void get_upf2_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
 
 static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
 
+static int get_upf_version(FILE* fp);
 // ===================================================================================
 
 void parse_upf(const char* filename, struct local_pseudo* loc_pseudo)
@@ -34,26 +35,7 @@ void parse_upf(const char* filename, struct local_pseudo* loc_pseudo)
         error_msg("Unable to open the upf file");
     }
 
-    int upf_version = 0;
-    char start_str[100];
-    fgets(start_str, 100, fp);
-    if (strstr(start_str, "PP_INFO"))
-    {
-        upf_version = 1;
-    }
-    else if (strstr(start_str, "UPF version"))
-    {
-        upf_version = 2;
-    }
-    else
-    {
-        error_msg("Only UPF-1 or UPF-2 file formats supported");
-    }
-
-    if (fseek(fp, 0, SEEK_SET) != 0)
-    {
-        error_msg("error setting the start seek for upf file");
-    }
+    int upf_version = get_upf_version(fp);
 
     if (upf_version == 1)
     {
@@ -79,26 +61,7 @@ void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval)
         error_msg("Unable to open the upf file");
     }
 
-    int upf_version = 0;
-    char start_str[100];
-    fgets(start_str, 100, fp);
-    if (strstr(start_str, "<PP_INFO>"))
-    {
-        upf_version = 1;
-    }
-    else if (strstr(start_str, "<UPF version"))
-    {
-        upf_version = 2;
-    }
-    else
-    {
-        error_msg("Only UPF-1 or UPF-2 file formats supported");
-    }
-
-    if (fseek(fp, 0, SEEK_SET) != 0)
-    {
-        error_msg("error setting the start seek for upf file");
-    }
+    int upf_version = get_upf_version(fp);
 
     if (upf_version == 1)
     {
@@ -483,6 +446,32 @@ static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
 
     free(xml_buf);
     xml_buf = NULL;
+}
+
+static int get_upf_version(FILE* fp)
+{
+    // This funtion must rewind(fp)
+    int upf_version = 0;
+    char start_str[100];
+    fgets(start_str, 100, fp);
+    if (strstr(start_str, "<PP_INFO>"))
+    {
+        upf_version = 1;
+    }
+    else if (strstr(start_str, "<UPF version"))
+    {
+        upf_version = 2;
+    }
+    else
+    {
+        error_msg("Only UPF-1 or UPF-2 file formats supported");
+    }
+
+    if (fseek(fp, 0, SEEK_SET) != 0)
+    {
+        error_msg("error setting the start seek for upf file");
+    }
+    return upf_version;
 }
 
 //----
