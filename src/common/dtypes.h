@@ -88,9 +88,9 @@ struct Lattice
     ND_int fft_dims[3];
     // fft dimensions
     ND_int nfftz_loc;
-    // number of FFT vecs in this cpu
+    // number of FFTz vecs in this cpu
     ND_int nfftz_loc_shift;
-    // global index of first fft vector
+    // global index of first fftz vector
     ELPH_float alat_vec[9];
     // Lattice vectors a[i] = alat[:,i]
     ELPH_float blat_vec[9];
