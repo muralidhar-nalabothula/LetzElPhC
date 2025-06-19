@@ -97,7 +97,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 
     char** pot_tmp = *pseudo_pots;
 
-    for (ND_int itype = 0; itype < ntype; ++itype)
+    for (int itype = 0; itype < ntype; ++itype)
     {
         xml_tmp = ezxml_get(atom_specs, "species", itype, "pseudo_file", -1);
         if (!xml_tmp)
@@ -365,7 +365,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     CHECK_ALLOC(*ph_trevs);
     bool* trev_ptr = *ph_trevs;
 
-    for (ND_int isym = 0; isym < 2 * (*nph_sym); ++isym)
+    for (int isym = 0; isym < 2 * (*nph_sym); ++isym)
     {
         // a  smart compiller will remove this loop.
         // but lets stick to standard and leave these to compilers
@@ -376,7 +376,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
     bool mag_sym_found = false;
 
     ELPH_float I3x3[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-    for (ND_int isym = 0; isym < *nph_sym; ++isym)
+    for (int isym = 0; isym < *nph_sym; ++isym)
     {
         ezxml_t sym_xml_tmp = ezxml_get(qexml, "output", 0, "symmetries", -1);
         if (sym_xml_tmp == NULL)

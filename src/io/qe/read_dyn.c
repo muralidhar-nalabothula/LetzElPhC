@@ -325,8 +325,20 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
     }
 
     // Read basic parameters
-    int ntypes = atoi(ezxml_get(geom_info, "NUMBER_OF_TYPES", -1)->txt);
-    int natoms = atoi(ezxml_get(geom_info, "NUMBER_OF_ATOMS", -1)->txt);
+    ezxml_t xml_ntype = ezxml_get(geom_info, "NUMBER_OF_TYPES", -1);
+    if (xml_ntype)
+    {
+        error_msg("Error parsing number of types");
+    }
+    int ntypes = atoi(xml_ntype->txt);
+
+    ezxml_t xml_natoms = ezxml_get(geom_info, "NUMBER_OF_ATOMS", -1);
+    if (xml_natoms)
+    {
+        error_msg("Error parsing number of atoms");
+    }
+    int natoms = atoi(xml_natoms->txt);
+
     int nmodes = natoms * 3;
 
     if (natoms != lattice->natom)
