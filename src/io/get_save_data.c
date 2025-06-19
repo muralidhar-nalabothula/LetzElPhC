@@ -43,8 +43,6 @@ static void get_wfc_from_save(ND_int spin_stride_len, ND_int ik, ND_int nkiBZ,
                               const size_t work_array_len, ELPH_cmplx* out_wfc,
                               MPI_Comm comm);
 
-static void free_phonon_data(struct Phonon* phonon);
-
 static inline ND_int get_wf_io_pool(ND_int ik, ND_int q, ND_int r);
 
 static bool check_ele_in_array(ND_int* arr_in, ND_int nelements,
@@ -800,11 +798,14 @@ void free_save_data(struct WFC* wfcs, struct Lattice* lattice,
     // free wfcs
     ND_int nkiBZ = lattice->nkpts_iBZ;
     /* Free wavefunctions */
-    for (ND_int ik = 0; ik < nkiBZ; ++ik)
+    if (wfcs)
     {
-        free((wfcs + ik)->wfc);
-        free((wfcs + ik)->gvec);
-        free((wfcs + ik)->Fk);
+        for (ND_int ik = 0; ik < nkiBZ; ++ik)
+        {
+            free((wfcs + ik)->wfc);
+            free((wfcs + ik)->gvec);
+            free((wfcs + ik)->Fk);
+        }
     }
     free(wfcs);
 
