@@ -142,14 +142,14 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
         // read atom pos, Zvals
         for (int it = 0; it < ntype; ++it)
         {
-            ezxml_t atom_specs_tmp = ezxml_get(atom_specs, "species", it, "");
-            if (atom_specs_tmp == NULL)
+            xml_tmp = ezxml_get(atom_specs, "species", it, "");
+            if (xml_tmp == NULL)
             {
                 error_msg(
                     "error reading atomic spices from data-file-schema.xml "
                     "file");
             }
-            tmp_xml_str = ezxml_attr(atom_specs_tmp, "name");
+            tmp_xml_str = ezxml_attr(xml_tmp, "name");
             if (!tmp_xml_str)
             {
                 error_msg(
@@ -178,24 +178,16 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
         lattice->atomic_pos = malloc(3 * natom * sizeof(*lattice->atomic_pos));
         CHECK_ALLOC(lattice->atomic_pos);
 
-        xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", -1);
-        if (!xml_tmp)
-        {
-            error_msg(
-                "Parsing atomic_structure from data-file-schema.xml file");
-        }
-
         for (int ia = 0; ia < natom; ++ia)
         {
-            ezxml_t iatom_tmp =
-                ezxml_get(qexml, "output", 0, "atomic_structure", 0,
-                          "atomic_positions", 0, "atom", ia, "");
-            if (!iatom_tmp)
+            xml_tmp = ezxml_get(qexml, "output", 0, "atomic_structure", 0,
+                                "atomic_positions", 0, "atom", ia, "");
+            if (!xml_tmp)
             {
                 error_msg(
                     "Parsing atomic_positions from data-file-schema.xml file");
             }
-            tmp_xml_str = ezxml_attr(iatom_tmp, "name");
+            tmp_xml_str = ezxml_attr(xml_tmp, "name");
             if (!tmp_xml_str)
             {
                 error_msg(
@@ -222,7 +214,7 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
 
             *(*Zvals + ia) = Zval_type[itype];
 
-            tmp_xml_str = iatom_tmp->txt;
+            tmp_xml_str = xml_tmp->txt;
             if (parser_doubles_from_string(tmp_xml_str,
                                            lattice->atomic_pos + 3 * ia) != 3)
             {
