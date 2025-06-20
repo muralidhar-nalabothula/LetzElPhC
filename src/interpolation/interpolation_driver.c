@@ -13,4 +13,5 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                           enum ELPH_dft_code dft_code, int nqpools,
                           MPI_Comm comm_world)
 {
+    return;
 }
