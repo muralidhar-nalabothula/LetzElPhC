@@ -165,18 +165,8 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                             eigs_co, eigs_co_star);
             if (dVscfs_co)
             {
-                ELPH_float qpt_cart[3];
-                MatVec3f(lattice->blat_vec, phonon->qpts_BZ + 3 * iqpt_tmp,
-                         false, qpt_cart);
-                for (int ii = 0; ii < 3; ++ii)
-                {
-                    qpt_cart[ii] /= (2.0 * ELPH_PI);
-                }
-
-                ELPH_float qpt_rot[3];
-                rotate_dvscf(dV_co_tmp, sym_star, lattice, qpt_cart,
-                             dvscf_composite_form, qpt_rot, dV_co_star,
-                             mpi_comms->commK);
+                rotate_dvscf(dV_co_tmp, sym_star, lattice, dvscf_composite_form,
+                             dV_co_star, mpi_comms->commK);
             }
             ++iqpt_tmp;
         }

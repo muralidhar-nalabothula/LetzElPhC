@@ -20,12 +20,10 @@ This file contains function to rotate dvscf
 */
 
 void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
-                  const struct Lattice* lattice, const ELPH_float* qpt,
-                  const bool composite_form, ELPH_float* restrict qpt_rot,
+                  const struct Lattice* lattice, const bool composite_form,
                   ELPH_cmplx* restrict dvscf_out, MPI_Comm commK)
 {
     // dvscf : (nmodes, nmag, Nx, Ny, Nz_loc)
-    // qpt and qpt_rot in cart
     // composite_form : if true. dvscf is in V*s_0 + Bx*sx + By*Sy + Bz*sz
     // where s_0,x,y,z are pauli matrices.
     // if composite_form is false then [Vx, Bx, By, Bz] are given i.e
@@ -317,9 +315,6 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
             dvscf_out[i] = conj(dvscf_out[i]);
         }
     }
-
-    // set the rotated qpoint.
-    MatVec3f(sym->Rmat, qpt, false, qpt_rot);
 
     // free stuff
     // first free the derived types

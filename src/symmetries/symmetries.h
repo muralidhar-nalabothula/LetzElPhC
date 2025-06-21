@@ -23,6 +23,5 @@ void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
                      ELPH_cmplx* eig_Sq);
 
 void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
-                  const struct Lattice* lattice, const ELPH_float* qpt,
-                  const bool composite_form, ELPH_float* restrict qpt_rot,
+                  const struct Lattice* lattice, const bool composite_form,
                   ELPH_cmplx* restrict dvscf_out, MPI_Comm commK);
