@@ -115,23 +115,22 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         // latter we convert it to dynamical matrices
         ND_int iq_fft_idx = indices_q2fft[iqpt_tmp];
         //
-        ELPH_cmplx* dVscfs_co_tmp =
+        ELPH_cmplx* dV_co_tmp =
             dVscfs_co ? dVscfs_co + iq_fft_idx * dvscf_loc_len : NULL;
-        ELPH_cmplx* dyns_co_tmp =
+        ELPH_cmplx* eigs_co =
             dyns_co + iq_fft_idx * lattice->nmodes * lattice->nmodes;
-        ELPH_float* omega_ph_co_tmp =
-            omega_ph_co + iq_fft_idx * lattice->nmodes;
+        ELPH_float* omege_ph_co = omega_ph_co + iq_fft_idx * lattice->nmodes;
         //
         if (dft_code == DFT_CODE_QE)
         {
-            get_dvscf_dyn_qe(ph_save, lattice, iqco, dyns_co_tmp, dVscfs_co_tmp,
-                             omega_ph_co_tmp, mpi_comms);
+            get_dvscf_dyn_qe(ph_save, lattice, iqco, eigs_co, dV_co_tmp,
+                             omege_ph_co, mpi_comms);
         }
-        if (dVscfs_co_tmp)
+        if (dV_co_tmp)
         {
             // remore long range
             dV_add_longrange(phonon->qpts_BZ + iqpt_tmp * 3, lattice, phonon,
-                             Zvals, dyns_co_tmp, dVscfs_co_tmp, -1,
+                             Zvals, eigs_co, dV_co_tmp, -1,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
         }
@@ -142,11 +141,11 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         {
             iq_fft_idx = indices_q2fft[iqpt_tmp];
             //
-            ELPH_cmplx* dVscfs_co_tmp_s =
+            ELPH_cmplx* dV_co_star =
                 dVscfs_co ? dVscfs_co + iq_fft_idx * dvscf_loc_len : NULL;
-            ELPH_cmplx* dyns_co_tmp_s =
+            ELPH_cmplx* eigs_co_star =
                 dyns_co + iq_fft_idx * lattice->nmodes * lattice->nmodes;
-            ELPH_float* omega_ph_co_tmp_s =
+            ELPH_float* omege_ph_co_star =
                 omega_ph_co + iq_fft_idx * lattice->nmodes;
 
             //
@@ -158,12 +157,12 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             }
             // rotate dvscf
 
-            memcpy(omega_ph_co_tmp_s, omega_ph_co_tmp,
+            memcpy(omege_ph_co_star, omege_ph_co,
                    lattice->nmodes * sizeof(*omega_ph_co));
             //
             struct symmetry* sym_star = phonon->ph_syms + idx_qsym;
             rotate_eig_vecs(sym_star, lattice, phonon->qpts_BZ + 3 * iqpt_tmp,
-                            dyns_co_tmp, dyns_co_tmp_s);
+                            eigs_co, eigs_co_star);
             if (dVscfs_co)
             {
                 ELPH_float qpt_cart[3];
@@ -175,8 +174,8 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                 }
 
                 ELPH_float qpt_rot[3];
-                rotate_dvscf(dVscfs_co_tmp, sym_star, lattice, qpt_cart,
-                             dvscf_composite_form, qpt_rot, dVscfs_co_tmp_s,
+                rotate_dvscf(dV_co_tmp, sym_star, lattice, qpt_cart,
+                             dvscf_composite_form, qpt_rot, dV_co_star,
                              mpi_comms->commK);
             }
             ++iqpt_tmp;
