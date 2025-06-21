@@ -7,7 +7,8 @@
 #include <complex.h>
 #include <fftw3.h>
 
-void fft_interpolate(struct fft_interpolate_plan* iplan)
+void fft_interpolate(struct fft_interpolate_plan* iplan, ELPH_cmplx* data_co,
+                     ELPH_cmplx* restrict data_fi)
 {
     /*
     data_co/fi : Coarse/fine grid data (will be destroyed after output)
@@ -29,13 +30,14 @@ void fft_interpolate(struct fft_interpolate_plan* iplan)
     ELPH_float norm_fft_co = 1.0 / nfft_co;
 
     // 1) q -> R FFT
-    fftw_fun(execute)(iplan->fft_plan_co);
+    ND_int iax = fftw_fun(alignment_of)((void*)data_co);
+    fftw_fun(execute_dft)(iplan->fft_plan_co[iax], data_co, data_co);
 
     // 2) pad the buffer
     //  Zero out the fine interpolation buffer"
     for (ND_int i = 0; i < nfft_fi; ++i)
     {
-        iplan->data_fi[i] = 0.0;
+        data_fi[i] = 0.0;
     }
 
     // strides [Ny*Nz,Nz,1]
@@ -44,7 +46,6 @@ void fft_interpolate(struct fft_interpolate_plan* iplan)
 
     for (ND_int i = 0; i < nfft_co; ++i)
     {
-        // iplan->data_fi[i] = 0.0;
         ND_int ix = i / NyNz_co;
         ND_int iy = (i % NyNz_co) / fft_dims_co[2];
         ND_int iz = (i % NyNz_co) % fft_dims_co[2];
@@ -60,12 +61,13 @@ void fft_interpolate(struct fft_interpolate_plan* iplan)
         iz = get_fft_idx(iz, fft_dims_fi[2]);
 
         // multiply with the normalizition factor.
-        iplan->data_fi[ix * NyNz_fi + iy * fft_dims_fi[2] + iz] =
-            norm_fft_co * iplan->data_co[i];
+        data_fi[ix * NyNz_fi + iy * fft_dims_fi[2] + iz] =
+            norm_fft_co * data_co[i];
     }
 
     // 3) invFFT on fine grid
-    fftw_fun(execute)(iplan->ifft_plan_fi);
+    iax = fftw_fun(alignment_of)((void*)data_fi);
+    fftw_fun(execute_dft)(iplan->ifft_plan_fi[iax], data_fi, data_fi);
 
     return;
 }

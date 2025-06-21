@@ -314,37 +314,66 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
 
 void create_interpolation_plan(struct fft_interpolate_plan* plan,
                                const ND_int* fft_dims_co,
-                               const ND_int* fft_dims_fi, ELPH_cmplx* data_co,
-                               ELPH_cmplx* data_fi, unsigned fft_flags)
+                               const ND_int* fft_dims_fi, unsigned fft_flags)
 {
     // Create required fft plans for fourier interpolation
     // fft_dims_co : dimesions of coarse grid (3 intergers) (Nx,Ny,Nz)
     // fft_dims_fi : dimesnsion of fine interpolation grid (3 integers)
-    // data_co  : buffer for coarse grid.
-    // data_fi  : buffer for fine grid
     // fft_flags : flags to be passed to the fftw planner
+    // // structure to store plans for fourier interpolation.
+    /* struct fft_interpolate_plan */
+    /* { */
+    /*     fftw_generic_plan * fft_plan_co;   // fft plans for coarse grid
+     * (q->R) */
+    /*     fftw_generic_plan * ifft_plan_fi;  // inverse FFT plans for fine grid
+     * (R->q) */
+    /*     ND_int fft_dims_co[3];           // fft dimensions of coarse grid */
+    /*     ND_int fft_dims_fi[3];  // fft dimensions of fine interpolation grid
+     */
+    /*     ND_int align_len;    // simd alignment len */
+    /* }; */
 
+    plan->align_len = alignment_len();
     memcpy(plan->fft_dims_co, fft_dims_co, 3 * sizeof(*fft_dims_co));
     memcpy(plan->fft_dims_fi, fft_dims_fi, 3 * sizeof(*fft_dims_fi));
 
-    plan->data_co = data_co;
-    plan->data_fi = data_fi;
+    ND_int fft_size_co = fft_dims_co[0] * fft_dims_co[1] * fft_dims_co[2];
+    ND_int fft_size_fi = fft_dims_fi[0] * fft_dims_fi[1] * fft_dims_fi[2];
 
-    plan->fft_plan_co =
-        fftw_fun(plan_dft_3d)(fft_dims_co[0], fft_dims_co[1], fft_dims_co[2],
-                              data_co, data_co, FFTW_FORWARD, fft_flags);
-    if (NULL == plan->fft_plan_co)
+    ND_int fft_size_buf = fft_size_fi > fft_size_co ? fft_size_fi : fft_size_co;
+    fft_size_buf += plan->align_len;
+    //
+    ELPH_cmplx* data_fft = fftw_fun(malloc)(fft_size_buf * sizeof(*data_fft));
+    CHECK_ALLOC(data_fft);
+
+    memset(data_fft, 0, fft_size_buf * sizeof(*data_fft));
+
+    plan->fft_plan_co = malloc(plan->align_len * sizeof(*plan->fft_plan_co));
+    CHECK_ALLOC(plan->fft_plan_co);
+
+    plan->ifft_plan_fi = malloc(plan->align_len * sizeof(*plan->ifft_plan_fi));
+    CHECK_ALLOC(plan->ifft_plan_fi);
+
+    for (ND_int i = 0; i < plan->align_len; ++i)
     {
-        error_msg("Coarse fft interpolation plan failed");
+        plan->fft_plan_co[i] = fftw_fun(plan_dft_3d)(
+            fft_dims_co[0], fft_dims_co[1], fft_dims_co[2], data_fft + i,
+            data_fft + i, FFTW_FORWARD, fft_flags);
+        if (NULL == plan->fft_plan_co[i])
+        {
+            error_msg("Coarse fft interpolation plan failed");
+        }
+
+        plan->ifft_plan_fi[i] = fftw_fun(plan_dft_3d)(
+            fft_dims_fi[0], fft_dims_fi[1], fft_dims_fi[2], data_fft + i,
+            data_fft + i, FFTW_BACKWARD, fft_flags);
+        if (NULL == plan->ifft_plan_fi[i])
+        {
+            error_msg("Fine inverse fft interpolation plan failed");
+        }
     }
 
-    plan->ifft_plan_fi =
-        fftw_fun(plan_dft_3d)(fft_dims_fi[0], fft_dims_fi[1], fft_dims_fi[2],
-                              data_fi, data_fi, FFTW_BACKWARD, fft_flags);
-    if (NULL == plan->ifft_plan_fi)
-    {
-        error_msg("Fine inverse fft interpolation plan failed");
-    }
+    fftw_fun(free)(data_fft);
     return;
 }
 
@@ -387,6 +416,11 @@ void destroy_interpolation_plan(struct fft_interpolate_plan* plan)
     {
         return;
     }
-    fftw_fun(destroy_plan)(plan->fft_plan_co);
-    fftw_fun(destroy_plan)(plan->ifft_plan_fi);
+    for (ND_int i = 0; i < plan->align_len; ++i)
+    {
+        fftw_fun(destroy_plan)(plan->fft_plan_co[i]);
+        fftw_fun(destroy_plan)(plan->ifft_plan_fi[i]);
+    }
+    free(plan->fft_plan_co);
+    free(plan->ifft_plan_fi);
 }

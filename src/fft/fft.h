@@ -76,12 +76,11 @@ struct ELPH_fft_plan
 // structure to store plans for fourier interpolation.
 struct fft_interpolate_plan
 {
-    fftw_generic_plan fft_plan_co;   // fft plan for coarse grid (q->R)
-    fftw_generic_plan ifft_plan_fi;  // inverse FFT plan for fine grid (R->q)
-    ND_int fft_dims_co[3];           // fft dimensions of coarse grid
+    fftw_generic_plan* fft_plan_co;   // fft plans for coarse grid (q->R)
+    fftw_generic_plan* ifft_plan_fi;  // inverse FFT plans for fine grid (R->q)
+    ND_int fft_dims_co[3];            // fft dimensions of coarse grid
     ND_int fft_dims_fi[3];  // fft dimensions of fine interpolation grid
-    ELPH_cmplx* data_co;    // coarse grid data
-    ELPH_cmplx* data_fi;    // finte grid data.
+    ND_int align_len;       // simd alignment len
 };
 
 /* align.c */
@@ -113,7 +112,6 @@ void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
 
 void create_interpolation_plan(struct fft_interpolate_plan* plan,
                                const ND_int* fft_dims_co,
-                               const ND_int* fft_dims_fi, ELPH_cmplx* data_co,
-                               ELPH_cmplx* data_fi, unsigned fft_flags);
+                               const ND_int* fft_dims_fi, unsigned fft_flags);
 
 void destroy_interpolation_plan(struct fft_interpolate_plan* plan);
