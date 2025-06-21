@@ -21,3 +21,8 @@ void elph_q_rotate(const ELPH_cmplx* Dmats_l, const ELPH_cmplx* elph_mat_q,
 void rotate_eig_vecs(struct symmetry* sym, const struct Lattice* lattice,
                      const ELPH_float* qpt, const ELPH_cmplx* eig_q,
                      ELPH_cmplx* eig_Sq);
+
+void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
+                  const struct Lattice* lattice, const ELPH_float* qpt,
+                  const bool composite_form, ELPH_float* restrict qpt_rot,
+                  ELPH_cmplx* restrict dvscf_out, MPI_Comm commK);

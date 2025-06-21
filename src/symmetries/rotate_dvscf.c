@@ -13,6 +13,7 @@
 #include "common/numerical_func.h"
 #include "common/omp_pragma_def.h"
 #include "elphC.h"
+#include "symmetries.h"
 #include "wfc/wfc.h"
 /*
 This file contains function to rotate dvscf
