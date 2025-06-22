@@ -41,3 +41,10 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
 void get_dvscf_dyn_qe(const char* ph_save_dir, struct Lattice* lattice,
                       ND_int iq_BZ, ELPH_cmplx* eig, ELPH_cmplx* dvscf,
                       ELPH_float* omega_ph, const struct ELPH_MPI_Comms* Comm);
+
+// write functions
+void write_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
+                    const ELPH_cmplx* dvscf_in, MPI_Comm commK);
+
+void write_dyn_qe(const char* file_name, ND_int natom, const ELPH_float* qpts,
+                  const ELPH_cmplx* dyn_mat, const ELPH_float* atomic_masses);

@@ -3,6 +3,7 @@
 // The file can only be read by Letzelphc
 //
 #include <complex.h>
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,4 +94,92 @@ void write_dyn_qe(const char* file_name, ND_int natom, const ELPH_float* qpts,
 
     fprintf(fp, "\n");
     fclose(fp);
+}
+
+void write_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
+                    const ELPH_cmplx* dvscf_in, MPI_Comm commK)
+{
+    /*
+    Takes dvscf in mode basis (nmodes, nmag, FFTx, FFTy, FFTz_loc)
+    and writes it to file in QE format (nmodes, nmag, FFTz, FFTy, FFTx)
+    where FFTz is the global dimension
+    */
+    int my_rank, Comm_size, mpi_error;
+
+    mpi_error = MPI_Comm_size(commK, &Comm_size);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Comm_rank(commK, &my_rank);
+    MPI_error_msg(mpi_error);
+
+    const ND_int* fft_dims = lattice->fft_dims;
+    const ND_int nmodes = lattice->nmodes;
+
+    ND_int write_buffer_count = fft_dims[0] * fft_dims[1] * lattice->nfftz_loc;
+    // check for buffer overflow of write_buffer_count
+    if (write_buffer_count >= ((ND_int)INT_MAX))
+    {
+        error_msg("Buffer overflow in mpi count argument");
+    }
+
+    double complex* write_buf =
+        malloc(sizeof(double complex) * write_buffer_count);
+    CHECK_ALLOC(write_buf);
+
+    MPI_File handle;
+
+    if (MPI_File_open(commK, dvscf_file, MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                      MPI_INFO_NULL, &handle) != MPI_SUCCESS)
+    {
+        error_msg("unable to open dvscf file for writing");
+    }
+
+    // Set the file size (important for MPI-IO)
+    MPI_Offset file_size = sizeof(double complex) * nmodes * lattice->nmag *
+                           fft_dims[0] * fft_dims[1] * fft_dims[2];
+    mpi_error = MPI_File_set_size(handle, file_size);
+    MPI_error_msg(mpi_error);
+
+    // Now write stuff
+    ND_int nsets = nmodes * lattice->nmag;
+    for (ND_int iset = 0; iset < nsets; ++iset)
+    {
+        const ELPH_cmplx* dvscf_tmp = dvscf_in + iset * write_buffer_count;
+
+        // Transpose from (FFTx, FFTy, FFTz_loc)->(FFTz, FFTy, FFTx) in
+        // write_buf
+        ND_int ld_dvscf_buf = lattice->nfftz_loc * fft_dims[1];
+        ND_int ld_write_buf = fft_dims[0] * fft_dims[1];
+
+        for (ND_int iy = 0; iy < fft_dims[1]; ++iy)
+        {
+            double complex* write_buf_y_ptr = write_buf + iy * fft_dims[0];
+            const ELPH_cmplx* dvscf_y_ptr = dvscf_tmp + iy * lattice->nfftz_loc;
+
+            for (ND_int ix = 0; ix < fft_dims[0]; ++ix)
+            {
+                for (ND_int iz = 0; iz < lattice->nfftz_loc; ++iz)
+                {
+                    write_buf_y_ptr[iz * ld_write_buf + ix] =
+                        dvscf_y_ptr[ix * ld_dvscf_buf + iz];
+                }
+            }
+        }
+
+        MPI_Offset offset = sizeof(double complex) * fft_dims[0] * fft_dims[1] *
+                            (iset * fft_dims[2] + lattice->nfftz_loc_shift);
+
+        mpi_error =
+            MPI_File_write_at_all(handle, offset, write_buf, write_buffer_count,
+                                  MPI_C_DOUBLE_COMPLEX, MPI_STATUS_IGNORE);
+        MPI_error_msg(mpi_error);
+    }
+
+    // Free the write buffer
+    free(write_buf);
+    // close the file
+    if (MPI_File_close(&handle) != MPI_SUCCESS)
+    {
+        error_msg("unable to close dvscf file");
+    }
 }
