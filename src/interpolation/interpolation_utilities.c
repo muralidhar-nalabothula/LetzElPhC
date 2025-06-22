@@ -2,17 +2,20 @@
 
 #include "interpolation_utilities.h"
 
+#include <complex.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common/constants.h"
 #include "common/error.h"
+#include "common/numerical_func.h"
 #include "elphC.h"
 #include "fft/fft.h"
 
 static int qpt_sort_cmp(const void* a, const void* b);
 
-void fft_q2R(ELPH_cmplx* data, ND_int* qgrid, ND_int nsets)
+void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
 {
     // given a data (qx,qy,qz,nsets) -> (nsets, qx,qy,qz).
     // The reasone we want to do transpose is because
@@ -62,6 +65,51 @@ void fft_q2R(ELPH_cmplx* data, ND_int* qgrid, ND_int nsets)
     {
         data[i] *= norm_fft;
     }
+}
+
+void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
+             const ND_int* qgrid, const ND_int nsets, const ND_int Nx,
+             const ND_int Ny, const ND_int Nz, ELPH_cmplx* dataq)
+{
+    // (nsets, Nx, Ny, Nz, Rx, Ry, Rz)-> (nsets, Nx, Ny, Nz)
+    // This is (N^2) fouier transform (slow one).
+    ND_int qx = qgrid[0];
+    ND_int qy = qgrid[1];
+    ND_int qz = qgrid[2];
+
+    ELPH_cmplx* eiqG = malloc(qx * qy * qz * sizeof(*eiqG));
+    CHECK_ALLOC(eiqG);
+
+    for (ND_int i = 0; i < qx; ++i)
+    {
+        ND_int Rx = get_miller_idx(i, qx);
+        for (ND_int j = 0; j < qy; ++j)
+        {
+            ND_int Ry = get_miller_idx(j, qy);
+            for (ND_int k = 0; k < qz; ++k)
+            {
+                ND_int Rk = get_miller_idx(k, qz);
+                ELPH_float Rpt[3] = {Rx, Ry, Rz};
+                eiqG[i * qy * qz + j * qz + k] =
+                    cexp(-I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
+            }
+        }
+    }
+
+    for (ND_int iset = 0; iset < nsets; ++iset)
+    {
+        for (ND_int ix = 0; ix < Nx; ++ix)
+        {
+            const ELPH_cmplx dataRtmp =
+                dataR + (iset * Nx + ix) * Ny * Nz * qx * qy * qz;
+            ELPH_cmplx* dataqtmp = dataq + (iset * Nx + ix) * Ny * Nz;
+            memset(dataqtmp, 0, Ny * Nz * sizeof(*dataqtmp));
+            matmul_cmplx('N', 'N', dataRtmp, eiqG, dataqtmp, 1.0, 0.0,
+                         qx * qy * qz, 1, 1, Ny * Nz, 1, qx * qy * qz);
+        }
+    }
+
+    free(eiqG);
 }
 
 void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices)
