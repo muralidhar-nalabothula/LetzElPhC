@@ -214,16 +214,16 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             ELPH_cmplx* rot_vecs =
                 dyns_co + iq * lattice->nmodes * lattice->nmodes;
             // remove mass normalization in the dynmats
-            mass_normalize_pol_vecs(atomic_masses, phonon->nmodes,
-                                    phonon->natom, 1.0, rot_vecs);
+            mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
+                                    lattice->natom, 1.0, rot_vecs);
 
             dVscf_change_basis(dVscfs_co + iq * dvscf_loc_len, rot_vecs, 1,
                                lattice->nmodes, lattice->nmag,
                                lattice->fft_dims[0], lattice->fft_dims[1],
                                lattice->nfftz_loc, 'C');
             // get back to previous normalization
-            mass_normalize_pol_vecs(atomic_masses, phonon->nmodes,
-                                    phonon->natom, -1.0, rot_vecs);
+            mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
+                                    lattice->natom, -1.0, rot_vecs);
         }
     }
     // Now perform fourier transform
