@@ -47,9 +47,7 @@ void fft_q2R(ELPH_cmplx* data, ND_int* qgrid, ND_int nsets)
     // DOnot overwrite the data, so always set to
     // FFTW_ESTIMATE.
     fftw_generic_plan plan = fftw_fun(plan_guru64_dft)(
-        3, dims,          // 3D transform
-        1, howmany_dims,  // number of transforms = nsets
-        data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+        3, dims, 1, howmany_dims, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
 
     if (NULL == plan)
     {
@@ -58,6 +56,12 @@ void fft_q2R(ELPH_cmplx* data, ND_int* qgrid, ND_int nsets)
 
     fftw_fun(execute)(plan);
     fftw_fun(destroy_plan)(plan);
+    // Normalize
+    ELPH_float norm_fft = 1.0 / (qx * qy * qz);
+    for (ND_int i = 0; i < (qx * qy * qz * nsets); ++i)
+    {
+        data[i] *= norm_fft;
+    }
 }
 
 void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices)
