@@ -83,7 +83,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
 
         if (interpolate_dvscf)
         {
-            // read pattern file
+            // read the first pattern file
             cwk_path_join(ph_save, "patterns.1.xml", read_buf,
                           sizeof(read_buf));
             read_pattern_qe(read_buf, lattice, dummy2);
