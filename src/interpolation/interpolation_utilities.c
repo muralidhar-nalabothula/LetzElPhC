@@ -88,7 +88,7 @@ void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
             ND_int Ry = get_miller_idx(j, qy);
             for (ND_int k = 0; k < qz; ++k)
             {
-                ND_int Rk = get_miller_idx(k, qz);
+                ND_int Rz = get_miller_idx(k, qz);
                 ELPH_float Rpt[3] = {Rx, Ry, Rz};
                 eiqG[i * qy * qz + j * qz + k] =
                     cexp(-I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
@@ -100,7 +100,7 @@ void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
     {
         for (ND_int ix = 0; ix < Nx; ++ix)
         {
-            const ELPH_cmplx dataRtmp =
+            const ELPH_cmplx* dataRtmp =
                 dataR + (iset * Nx + ix) * Ny * Nz * qx * qy * qz;
             ELPH_cmplx* dataqtmp = dataq + (iset * Nx + ix) * Ny * Nz;
             memset(dataqtmp, 0, Ny * Nz * sizeof(*dataqtmp));
