@@ -91,7 +91,7 @@ void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
                 ND_int Rz = get_miller_idx(k, qz);
                 ELPH_float Rpt[3] = {Rx, Ry, Rz};
                 eiqG[i * qy * qz + j * qz + k] =
-                    cexp(-I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
+                    cexp(I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
             }
         }
     }

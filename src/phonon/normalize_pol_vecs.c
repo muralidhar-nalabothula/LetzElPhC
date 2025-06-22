@@ -13,7 +13,7 @@ void mass_normalize_pol_vecs(const ELPH_float* atomic_masses,
 {
     // pol_vecs (nsets, natom,3);
     // atomic_masses (natom)
-    // does  Mi^power * e^v_jx
+    // does  e^v_ix = Mi^power * e^v_ix
     //
     for (ND_int imode = 0; imode < nsets; ++imode)
     {

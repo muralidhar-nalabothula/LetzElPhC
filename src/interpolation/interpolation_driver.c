@@ -17,6 +17,7 @@
 #include "interpolation_utilities.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"
+#include "phonon/phonon.h"
 #include "symmetries/symmetries.h"
 
 void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
@@ -205,8 +206,6 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     }
 
     free(indices_q2fft);
-    // convert dvscf to cart basis
-    // FIX ME
     //
     if (dVscfs_co)
     {
@@ -214,13 +213,28 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         {
             ELPH_cmplx* rot_vecs =
                 dyns_co + iq * lattice->nmodes * lattice->nmodes;
+            // remove mass normalization in the dynmats
+            mass_normalize_pol_vecs(atomic_masses, phonon->nmodes,
+                                    phonon->natom, 1.0, rot_vecs);
+
             dVscf_change_basis(dVscfs_co + iq * dvscf_loc_len, rot_vecs, 1,
                                lattice->nmodes, lattice->nmag,
                                lattice->fft_dims[0], lattice->fft_dims[1],
-                               lattice->nfftz_loc, 'N');
-            // mass
+                               lattice->nfftz_loc, 'C');
+            // get back to previous normalization
+            mass_normalize_pol_vecs(atomic_masses, phonon->nmodes,
+                                    phonon->natom, -1.0, rot_vecs);
         }
     }
+    // Now perform fourier transform
+    if (dVscfs_co)
+    {
+        fft_q2R(dVscfs_co, q_grid_co, dvscf_loc_len);
+    }
+
+    /* void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys, */
+    /*          const ND_int* qgrid, const ND_int nsets, const ND_int Nx, */
+    /*          const ND_int Ny, const ND_int Nz, ELPH_cmplx* dataq); */
 
     //
 
