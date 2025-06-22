@@ -5,6 +5,7 @@
 
 #include "common/ELPH_timers.h"
 #include "common/constants.h"
+#include "common/cwalk/cwalk.h"
 #include "common/dtypes.h"
 #include "common/error.h"
 #include "common/init_dtypes.h"
@@ -43,8 +44,9 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     CHECK_ALLOC(phonon);
     init_phonon_type(phonon);
 
-    ELPH_float* Zvals = NULL;
+    bool interpolate_dvscf = true;
 
+    ELPH_float* Zvals = NULL;
     if (dft_code == DFT_CODE_QE)
     {
         get_interpolation_data_from_qe(lattice, phonon, ph_save, &Zvals,
@@ -56,8 +58,38 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     }
     //
     //
+    // We need atomic masses
+    ELPH_float* atomic_masses = malloc(sizeof(*atomic_masses) * lattice->natom);
+    CHECK_ALLOC(atomic_masses);
 
-    bool interpolate_dvscf = true;
+    ELPH_float* dummy1 = malloc(sizeof(*dummy1) * lattice->nmodes);
+    CHECK_ALLOC(dummy1);
+
+    ELPH_cmplx* dummy2 =
+        malloc(sizeof(*dummy2) * lattice->nmodes * lattice->nmodes);
+    CHECK_ALLOC(dummy2);
+
+    if (dft_code == DFT_CODE_QE)
+    {
+        char read_buf[1024];
+        cwk_path_join(ph_save, "dyn1", read_buf, sizeof(read_buf));
+        ELPH_float qpt_tmp[3];
+        ND_int iq_read = read_dyn_qe(read_buf, lattice, qpt_tmp, dummy1, dummy2,
+                                     atomic_masses);
+        if (iq_read != 1)
+        {
+            error_msg("More than 1 dynmat read.");
+        }
+
+        if (interpolate_dvscf)
+        {
+            // read pattern file
+            cwk_path_join(ph_save, "patterns.1.xml", read_buf,
+                          sizeof(read_buf));
+            read_pattern_qe(read_buf, lattice, dummy2);
+        }
+    }
+
     //
     // get the coarse q-grid
     ND_int q_grid_co[3];
@@ -73,7 +105,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     ELPH_cmplx* dVscfs_co = NULL;
     ELPH_cmplx* dyns_co = NULL;
 
-    ND_int dvscf_loc_len = lattice->nmag * lattice->nmodes *
+    ND_int dvscf_loc_len = lattice->nmodes * lattice->nmag *
                            lattice->nfftz_loc * lattice->fft_dims[0] *
                            lattice->fft_dims[1];
     if (interpolate_dvscf)
@@ -176,10 +208,27 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     // convert dvscf to cart basis
     // FIX ME
     //
+    if (dVscfs_co)
+    {
+        for (ND_int iq = 0; iq < phonon->nq_BZ; ++iq)
+        {
+            ELPH_cmplx* rot_vecs =
+                dyns_co + iq * lattice->nmodes * lattice->nmodes;
+            dVscf_change_basis(dVscfs_co + iq * dvscf_loc_len, rot_vecs, 1,
+                               lattice->nmodes, lattice->nmag,
+                               lattice->fft_dims[0], lattice->fft_dims[1],
+                               lattice->nfftz_loc, 'N');
+            // mass
+        }
+    }
 
     //
 
     int World_rank_tmp = mpi_comms->commW_rank;
+
+    free(atomic_masses);
+    free(dummy1);
+    free(dummy2);
 
     free(omega_ph_co);
     free(dVscfs_co);
