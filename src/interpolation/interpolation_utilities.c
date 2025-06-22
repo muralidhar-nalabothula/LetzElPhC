@@ -8,8 +8,57 @@
 #include "common/constants.h"
 #include "common/error.h"
 #include "elphC.h"
+#include "fft/fft.h"
 
 static int qpt_sort_cmp(const void* a, const void* b);
+
+void fft_q2R(ELPH_cmplx* data, ND_int* qgrid, ND_int nsets)
+{
+    // given a data (qx,qy,qz,nsets) -> (nsets, qx,qy,qz).
+    // The reasone we want to do transpose is because
+    // we we will later do matmul where we may encoutor
+    // large strides > INT_MAX
+    // performs inplace fourier transform q->R
+    // Total number of complex elements
+    //
+    ND_int qx = qgrid[0];
+    ND_int qy = qgrid[1];
+    ND_int qz = qgrid[2];
+
+    fftw_fun(iodim64) dims[3];
+    dims[0].n = qx;
+    dims[0].is = qy * qz * nsets;
+    dims[0].os = qy * qz;
+
+    dims[1].n = qy;
+    dims[1].is = qz * nsets;
+    dims[1].os = qz;
+
+    dims[2].n = qz;
+    dims[2].is = nsets;
+    dims[2].os = 1;
+
+    // How the transforms are repeated over nsets
+    fftw_fun(iodim64) howmany_dims[1];
+    howmany_dims[0].n = nsets;
+    howmany_dims[0].is = 1;
+    howmany_dims[0].os = qx * qy * qz;
+
+    // DOnot overwrite the data, so always set to
+    // FFTW_ESTIMATE.
+    fftw_generic_plan plan = fftw_fun(plan_guru64_dft)(
+        3, dims,          // 3D transform
+        1, howmany_dims,  // number of transforms = nsets
+        data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+
+    if (NULL == plan)
+    {
+        error_msg("FFT q->R plan failed.");
+    }
+
+    fftw_fun(execute)(plan);
+    fftw_fun(destroy_plan)(plan);
+}
 
 void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices)
 {

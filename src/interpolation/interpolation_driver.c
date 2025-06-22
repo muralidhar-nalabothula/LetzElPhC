@@ -173,6 +173,10 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     }
 
     free(indices_q2fft);
+    // convert dvscf to cart basis
+    // FIX ME
+    //
+
     //
 
     int World_rank_tmp = mpi_comms->commW_rank;

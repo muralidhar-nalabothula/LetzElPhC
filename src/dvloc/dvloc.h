@@ -36,6 +36,11 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
                       const ELPH_float EcutRy, const bool* nmags_add,
                       MPI_Comm commK);
 
+void dVscf_change_basis(ELPH_cmplx* dvscf, const ELPH_cmplx* rot_vecs,
+                        const ND_int nsets, const ND_int nmodes,
+                        const ND_int nmag, const ND_int Nx, const ND_int Ny,
+                        const ND_int Nz, const char blas_char);
+
 void create_vlocg_table(const struct Lattice* lattice, struct Pseudo* pseudo,
                         const struct ELPH_MPI_Comms* Comm);
 
