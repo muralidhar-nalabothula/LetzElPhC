@@ -562,16 +562,16 @@ void read_qpts_qe(const char* dyn0_file, ND_int* nqpt_iBZ, ND_int* nqpt_fullBZ,
     char* read_buf = malloc(DYN_READ_BUF_SIZE);
     CHECK_ALLOC(read_buf);
 
-    int qgrid[3];
+    long long int qgrid[3];
     fgets(read_buf, DYN_READ_BUF_SIZE, fp);
-    if (sscanf(read_buf, "%d %d %d", qgrid, qgrid + 1, qgrid + 2) != 3)
+    if (sscanf(read_buf, "%lld %lld %lld", qgrid, qgrid + 1, qgrid + 2) != 3)
     {
         error_msg("Error reading qgrid from dyn0 file");
     }
 
-    int nq_iBZ_tmp;
+    long long int nq_iBZ_tmp;
     fgets(read_buf, DYN_READ_BUF_SIZE, fp);
-    if (sscanf(read_buf, "%d", &nq_iBZ_tmp) != 1)
+    if (sscanf(read_buf, "%lld", &nq_iBZ_tmp) != 1)
     {
         error_msg("Error reading 2nd line from dyn0 file");
     }
@@ -587,10 +587,10 @@ void read_qpts_qe(const char* dyn0_file, ND_int* nqpt_iBZ, ND_int* nqpt_fullBZ,
     // now read list of qpoints
     for (ND_int i = 0; i < *nqpt_iBZ; ++i)
     {
-        float qpt_tmp[3];
+        double qpt_tmp[3];
         fgets(read_buf, DYN_READ_BUF_SIZE, fp);
-        if (sscanf(read_buf, "%f %f %f", qpt_tmp, qpt_tmp + 1, qpt_tmp + 2) !=
-            3)
+        if (sscanf(read_buf, "%lf %lf %lf", qpt_tmp, qpt_tmp + 1,
+                   qpt_tmp + 2) != 3)
         {
             error_msg("Error reading qpoint from dyn0 file");
         }

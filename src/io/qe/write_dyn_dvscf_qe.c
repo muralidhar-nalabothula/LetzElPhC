@@ -183,3 +183,38 @@ void write_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
         error_msg("unable to close dvscf file");
     }
 }
+
+void write_qpts_qe(const char* dyn_file, ND_int nqpt_iBZ,
+                   const ELPH_float* qpts, const ND_int* qgrid)
+{
+    /*
+    Writes q-points to dyn0 file in the format readable by read_qpts_qe
+    Input:
+        dyn_file - output file name
+        nqpt_iBZ - number of q-points in irreducible BZ
+        qpts - array of q-points in iBZ (size 3*nqpt_iBZ)
+        qgrid - [3] array specifying the q-point mesh
+    */
+    FILE* fp = fopen(dyn_file, "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Opening file %s for writing failed \n", dyn_file);
+        error_msg("Unable to open the dyn0 file for writing");
+    }
+
+    // Write qgrid
+    fprintf(fp, "%lld %lld %lld\n", (long long)qgrid[0], (long long)qgrid[1],
+            (long long)qgrid[2]);
+
+    // Write number of q-points in iBZ
+    fprintf(fp, "%lld\n", (long long)nqpt_iBZ);
+
+    // Write q-points
+    for (ND_int i = 0; i < nqpt_iBZ; ++i)
+    {
+        fprintf(fp, "%.10f %.10f %.10f\n", qpts[3 * i], qpts[3 * i + 1],
+                qpts[3 * i + 2]);
+    }
+
+    fclose(fp);
+}
