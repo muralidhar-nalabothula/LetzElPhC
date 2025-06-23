@@ -15,6 +15,7 @@
 #include "common/print_info.h"
 #include "dvloc/dvloc.h"
 #include "elphC.h"
+#include "interpolation.h"
 #include "interpolation_utilities.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"

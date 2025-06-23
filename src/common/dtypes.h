@@ -44,7 +44,8 @@ enum calc_type
     CALC_ELPH,            // initiate elph calculation
     CALC_PH_SAVE_CREATE,  // preprocess (creating ph_save_dir)
     CALC_HELP,            // help
-    CALC_VERSION          // print version
+    CALC_VERSION,         // print version
+    CALC_INTERPOLATION    // interpolation
 };
 
 struct calc_details
