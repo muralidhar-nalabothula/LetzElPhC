@@ -9,6 +9,11 @@ ND_int bz_expand(const ND_int Nibz, const ND_int Nsym,
                  const ELPH_float* lat_vec, ELPH_float* kpoints, ND_int* kstar,
                  int* kmap);
 
+ND_int generate_iBZ_kpts(const ND_int* kgrid, const ND_int Nsym,
+                         const struct symmetry* symms,
+                         const ELPH_float* lat_vec, const ELPH_float* blat,
+                         ELPH_float* ibz_kpts, const bool crystal);
+
 void electronic_reps(const struct WFC* wfcs, const struct Lattice* lattice,
                      const ELPH_float* Rsym_mat, const ELPH_float* tauR,
                      const bool tim_revR, const ND_int ikBZ,

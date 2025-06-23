@@ -48,3 +48,6 @@ void write_dvscf_qe(const char* dvscf_file, struct Lattice* lattice,
 
 void write_dyn_qe(const char* file_name, ND_int natom, const ELPH_float* qpts,
                   const ELPH_cmplx* dyn_mat, const ELPH_float* atomic_masses);
+
+void write_qpts_qe(const char* dyn_file, ND_int nqpt_iBZ,
+                   const ELPH_float* qpts, const ND_int* qgrid);

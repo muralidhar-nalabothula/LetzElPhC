@@ -861,7 +861,7 @@ static void get_wfc_from_save(ND_int spin_stride_len, ND_int ik, ND_int nkiBZ,
     for (ND_int is = 0; is < nspin; ++is)
     {
         char tmp_buf[64];
-        snprintf(tmp_buf, 64, "ns.wf_fragments_%d_1",
+        snprintf(tmp_buf, sizeof(tmp_buf), "ns.wf_fragments_%d_1",
                  (int)(is * nkiBZ + (ik + 1)));
         cwk_path_join(save_dir, tmp_buf, work_array, work_array_len);
 

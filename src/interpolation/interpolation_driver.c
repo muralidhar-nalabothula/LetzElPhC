@@ -1,3 +1,4 @@
+#include <math.h>
 #include <mpi.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -19,6 +20,7 @@
 #include "io/qe/qe_io.h"
 #include "phonon/phonon.h"
 #include "symmetries/symmetries.h"
+#include "wfc/wfc.h"
 
 void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                           enum ELPH_dft_code dft_code, const ND_int* qgrid_new,
@@ -30,6 +32,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     struct ELPH_MPI_Comms* mpi_comms = malloc(sizeof(struct ELPH_MPI_Comms));
     CHECK_ALLOC(mpi_comms);
 
+    int mpi_error = MPI_SUCCESS;
     // Only plain wave plarallization is supported.
     create_parallel_comms(1, 1, comm_world, mpi_comms);
 
@@ -66,29 +69,44 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     ELPH_float* dummy1 = malloc(sizeof(*dummy1) * lattice->nmodes);
     CHECK_ALLOC(dummy1);
 
-    ELPH_cmplx* dummy2 =
-        malloc(sizeof(*dummy2) * lattice->nmodes * lattice->nmodes);
-    CHECK_ALLOC(dummy2);
+    // There are reference patern basis.
+    ELPH_cmplx* ref_pat_basis =
+        malloc(sizeof(*ref_pat_basis) * lattice->nmodes * lattice->nmodes);
+    CHECK_ALLOC(ref_pat_basis);
 
     if (dft_code == DFT_CODE_QE)
     {
-        char read_buf[1024];
-        cwk_path_join(ph_save, "dyn1", read_buf, sizeof(read_buf));
-        ELPH_float qpt_tmp[3];
-        ND_int iq_read = read_dyn_qe(read_buf, lattice, qpt_tmp, dummy1, dummy2,
-                                     atomic_masses);
-        if (iq_read != 1)
+        if (0 == mpi_comms->commW_rank)
         {
-            error_msg("More than 1 dynmat read.");
+            char read_buf[1024];
+            cwk_path_join(ph_save, "dyn1", read_buf, sizeof(read_buf));
+            ELPH_float qpt_tmp[3];
+            ND_int iq_read = read_dyn_qe(read_buf, lattice, qpt_tmp, dummy1,
+                                         ref_pat_basis, atomic_masses);
+            if (iq_read != 1)
+            {
+                error_msg("More than 1 dynmat read.");
+            }
+
+            if (interpolate_dvscf)
+            {
+                // read the first pattern file
+                cwk_path_join(ph_save, "patterns.1.xml", read_buf,
+                              sizeof(read_buf));
+                read_pattern_qe(read_buf, lattice, ref_pat_basis);
+            }
         }
 
-        if (interpolate_dvscf)
-        {
-            // read the first pattern file
-            cwk_path_join(ph_save, "patterns.1.xml", read_buf,
-                          sizeof(read_buf));
-            read_pattern_qe(read_buf, lattice, dummy2);
-        }
+        //
+        mpi_error = MPI_Bcast(atomic_masses, lattice->natom, ELPH_MPI_float, 0,
+                              mpi_comms->commW);
+        MPI_error_msg(mpi_error);
+
+        mpi_error = MPI_Bcast(ref_pat_basis, lattice->nmodes * lattice->nmodes,
+                              ELPH_MPI_cmplx, 0, mpi_comms->commW);
+        MPI_error_msg(mpi_error);
+
+        MPI_error_msg(mpi_error);
     }
 
     //
@@ -152,12 +170,12 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             dVscfs_co ? dVscfs_co + iq_fft_idx * dvscf_loc_len : NULL;
         ELPH_cmplx* eigs_co =
             dyns_co + iq_fft_idx * lattice->nmodes * lattice->nmodes;
-        ELPH_float* omege_ph_co = omega_ph_co + iq_fft_idx * lattice->nmodes;
+        ELPH_float* omega_co_tmp = omega_ph_co + iq_fft_idx * lattice->nmodes;
         //
         if (dft_code == DFT_CODE_QE)
         {
             get_dvscf_dyn_qe(ph_save, lattice, iqco, eigs_co, dV_co_tmp,
-                             omege_ph_co, mpi_comms);
+                             omega_co_tmp, mpi_comms);
         }
         if (dV_co_tmp)
         {
@@ -178,7 +196,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                 dVscfs_co ? dVscfs_co + iq_fft_idx * dvscf_loc_len : NULL;
             ELPH_cmplx* eigs_co_star =
                 dyns_co + iq_fft_idx * lattice->nmodes * lattice->nmodes;
-            ELPH_float* omege_ph_co_star =
+            ELPH_float* omega_co_tmp_star =
                 omega_ph_co + iq_fft_idx * lattice->nmodes;
 
             //
@@ -190,7 +208,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             }
             // rotate dvscf
 
-            memcpy(omege_ph_co_star, omege_ph_co,
+            memcpy(omega_co_tmp_star, omega_co_tmp,
                    lattice->nmodes * sizeof(*omega_ph_co));
             //
             struct symmetry* sym_star = phonon->ph_syms + idx_qsym;
@@ -232,17 +250,142 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         fft_q2R(dVscfs_co, q_grid_co, dvscf_loc_len);
     }
 
-    /* void fft_R2q(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys, */
-    /*          const ND_int* qgrid, const ND_int nsets, const ND_int Nx, */
-    /*          const ND_int Ny, const ND_int Nz, ELPH_cmplx* dataq); */
+    // Get a grid to perform summation
+    ND_int Ggrid_phonon[3];
+    get_fft_box(EcutRy, lattice->blat_vec, Ggrid_phonon, mpi_comms->commK);
 
-    //
+    // FIX ME need to parallize
+    for (ND_int iq = 0; iq < phonon->nq_BZ; ++iq)
+    {
+        // convert polarization vectors to dynamical matrix and remove long
+        // range part
+        ELPH_cmplx* pol_vecs_iq =
+            dyns_co + iq * lattice->nmodes * lattice->nmodes;
 
+        pol_vecs_to_dyn(omega_ph_co + iq * lattice->nmodes, lattice->natom,
+                        atomic_masses, pol_vecs_iq);
+
+        const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * iq;
+        // remove lonr range part for q != (0,0,0)
+        ELPH_float qnorm = sqrt(dot3_macro(qpt_iq_tmp, qpt_iq_tmp));
+        if (qnorm < ELPH_EPS && dft_code == DFT_CODE_QE)
+        {
+            continue;
+        }
+        add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
+                              atomic_masses, pol_vecs_iq);
+    }
+
+    // fourier transform phonons
+    fft_q2R(dyns_co, q_grid_co, lattice->nmodes * lattice->nmodes);
+
+    ND_int nqpts_to_interpolate = qgrid_new[0] * qgrid_new[1] * qgrid_new[2];
+    // this will be over written lattern with number of qpts in iBZ
+
+    ELPH_float* qpts_interpolation =
+        malloc(sizeof(*qpts_interpolation) * 3 * nqpts_to_interpolate);
+    // in crystal coordinates
+    nqpts_to_interpolate = generate_iBZ_kpts(
+        qgrid_new, phonon->nph_sym, phonon->ph_syms, lattice->alat_vec,
+        lattice->blat_vec, qpts_interpolation, true);
+
+    ELPH_cmplx* dvscf_interpolated = NULL;
+    if (dVscfs_co)
+    {
+        dvscf_interpolated =
+            malloc(dvscf_loc_len * sizeof(*dvscf_interpolated));
+        CHECK_ALLOC(dvscf_interpolated);
+    }
+
+    ELPH_cmplx* dyn_interpolated =
+        malloc(sizeof(*dyn_interpolated) * lattice->nmodes * lattice->nmodes);
+    CHECK_ALLOC(dyn_interpolated);
+
+    // now interpolate
+    for (ND_int iq = 0; iq < nqpts_to_interpolate; ++iq)
+    {
+        char read_buf[1024];
+        char dvscf_dyn_name[32];
+
+        ELPH_float* qpt_interpolate = qpts_interpolation + 3 * iq;
+        if (dVscfs_co)
+        {
+            snprintf(dvscf_dyn_name, sizeof(dvscf_dyn_name), "dvscf%lld",
+                     (long long)iq);
+            cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
+                          sizeof(read_buf));
+            fft_R2q(dVscfs_co, qpt_interpolate, q_grid_co,
+                    lattice->nmodes * lattice->nmag, lattice->fft_dims[0],
+                    lattice->fft_dims[1], lattice->nfftz_loc,
+                    dvscf_interpolated);
+            // change to pattern basis
+            dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
+                               lattice->nmodes, lattice->nmag,
+                               lattice->fft_dims[0], lattice->fft_dims[1],
+                               lattice->nfftz_loc, 'C');
+            // add long range back
+            //
+            dV_add_longrange(qpt_interpolate, lattice, phonon, Zvals,
+                             ref_pat_basis, dvscf_interpolated, 1,
+                             only_induced_part_long_range, EcutRy,
+                             nmags_add_long_range, mpi_comms->commK);
+            // write to file
+            if (dft_code == DFT_CODE_QE)
+            {
+                write_dvscf_qe(dvscf_dyn_name, lattice, dvscf_interpolated,
+                               mpi_comms->commK);
+            }
+        }
+
+        if (0 == mpi_comms->commW_rank)
+        {
+            // interpolate dyn file
+            snprintf(dvscf_dyn_name, sizeof(dvscf_dyn_name), "dyn%lld",
+                     (long long)iq);
+            cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
+                          sizeof(read_buf));
+
+            fft_R2q(dyns_co, qpt_interpolate, q_grid_co,
+                    lattice->nmodes * lattice->nmodes, 1, 1, 1,
+                    dyn_interpolated);
+            // add back the long range part
+            //
+            ELPH_float qnorm =
+                sqrt(dot3_macro(qpt_interpolate, qpt_interpolate));
+            if (qnorm > ELPH_EPS || dft_code != DFT_CODE_QE)
+            {
+                add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
+                                      Ggrid_phonon, 1, atomic_masses,
+                                      dyn_interpolated);
+            }
+            // write dyn file
+            // FIX me write qpoint in alat units q.e
+            // Convert qpoints to
+            if (dft_code == DFT_CODE_QE)
+            {
+                write_dyn_qe(dvscf_dyn_name, lattice->natom, qpt_interpolate,
+                             dyn_interpolated, atomic_masses);
+            }
+        }
+    }
+
+    if (0 == mpi_comms->commW_rank)
+    {
+        char read_buf[1024];
+        cwk_path_join(ph_save_interpolated, "dyn0", read_buf, sizeof(read_buf));
+
+        write_qpts_qe(read_buf, nqpts_to_interpolate, qpts_interpolation,
+                      qgrid_new);
+    }
+
+    free(dvscf_interpolated);
+    free(dyn_interpolated);
+    free(qpts_interpolation);
     int World_rank_tmp = mpi_comms->commW_rank;
 
     free(atomic_masses);
     free(dummy1);
-    free(dummy2);
+    free(ref_pat_basis);
 
     free(omega_ph_co);
     free(dVscfs_co);

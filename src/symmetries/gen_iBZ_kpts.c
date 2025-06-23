@@ -1,5 +1,6 @@
 // give a uniform gamma centred, get generate kpoints in iBZ
 //
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,10 @@ ND_int generate_iBZ_kpts(const ND_int* kgrid, const ND_int Nsym,
                 ik_ibz_tmp[0] = ((ELPH_float)i) / kgrid[0];
                 ik_ibz_tmp[1] = ((ELPH_float)j) / kgrid[1];
                 ik_ibz_tmp[2] = ((ELPH_float)k) / kgrid[2];
+
+                ik_ibz_tmp[0] -= rint(ik_ibz_tmp[0]);
+                ik_ibz_tmp[1] -= rint(ik_ibz_tmp[1]);
+                ik_ibz_tmp[2] -= rint(ik_ibz_tmp[2]);
             }
         }
     }
@@ -40,11 +45,14 @@ ND_int generate_iBZ_kpts(const ND_int* kgrid, const ND_int Nsym,
     {
         if (!crystal)
         {
-            ELPH_float qtmp[3];
             for (ND_int i = 0; i < kgrid_product; ++i)
             {
+                ELPH_float qtmp[3];
                 MatVec3f(blat, ibz_kpts + 3 * i, false, qtmp);
-                memcpy(ibz_kpts + 3 * i, qtmp, sizeof(qtmp));
+                for (ND_int xi = 0; xi < 3; ++xi)
+                {
+                    ibz_kpts[3 * i + xi] = qtmp[xi] / (2.0 * ELPH_PI);
+                }
             }
         }
         return kgrid_product;
@@ -111,11 +119,14 @@ ND_int generate_iBZ_kpts(const ND_int* kgrid, const ND_int Nsym,
 
     if (!crystal)
     {
-        ELPH_float qtmp[3];
         for (ND_int i = 0; i < nkiBZ_found; ++i)
         {
+            ELPH_float qtmp[3];
             MatVec3f(blat, ibz_kpts + 3 * i, false, qtmp);
-            memcpy(ibz_kpts + 3 * i, qtmp, sizeof(qtmp));
+            for (ND_int xi = 0; xi < 3; ++xi)
+            {
+                ibz_kpts[3 * i + xi] = qtmp[xi] / (2.0 * ELPH_PI);
+            }
         }
     }
 
