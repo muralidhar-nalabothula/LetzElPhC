@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "ELPH_getopt.h"
+#include "common/dtypes.h"
 #include "common/string_func.h"
 #include "elphC.h"
 #include "preprocessor.h"
