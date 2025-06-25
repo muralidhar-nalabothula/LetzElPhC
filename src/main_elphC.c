@@ -4,6 +4,7 @@
 
 #include "elphC.h"
 #include "preprocessor/preprocessor.h"
+#include "interpolation/interpolation.h"
 #include "elph/elph.h"
 #include <mpi.h>
 #include <stdbool.h>
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
     }
     else if (run_interpolation)
     {
-        
+        interpolation_driver(calc_info->input_file, calc_info->code, MPI_COMM_WORLD);
     }
     else
     {

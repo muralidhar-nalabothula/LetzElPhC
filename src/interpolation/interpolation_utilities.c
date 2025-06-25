@@ -2,7 +2,11 @@
 
 #include "interpolation_utilities.h"
 
+#include "elphC.h"
+#include "fft/fft.h"
+// we must always place complex.h before fftw3.
 #include <complex.h>
+#include <fftw3.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,16 +14,13 @@
 #include "common/constants.h"
 #include "common/error.h"
 #include "common/numerical_func.h"
-#include "elphC.h"
-#include "fft/fft.h"
-
 static int qpt_sort_cmp(const void* a, const void* b);
 
 void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
 {
     // given a data (qx,qy,qz,nsets) -> (nsets, qx,qy,qz).
     // The reasone we want to do transpose is because
-    // we we will later do matmul where we may encoutor
+    // we will later do matmul where we may encoutor
     // large strides > INT_MAX
     // performs inplace fourier transform q->R
     // Total number of complex elements

@@ -15,6 +15,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
 void get_interpolation_data_from_qe(struct Lattice* lattice,
                                     struct Phonon* phonon,
                                     const char* ph_save_dir, ELPH_float** Zvals,
+                                    ELPH_float* alat,
                                     const struct ELPH_MPI_Comms* Comm);
 
 void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,

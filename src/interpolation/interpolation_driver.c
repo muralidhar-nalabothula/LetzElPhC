@@ -23,11 +23,15 @@
 #include "symmetries/symmetries.h"
 #include "wfc/wfc.h"
 
-void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
-                          enum ELPH_dft_code dft_code, const ND_int* qgrid_new,
-                          MPI_Comm comm_world)
+void interpolation_driver(const char* ELPH_input_file,
+                          enum ELPH_dft_code dft_code, MPI_Comm comm_world)
 {
     //
+    ND_int LLLLLLLL[3] = {6, 6, 1};
+    const char* ph_save = "../MoS2_SOC_2D/ph_save";
+    const char* ph_save_interpolated = "../ph_interpolated";
+    const ND_int* qgrid_new = LLLLLLLL;
+
     init_ELPH_clocks();
 
     struct ELPH_MPI_Comms* mpi_comms = malloc(sizeof(struct ELPH_MPI_Comms));
@@ -52,10 +56,11 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     bool interpolate_dvscf = true;
 
     ELPH_float* Zvals = NULL;
+    ELPH_float alat_scale[3];
     if (dft_code == DFT_CODE_QE)
     {
         get_interpolation_data_from_qe(lattice, phonon, ph_save, &Zvals,
-                                       mpi_comms);
+                                       alat_scale, mpi_comms);
     }
     else
     {
@@ -115,10 +120,15 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     ND_int q_grid_co[3];
     find_qpt_grid(phonon->nq_BZ, phonon->qpts_BZ, q_grid_co);
     // find qBZ to fft grid indices
-    ND_int* indices_q2fft = malloc(phonon->nq_BZ * sizeof(*indices_q2fft));
+    ND_int* indices_q2fft = malloc(2 * phonon->nq_BZ * sizeof(*indices_q2fft));
     CHECK_ALLOC(indices_q2fft);
     //
-    Sorted_qpts_idxs(phonon->nq_BZ, phonon->qpts_BZ, indices_q2fft);
+    Sorted_qpts_idxs(phonon->nq_BZ, phonon->qpts_BZ,
+                     indices_q2fft + phonon->nq_BZ);
+    for (ND_int iq = 0; iq < phonon->nq_BZ; ++iq)
+    {
+        indices_q2fft[indices_q2fft[phonon->nq_BZ + iq]] = iq;
+    }
     //
     // read dvscf and eigen_vectors
     // allocate large buffers
@@ -181,7 +191,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         if (dV_co_tmp)
         {
             // remore long range
-            dV_add_longrange(phonon->qpts_BZ + iqpt_tmp * 3, lattice, phonon,
+            dV_add_longrange(phonon->qpts_iBZ + iqco * 3, lattice, phonon,
                              Zvals, eigs_co, dV_co_tmp, -1,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
@@ -213,7 +223,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                    lattice->nmodes * sizeof(*omega_ph_co));
             //
             struct symmetry* sym_star = phonon->ph_syms + idx_qsym;
-            rotate_eig_vecs(sym_star, lattice, phonon->qpts_BZ + 3 * iqpt_tmp,
+            rotate_eig_vecs(sym_star, lattice, phonon->qpts_iBZ + iqco * 3,
                             eigs_co, eigs_co_star);
             if (dVscfs_co)
             {
@@ -224,12 +234,12 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         }
     }
 
-    free(indices_q2fft);
     //
     if (dVscfs_co)
     {
-        for (ND_int iq = 0; iq < phonon->nq_BZ; ++iq)
+        for (ND_int i = 0; i < phonon->nq_BZ; ++i)
         {
+            ND_int iq = indices_q2fft[i];
             ELPH_cmplx* rot_vecs =
                 dyns_co + iq * lattice->nmodes * lattice->nmodes;
             // remove mass normalization in the dynmats
@@ -243,11 +253,22 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             // get back to previous normalization
             mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
                                     lattice->natom, -1.0, rot_vecs);
+            // remove the phase from atomic
+            ND_int iq_iBZ = phonon->qmap[2 * i];
+            ND_int idx_qsym = phonon->qmap[2 * i + 1];
+            //
+            ELPH_float tmp_qpt[3], qpt_cart_iq[3];
+            MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
+                     tmp_qpt);
+            MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
+                     qpt_cart_iq);
+            //
+            mul_dvscf_struct_fac(qpt_cart_iq, lattice,
+                                 dvscf_loc_len / lattice->nmodes, -1,
+                                 dVscfs_co + iq * dvscf_loc_len);
         }
-    }
-    // Now perform fourier transform
-    if (dVscfs_co)
-    {
+        //
+        // Now perform fourier transform
         fft_q2R(dVscfs_co, q_grid_co, dvscf_loc_len);
     }
 
@@ -256,8 +277,9 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
     get_fft_box(EcutRy, lattice->blat_vec, Ggrid_phonon, mpi_comms->commK);
 
     // FIX ME need to parallize
-    for (ND_int iq = 0; iq < phonon->nq_BZ; ++iq)
+    for (ND_int i = 0; i < phonon->nq_BZ; ++i)
     {
+        ND_int iq = indices_q2fft[i];
         // convert polarization vectors to dynamical matrix and remove long
         // range part
         ELPH_cmplx* pol_vecs_iq =
@@ -266,15 +288,24 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         pol_vecs_to_dyn(omega_ph_co + iq * lattice->nmodes, lattice->natom,
                         atomic_masses, pol_vecs_iq);
 
-        const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * iq;
+        const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * i;
         // remove lonr range part for q != (0,0,0)
         ELPH_float qnorm = sqrt(dot3_macro(qpt_iq_tmp, qpt_iq_tmp));
-        if (qnorm < ELPH_EPS && dft_code == DFT_CODE_QE)
+        if (qnorm > ELPH_EPS || dft_code != DFT_CODE_QE)
         {
-            continue;
+            add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
+                                  atomic_masses, pol_vecs_iq);
         }
-        add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
-                              atomic_masses, pol_vecs_iq);
+        // remove phase from dynamical matrix due to atomic positions
+        ND_int iq_iBZ = phonon->qmap[2 * i];
+        ND_int idx_qsym = phonon->qmap[2 * i + 1];
+        //
+        ELPH_float tmp_qpt[3], qpt_cart_iq[3];
+        MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
+                 tmp_qpt);
+        MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false, qpt_cart_iq);
+        //
+        mul_dyn_struct_fac(qpt_cart_iq, lattice, -1, pol_vecs_iq);
     }
 
     // fourier transform phonons
@@ -309,16 +340,25 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         char dvscf_dyn_name[32];
 
         ELPH_float* qpt_interpolate = qpts_interpolation + 3 * iq;
+
+        ELPH_float qpt_interpolate_cart[3];
+        MatVec3f(lattice->blat_vec, qpt_interpolate, false,
+                 qpt_interpolate_cart);
+        //
         if (dVscfs_co)
         {
             snprintf(dvscf_dyn_name, sizeof(dvscf_dyn_name), "dvscf%lld",
-                     (long long)iq);
+                     (long long)(iq + 1));
             cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
                           sizeof(read_buf));
             fft_R2q(dVscfs_co, qpt_interpolate, q_grid_co,
                     lattice->nmodes * lattice->nmag, lattice->fft_dims[0],
                     lattice->fft_dims[1], lattice->nfftz_loc,
                     dvscf_interpolated);
+            // add the phase back due to atomic coordinates.
+            mul_dvscf_struct_fac(qpt_interpolate_cart, lattice,
+                                 dvscf_loc_len / lattice->nmodes, 1,
+                                 dvscf_interpolated);
             // change to pattern basis
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
                                lattice->nmodes, lattice->nmag,
@@ -330,10 +370,11 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                              ref_pat_basis, dvscf_interpolated, 1,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
+
             // write to file
             if (dft_code == DFT_CODE_QE)
             {
-                write_dvscf_qe(dvscf_dyn_name, lattice, dvscf_interpolated,
+                write_dvscf_qe(read_buf, lattice, dvscf_interpolated,
                                mpi_comms->commK);
             }
         }
@@ -342,13 +383,15 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
         {
             // interpolate dyn file
             snprintf(dvscf_dyn_name, sizeof(dvscf_dyn_name), "dyn%lld",
-                     (long long)iq);
+                     (long long)(iq + 1));
             cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
                           sizeof(read_buf));
 
-            fft_R2q(dyns_co, qpt_interpolate, q_grid_co,
-                    lattice->nmodes * lattice->nmodes, 1, 1, 1,
-                    dyn_interpolated);
+            fft_R2q(dyns_co, qpt_interpolate, q_grid_co, 1, 1, 1,
+                    lattice->nmodes * lattice->nmodes, dyn_interpolated);
+            // add the phase due to atomic back
+            mul_dyn_struct_fac(qpt_interpolate_cart, lattice, 1,
+                               dyn_interpolated);
             // add back the long range part
             //
             ELPH_float qnorm =
@@ -364,8 +407,18 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
             // Convert qpoints to
             if (dft_code == DFT_CODE_QE)
             {
-                write_dyn_qe(dvscf_dyn_name, lattice->natom, qpt_interpolate,
+                write_dyn_qe(read_buf, lattice->natom, qpt_interpolate,
                              dyn_interpolated, atomic_masses);
+            }
+        }
+        if (dft_code == DFT_CODE_QE)
+        {
+            // convert the interpolated qpoints in weird q.e units
+            // ELPH_float* qpt_interpolate = qpts_interpolation + 3 * iq;
+            for (ND_int ix = 0; ix < 3; ++ix)
+            {
+                qpt_interpolate[ix] =
+                    alat_scale[ix] * qpt_interpolate_cart[ix] / (2 * ELPH_PI);
             }
         }
     }
@@ -379,6 +432,7 @@ void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
                       qgrid_new);
     }
 
+    free(indices_q2fft);
     free(dvscf_interpolated);
     free(dyn_interpolated);
     free(qpts_interpolation);

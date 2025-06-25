@@ -5,6 +5,5 @@
 #include "common/dtypes.h"
 #include "elphC.h"
 
-void interpolation_driver(const char* ph_save, const char* ph_save_interpolated,
-                          enum ELPH_dft_code dft_code, const ND_int* qgrid_new,
-                          MPI_Comm comm_world);
+void interpolation_driver(const char* ELPH_input_file,
+                          enum ELPH_dft_code dft_code, MPI_Comm comm_world);

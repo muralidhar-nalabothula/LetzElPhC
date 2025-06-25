@@ -6,6 +6,7 @@
 #include <complex.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,7 +28,7 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
     // sign < 0 : subtract else add
     // qpt in crystal coordinater
     //
-    if (!phonon->epsilon || phonon->Zborn)
+    if (!phonon->epsilon || !phonon->Zborn)
     {
         return;
     }
@@ -106,14 +107,31 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
         {
             const ELPH_float* Z_k =
                 phonon->Zborn ? (phonon->Zborn + 9 * ia) : NULL;
-            /* const ELPH_float* Q_k = */
-            /*     phonon->Qpole ? (phonon->Qpole + 27 * ia) : NULL; */
+            const ELPH_float* Q_k =
+                phonon->Qpole ? (phonon->Qpole + 27 * ia) : NULL;
             const ELPH_float* tau_k = lattice->atomic_pos + 3 * ia;
 
             MatVec3f(Z_k, qplusG, true, tmp_buf);
             ELPH_cmplx* out_tmp_buf = out_tmp1 + 3 * ia;
             ELPH_cmplx* out_tmp_buf2 = out_tmp2 + 3 * ia;
 
+            // compute (q+G)_x Q_xyz * (q+G)_y
+            ELPH_float Qpole_buf[3] = {0.0, 0.0, 0.0};
+            if (Q_k)
+            {
+                for (int i = 0; i < 3; ++i)
+                {
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        for (int k = 0; k < 3; ++k)
+                        {
+                            Qpole_buf[k] =
+                                Qpole_buf[k] +
+                                qplusG[i] * qplusG[j] * Q_k[k + 3 * j + 9 * i];
+                        }
+                    }
+                }
+            }
             // e^{-iq.tau}
             ELPH_cmplx qdot_tau = cexp(-I * (dot3_macro(qplusG, tau_k)));
             qdot_tau /= q_eps_q;
@@ -122,8 +140,9 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
             //
             for (ND_int i = 0; i < 3; ++i)
             {
-                out_tmp_buf[i] = tmp_buf[i] * qdot_tau;
-                out_tmp_buf2[i] = tmp_buf[i] * qdot_tau * q_eps_q;
+                out_tmp_buf[i] =
+                    (tmp_buf[i] - I * 0.5 * Qpole_buf[i]) * qdot_tau;
+                out_tmp_buf2[i] = out_tmp_buf[i] * q_eps_q;
             }
         }
     }

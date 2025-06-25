@@ -16,6 +16,7 @@
 void get_interpolation_data_from_qe(struct Lattice* lattice,
                                     struct Phonon* phonon,
                                     const char* ph_save_dir, ELPH_float** Zvals,
+                                    ELPH_float* alat,
                                     const struct ELPH_MPI_Comms* Comm)
 {
     /*
@@ -37,6 +38,7 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
     // 4) nspinor
     // 5) set nnfftz_loc and nfftz_loc_shift
     // 6) atomic positions (in cart units)
+    // 7) alat lengths
 
     // check if there is any assume_isolated tag in xml file
     //
@@ -115,6 +117,15 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
         }
         lattice->natom = atoi(tmp_xml_str);
         int natom = lattice->natom;
+
+        tmp_xml_str = ezxml_attr(xml_tmp, "alat");
+        if (!tmp_xml_str)
+        {
+            error_msg("error alat attribute from data-file-schema.xml file");
+        }
+        alat[0] = atof(tmp_xml_str);
+        alat[1] = alat[0];
+        alat[2] = alat[0];
 
         ezxml_t atom_specs =
             ezxml_get(qexml, "output", 0, "atomic_species", -1);
@@ -253,6 +264,9 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
     MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(&lattice->nspinor, 1, MPI_INT, 0, Comm->commW);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(alat, 3, ELPH_MPI_float, 0, Comm->commW);
     MPI_error_msg(mpi_error);
 
     if (Comm->commW_rank)
