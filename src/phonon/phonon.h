@@ -13,6 +13,3 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
                            struct Phonon* phonon, const ND_int* Ggrid,
                            const ND_int sign, const ELPH_float* atomic_masses,
                            ELPH_cmplx* dyn_mat);
-
-void mul_dyn_struct_fac(const ELPH_float* qpt_cart, struct Lattice* lattice,
-                        const ND_int sign, ELPH_cmplx* dyn);

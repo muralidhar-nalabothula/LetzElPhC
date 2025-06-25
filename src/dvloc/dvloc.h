@@ -36,10 +36,6 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
                       const ELPH_float EcutRy, const bool* nmags_add,
                       MPI_Comm commK);
 
-void mul_dvscf_struct_fac(const ELPH_float* qpt_cart, struct Lattice* lattice,
-                          const ND_int nsets, const ND_int sign,
-                          ELPH_cmplx* dVscf);
-
 void dVscf_change_basis(ELPH_cmplx* dvscf, const ELPH_cmplx* rot_vecs,
                         const ND_int nsets, const ND_int nmodes,
                         const ND_int nmag, const ND_int Nx, const ND_int Ny,

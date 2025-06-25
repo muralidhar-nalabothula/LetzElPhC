@@ -27,8 +27,11 @@ void interpolation_driver(const char* ELPH_input_file,
                           enum ELPH_dft_code dft_code, MPI_Comm comm_world)
 {
     //
-    ND_int LLLLLLLL[3] = {6, 6, 1};
-    const char* ph_save = "../MoS2_SOC_2D/ph_save";
+    /* ND_int LLLLLLLL[3] = {6, 6, 1}; */
+    /* const char* ph_save = "../MoS2_SOC_2D/ph_save"; */
+    /* const char* ph_save_interpolated = "../ph_interpolated"; */
+    ND_int LLLLLLLL[3] = {6, 6, 6};
+    const char* ph_save = "../ph_save_si";
     const char* ph_save_interpolated = "../ph_interpolated";
     const ND_int* qgrid_new = LLLLLLLL;
 
@@ -263,9 +266,6 @@ void interpolation_driver(const char* ELPH_input_file,
             MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
                      qpt_cart_iq);
             //
-            mul_dvscf_struct_fac(qpt_cart_iq, lattice,
-                                 dvscf_loc_len / lattice->nmodes, -1,
-                                 dVscfs_co + iq * dvscf_loc_len);
         }
         //
         // Now perform fourier transform
@@ -305,7 +305,6 @@ void interpolation_driver(const char* ELPH_input_file,
                  tmp_qpt);
         MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false, qpt_cart_iq);
         //
-        mul_dyn_struct_fac(qpt_cart_iq, lattice, -1, pol_vecs_iq);
     }
 
     // fourier transform phonons
@@ -355,10 +354,7 @@ void interpolation_driver(const char* ELPH_input_file,
                     lattice->nmodes * lattice->nmag, lattice->fft_dims[0],
                     lattice->fft_dims[1], lattice->nfftz_loc,
                     dvscf_interpolated);
-            // add the phase back due to atomic coordinates.
-            mul_dvscf_struct_fac(qpt_interpolate_cart, lattice,
-                                 dvscf_loc_len / lattice->nmodes, 1,
-                                 dvscf_interpolated);
+            //
             // change to pattern basis
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
                                lattice->nmodes, lattice->nmag,
@@ -389,9 +385,6 @@ void interpolation_driver(const char* ELPH_input_file,
 
             fft_R2q(dyns_co, qpt_interpolate, q_grid_co, 1, 1, 1,
                     lattice->nmodes * lattice->nmodes, dyn_interpolated);
-            // add the phase due to atomic back
-            mul_dyn_struct_fac(qpt_interpolate_cart, lattice, 1,
-                               dyn_interpolated);
             // add back the long range part
             //
             ELPH_float qnorm =
