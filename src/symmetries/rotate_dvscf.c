@@ -177,7 +177,9 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
 
                 ELPH_float tmp_diff = tmp_idxs_rot[xi] - rint(tmp_idxs_rot[xi]);
                 // check now if it is an integer.
-                if (fabs(tmp_diff) > ELPH_EPS)
+                // if (fabs(tmp_diff) > ELPH_EPS)
+                // NM : Going below 1-e3 on single precision is giving an error.
+                if (fabs(tmp_diff) > 1e-3)
                 {
                     if (symm_fft_compat)
                     {

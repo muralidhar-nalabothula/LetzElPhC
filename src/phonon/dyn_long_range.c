@@ -68,9 +68,13 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
     ND_int natom = lattice->natom;
 
     ELPH_cmplx* Zdotq_tau =
-        malloc(2 * Gvec_size * 3 * natom * sizeof(*Zdotq_tau));
+        calloc(2 * Gvec_size * 3 * natom, sizeof(*Zdotq_tau));
     CHECK_ALLOC(Zdotq_tau);
-
+    // leave it to the compilers(most will very likely remove it )
+    for (ND_int i = 0; i < (2 * Gvec_size * 3 * natom); ++i)
+    {
+        Zdotq_tau[i] = 0.0;
+    }
     //
     ELPH_OMP_PAR_FOR_SIMD
     for (ND_int ig = 0; ig < Gvec_size; ++ig)
