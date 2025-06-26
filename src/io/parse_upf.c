@@ -437,11 +437,13 @@ static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
     }
     if (Zval)
     {
+        float Zval_tmp;
         fgets(xml_buf, 1000, fp);  // nlcc
         fgets(xml_buf, 1000, fp);  // XC info
         fgets(xml_buf, 1000, fp);  // Valence electrons
         char* tmp_token = strtok(xml_buf, " ");
-        sscanf(tmp_token, "%f", Zval);
+        sscanf(tmp_token, "%f", &Zval_tmp);
+        *Zval = Zval_tmp;
     }
 
     free(xml_buf);
