@@ -265,7 +265,15 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
                   (epslion[4] - 1) * qplusG[1] * qplusG[1] +
                   (epslion[1] + epslion[3]) * qplusG[0] * qplusG[1];
         q_eps_q *= (0.5 * zlat);
-        q_eps_q /= (Gp_norm);
+        if (Gp_norm < ELPH_EPS)
+        {
+            q_eps_q = 0.0;
+        }
+        else
+        {
+            q_eps_q /= (Gp_norm);
+        }
+        //
         q_eps_q += 1.0;
         q_eps_q *= 2.0;
     }
