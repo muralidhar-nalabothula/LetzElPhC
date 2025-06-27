@@ -56,6 +56,11 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
     // |q+G|^2 > EcutRy is set to zero.
     // //
     //
+    // (3D) C. Verdi, F. Giustino PhysRevLett.115.176401
+    // (2D) T Deng et. al Phys. Rev. B 103, 075410 (2021)
+    // (2D) T Sohier et. al  Phys. Rev. B 96, 075448 (2017)
+    // Quadrupoles : G Brunin et al Phys. Rev. Lett. 125, 136601
+    //
     for (ND_int i = 0; i < (3 * natom * npw_loc); ++i)
     {
         elph_lr_out[i] = 0.0;
@@ -130,7 +135,6 @@ static void long_range_3D_kernel(const ELPH_float* qplusG,
     //
     // G space dipole term for frohlich in 3D
     // Eq :4 of PhysRevLett.115.176401 (C. Verdi, F. Giustino)
-
     // tau_k are atomic coordinates of atom k in cart
     // q+G in cart with 2*pi included ,
     // Zborn_k, born charges for atom k
@@ -257,10 +261,13 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     if (epslion)
     {
         // compute (q+G).eps.(q+G)
-        ELPH_float tmp_buf[3] = {0.0, 0.0, 0.0};
-        MatVec3f(epslion, qplusG, false, tmp_buf);
-        q_eps_q = dot3_macro(tmp_buf, qplusG);
-        q_eps_q = 0.5 * (q_eps_q - q_G_square) / sqrt(q_G_square) + 1.0 / zlat;
+        q_eps_q = (epslion[0] - 1) * qplusG[0] * qplusG[0] +
+                  (epslion[4] - 1) * qplusG[1] * qplusG[1] +
+                  (epslion[1] + epslion[3]) * qplusG[0] * qplusG[1];
+        q_eps_q *= (0.5 * zlat);
+        q_eps_q /= (Gp_norm);
+        q_eps_q += 1.0;
+        q_eps_q *= 2.0;
     }
 
     ELPH_float Zval_buf[3] = {0.0, 0.0, 0.0};
@@ -271,7 +278,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     {
         for (int i = 0; i < 3; ++i)
         {
-            Zval_buf[i] = -(*Zval) * qplusG[i] * cutoff_fac / q_G_square;
+            Zval_buf[i] = -(*Zval) * qplusG[i] * cutoff_fac;
         }
     }
     // compute (q+G).Z
@@ -280,9 +287,9 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
         MatVec3f(Zborn_k, qplusG, true, Zborn_buf);
     }
     // compute (q+G)_x Q_xyz * (q+G)_y
+    // (pol,pol,atom_dir)
     if (Qpole_k)
     {
-        ELPH_float Q_mod_inplane = sqrt(Gp_norm * Gp_norm + qz * qz);
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 3; ++j)
@@ -298,8 +305,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
         // subtract Qzz*(1+|qz+Gp|)*|q+G|^2-2qz*Gz
         for (int i = 0; i < 3; ++i)
         {
-            Qpole_buf[i] -= ((q_G_square - 2.0 * qz * (qplusG[2] - qz)) *
-                             (1 + Q_mod_inplane) * Qpole_k[i + 24]);
+            Qpole_buf[i] -= ((q_G_square) * (1 + Gp_norm) * Qpole_k[i + 24]);
         }
     }
     // compute and multiply with a decay factor
@@ -308,9 +314,9 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     for (int i = 0; i < 3; ++i)
     {
         out_buf[i] =
-            qdot_tau * (((Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) / q_eps_q) /
-                            (q_G_square - 2.0 * qz * (qplusG[2] - qz)) +
-                        Zval_buf[i]);
+            qdot_tau *
+            (Zval_buf[i] + (Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) / q_eps_q) /
+            q_G_square;
     }
 
     return;

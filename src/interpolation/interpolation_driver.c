@@ -30,8 +30,8 @@ void interpolation_driver(const char* ELPH_input_file,
     /* ND_int LLLLLLLL[3] = {6, 6, 1}; */
     /* const char* ph_save = "../MoS2_SOC_2D/ph_save"; */
     /* const char* ph_save_interpolated = "../ph_interpolated"; */
-    ND_int LLLLLLLL[3] = {6, 6, 6};
-    const char* ph_save = "../ph_save_si";
+    ND_int LLLLLLLL[3] = {9, 9, 1};
+    const char* ph_save = "../MoS2_SOC_2D/ph_save";
     const char* ph_save_interpolated = "../ph_interpolated";
     const ND_int* qgrid_new = LLLLLLLL;
 
@@ -256,15 +256,6 @@ void interpolation_driver(const char* ELPH_input_file,
             // get back to previous normalization
             mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
                                     lattice->natom, -1.0, rot_vecs);
-            // remove the phase from atomic
-            ND_int iq_iBZ = phonon->qmap[2 * i];
-            ND_int idx_qsym = phonon->qmap[2 * i + 1];
-            //
-            ELPH_float tmp_qpt[3], qpt_cart_iq[3];
-            MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
-                     tmp_qpt);
-            MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
-                     qpt_cart_iq);
             //
         }
         //
@@ -275,6 +266,14 @@ void interpolation_driver(const char* ELPH_input_file,
     // Get a grid to perform summation
     ND_int Ggrid_phonon[3];
     get_fft_box(EcutRy, lattice->blat_vec, Ggrid_phonon, mpi_comms->commK);
+
+    // first compute the long_range asr term
+    ELPH_cmplx* dyn_mat_asr_lr =
+        calloc(lattice->natom * 9, sizeof(*dyn_mat_asr_lr));
+    CHECK_ALLOC(dyn_mat_asr_lr);
+
+    compute_dyn_lr_asr_correction(lattice, phonon, Ggrid_phonon, atomic_masses,
+                                  dyn_mat_asr_lr);
 
     // FIX ME need to parallize
     for (ND_int i = 0; i < phonon->nq_BZ; ++i)
@@ -289,21 +288,9 @@ void interpolation_driver(const char* ELPH_input_file,
                         atomic_masses, pol_vecs_iq);
 
         const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * i;
-        // remove lonr range part for q != (0,0,0)
-        ELPH_float qnorm = sqrt(dot3_macro(qpt_iq_tmp, qpt_iq_tmp));
-        if (qnorm > ELPH_EPS || dft_code != DFT_CODE_QE)
-        {
-            add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
-                                  atomic_masses, pol_vecs_iq);
-        }
-        // remove phase from dynamical matrix due to atomic positions
-        ND_int iq_iBZ = phonon->qmap[2 * i];
-        ND_int idx_qsym = phonon->qmap[2 * i + 1];
-        //
-        ELPH_float tmp_qpt[3], qpt_cart_iq[3];
-        MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
-                 tmp_qpt);
-        MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false, qpt_cart_iq);
+        // remove long range part
+        add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
+                              atomic_masses, dyn_mat_asr_lr, pol_vecs_iq);
         //
     }
 
@@ -386,15 +373,9 @@ void interpolation_driver(const char* ELPH_input_file,
             fft_R2q(dyns_co, qpt_interpolate, q_grid_co, 1, 1, 1,
                     lattice->nmodes * lattice->nmodes, dyn_interpolated);
             // add back the long range part
-            //
-            ELPH_float qnorm =
-                sqrt(dot3_macro(qpt_interpolate, qpt_interpolate));
-            if (qnorm > ELPH_EPS || dft_code != DFT_CODE_QE)
-            {
-                add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
-                                      Ggrid_phonon, 1, atomic_masses,
-                                      dyn_interpolated);
-            }
+            add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
+                                  Ggrid_phonon, 1, atomic_masses,
+                                  dyn_mat_asr_lr, dyn_interpolated);
             // write dyn file
             // FIX me write qpoint in alat units q.e
             // Convert qpoints to
@@ -425,6 +406,7 @@ void interpolation_driver(const char* ELPH_input_file,
                       qgrid_new);
     }
 
+    free(dyn_mat_asr_lr);
     free(indices_q2fft);
     free(dvscf_interpolated);
     free(dyn_interpolated);

@@ -19,16 +19,106 @@
 #include "elphC.h"
 #include "phonon.h"
 
+static void add_ph_dyn_long_range_internal(
+    const ELPH_float* qpt, struct Lattice* lattice, struct Phonon* phonon,
+    const ND_int* Ggrid, const ND_int sign, const ELPH_float* atomic_masses,
+    ELPH_cmplx* dyn_mat);
+
 void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
                            struct Phonon* phonon, const ND_int* Ggrid,
                            const ND_int sign, const ELPH_float* atomic_masses,
-                           ELPH_cmplx* dyn_mat)
+                           ELPH_cmplx* dyn_mat_asr, ELPH_cmplx* dyn_mat)
+{
+    // compute the long range part
+    add_ph_dyn_long_range_internal(qpt, lattice, phonon, Ggrid, sign,
+                                   atomic_masses, dyn_mat);
+    // now subtract the asr correction
+    //
+    ELPH_float factor = -1;
+    if (sign < 0)
+    {
+        factor = -factor;
+    }
+
+    ND_int nmodes = lattice->natom * 3;
+    //
+    for (ND_int ia = 0; ia < lattice->natom; ++ia)
+    {
+        ELPH_cmplx* tmp_buf_ia = dyn_mat_asr + ia * 9;
+        for (ND_int i = 0; i < 3; ++i)
+        {
+            for (ND_int j = 0; j < 3; ++j)
+            {
+                dyn_mat[(ia * 3 + i) * nmodes + ia * 3 + j] +=
+                    factor * tmp_buf_ia[3 * i + j];
+            }
+        }
+    }
+}
+
+void compute_dyn_lr_asr_correction(struct Lattice* lattice,
+                                   struct Phonon* phonon, const ND_int* Ggrid,
+                                   const ELPH_float* atomic_masses,
+                                   ELPH_cmplx* dyn_mat_asr)
+{
+    // ASR for the lr non-analytical dynamical matrix.
+    // (dyn_mat_asr) : (natom, 3, 3)
+    // See X. Gonze  PhysRevB.50.13035
+    //
+    for (ND_int i = 0; i < lattice->natom * 9; ++i)
+    {
+        dyn_mat_asr[i] = 0.0;
+    }
+
+    if (!phonon->epsilon || !phonon->Zborn)
+    {
+        return;
+    }
+    ND_int nmodes = 3 * lattice->natom;
+    ELPH_cmplx* tmp_dyn_mat = calloc(nmodes * nmodes, sizeof(*tmp_dyn_mat));
+    CHECK_ALLOC(tmp_dyn_mat);
+    // let the comiplers remove this loop.
+    for (ND_int i = 0; i < nmodes * nmodes; ++i)
+    {
+        tmp_dyn_mat[i] = 0.0;
+    }
+
+    ELPH_float qpt_zero[3] = {0.0, 0.0, 0.0};
+    add_ph_dyn_long_range_internal(qpt_zero, lattice, phonon, Ggrid, 1,
+                                   atomic_masses, tmp_dyn_mat);
+
+    //
+    for (ND_int ia = 0; ia < lattice->natom; ++ia)
+    {
+        ELPH_cmplx* tmp_buf_ia = dyn_mat_asr + ia * 9;
+        for (ND_int ja = 0; ja < lattice->natom; ++ja)
+        {
+            for (ND_int i = 0; i < 3; ++i)
+            {
+                for (ND_int j = 0; j < 3; ++j)
+                {
+                    tmp_buf_ia[3 * i + j] +=
+                        tmp_dyn_mat[(ia * 3 + i) * nmodes + ja * 3 + j];
+                }
+            }
+        }
+    }
+    free(tmp_dyn_mat);
+}
+
+static void add_ph_dyn_long_range_internal(
+    const ELPH_float* qpt, struct Lattice* lattice, struct Phonon* phonon,
+    const ND_int* Ggrid, const ND_int sign, const ELPH_float* atomic_masses,
+    ELPH_cmplx* dyn_mat)
 {
     // adds or subtracts non-analytical term to the dynamical matrix.
     // sign < 0 : subtract else add
     // qpt in crystal coordinater
     //
-    if (!phonon->epsilon || !phonon->Zborn)
+    // (3D) X. Gonze et al  Phys. Rev. B 50, 13035(R)
+    // (2D ) T. Sohier et al Nano Lett. 2017, 17, 6, 3758–3763
+    //
+    if (!phonon->epsilon || (!phonon->Zborn && !phonon->Qpole))
     {
         return;
     }
@@ -59,11 +149,22 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
         // compute alpha = c/2 * (eps-1)
         for (int i = 0; i < 9; ++i)
         {
-            eps_alpha[i] = 0.5 * zlat * (eps_alpha[i] - 1);
+            eps_alpha[i] = 0.0;
         }
+        // inplane
+        eps_alpha[0] = 0.5 * zlat * (phonon->epsilon[0] - 1);
+        eps_alpha[1] = 0.5 * zlat * (phonon->epsilon[1]);
+        eps_alpha[3] = 0.5 * zlat * (phonon->epsilon[3]);
+        eps_alpha[4] = 0.5 * zlat * (phonon->epsilon[4] - 1);
     }
 
-    ND_int Gvec_size = Ggrid[0] * Ggrid[1] * Ggrid[2];
+    ND_int GridZ = Ggrid[2];
+    if (lattice->dimension == '2')
+    {
+        GridZ = 1;
+    }
+    //
+    ND_int Gvec_size = Ggrid[0] * Ggrid[1] * GridZ;
 
     ND_int natom = lattice->natom;
 
@@ -82,14 +183,14 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
         ELPH_cmplx* out_tmp1 = Zdotq_tau + ig * 3 * natom;
         ELPH_cmplx* out_tmp2 =
             Zdotq_tau + ig * 3 * natom + Gvec_size * 3 * natom;
-        const ND_int Gx = ig / (Ggrid[1] * Ggrid[2]);
-        const ND_int Gy = (ig % (Ggrid[1] * Ggrid[2])) / Ggrid[2];
-        const ND_int Gz = (ig % (Ggrid[1] * Ggrid[2])) % Ggrid[2];
+        const ND_int Gx = ig / (Ggrid[1] * GridZ);
+        const ND_int Gy = (ig % (Ggrid[1] * GridZ)) / GridZ;
+        const ND_int Gz = (ig % (Ggrid[1] * GridZ)) % GridZ;
         //
         ELPH_float qplusG[3], tmp_buf[3];
         tmp_buf[0] = (qpt[0] + get_miller_idx(Gx, Ggrid[0]));
         tmp_buf[1] = (qpt[1] + get_miller_idx(Gy, Ggrid[1]));
-        tmp_buf[2] = (qpt[2] + get_miller_idx(Gz, Ggrid[2]));
+        tmp_buf[2] = (qpt[2] + get_miller_idx(Gz, GridZ));
         // COnvert to cart units (2*pi) is included
         MatVec3f(lattice->blat_vec, tmp_buf, false, qplusG);
         //
@@ -101,11 +202,14 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
         //
         MatVec3f(eps_alpha, qplusG, false, tmp_buf);
         ELPH_float q_eps_q = dot3_macro(tmp_buf, qplusG);
+
+        ELPH_float decay_fac = exp(-q_eps_q * q_eps_q * 0.125);
+
         if (lattice->dimension == '2')
         {
             q_eps_q += qplusG_norm;
+            decay_fac = exp(-qplusG_norm * qplusG_norm * 0.125);
         }
-        ELPH_float decay_fac = exp(-qplusG_norm * qplusG_norm * 0.125);
         //
         for (ND_int ia = 0; ia < natom; ++ia)
         {
@@ -115,12 +219,21 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
                 phonon->Qpole ? (phonon->Qpole + 27 * ia) : NULL;
             const ELPH_float* tau_k = lattice->atomic_pos + 3 * ia;
 
-            MatVec3f(Z_k, qplusG, true, tmp_buf);
+            ELPH_float Qpole_buf[3] = {0.0, 0.0, 0.0};
+            //
+            if (Z_k)
+            {
+                MatVec3f(Z_k, qplusG, true, tmp_buf);
+            }
+            else
+            {
+                memcpy(tmp_buf, Qpole_buf, sizeof(tmp_buf));
+            }
+            //
             ELPH_cmplx* out_tmp_buf = out_tmp1 + 3 * ia;
             ELPH_cmplx* out_tmp_buf2 = out_tmp2 + 3 * ia;
 
             // compute (q+G)_x Q_xyz * (q+G)_y
-            ELPH_float Qpole_buf[3] = {0.0, 0.0, 0.0};
             if (Q_k)
             {
                 for (int i = 0; i < 3; ++i)

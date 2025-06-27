@@ -67,6 +67,12 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
      *   - |q+G| exceeds the interpolation table bounds.
      */
 
+    if (lattice->dimension == '2' && fabs(qpt[2]) > ELPH_EPS)
+    {
+        error_msg(
+            "In 2D, only qz == 0 points are accepted when interpolating.");
+    }
+
     ELPH_start_clock("dV_longrange");
     //
     const ELPH_float* latvec = lattice->alat_vec;
