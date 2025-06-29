@@ -224,6 +224,8 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     // external potential this will cancell the monopole long range compoment)
     //
     // G space dipole term for frohlich in 2D
+    // NM : We do everything in G space and add a cutoff like the hatree
+    // to avoid the fake periodicity and rapidly converge with Gz vectors.
     // T Deng et. al Phys. Rev. B 103, 075410 (2021)
     // T Sohier et. al  Phys. Rev. B 96, 075448 (2017)
 
@@ -275,7 +277,6 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
         }
         //
         q_eps_q += 1.0;
-        q_eps_q *= 2.0;
     }
 
     ELPH_float Zval_buf[3] = {0.0, 0.0, 0.0};
@@ -286,7 +287,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     {
         for (int i = 0; i < 3; ++i)
         {
-            Zval_buf[i] = -(*Zval) * qplusG[i] * cutoff_fac;
+            Zval_buf[i] = -(*Zval) * qplusG[i];
         }
     }
     // compute (q+G).Z
@@ -322,7 +323,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     for (int i = 0; i < 3; ++i)
     {
         out_buf[i] =
-            qdot_tau *
+            qdot_tau * cutoff_fac *
             (Zval_buf[i] + (Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) / q_eps_q) /
             q_G_square;
     }
