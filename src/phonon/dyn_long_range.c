@@ -117,6 +117,7 @@ static void add_ph_dyn_long_range_internal(
     //
     // (3D) X. Gonze et al  Phys. Rev. B 50, 13035(R)
     // (2D ) T. Sohier et al Nano Lett. 2017, 17, 6, 3758–3763
+    // (2D) S. Ponce et al PHYSICAL REVIEW B 107, 155424 (2023)
     //
     if (!phonon->epsilon || (!phonon->Zborn && !phonon->Qpole))
     {
@@ -247,6 +248,12 @@ static void add_ph_dyn_long_range_internal(
                                 qplusG[i] * qplusG[j] * Q_k[k + 3 * j + 9 * i];
                         }
                     }
+                }
+                // subtract Qzz|q+G|^2
+                for (int i = 0; i < 3; ++i)
+                {
+                    Qpole_buf[i] -=
+                        (qplusG_norm * qplusG_norm * Qpole_k[i + 24]);
                 }
             }
             // e^{-iq.tau}

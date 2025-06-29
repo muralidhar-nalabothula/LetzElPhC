@@ -228,6 +228,7 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     // to avoid the fake periodicity and rapidly converge with Gz vectors.
     // T Deng et. al Phys. Rev. B 103, 075410 (2021)
     // T Sohier et. al  Phys. Rev. B 96, 075448 (2017)
+    // S. Ponce et al PHYSICAL REVIEW B 107, 155424 (2023)
 
     // tau_k are atomic coordinates of atom k in cart
     // q+G, qz in cart with 2*pi included ,
@@ -311,10 +312,10 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
                 }
             }
         }
-        // subtract Qzz*(1+|qz+Gp|)*|q+G|^2-2qz*Gz
+        // subtract Qzz|q+G|^2
         for (int i = 0; i < 3; ++i)
         {
-            Qpole_buf[i] -= ((q_G_square) * (1 + Gp_norm) * Qpole_k[i + 24]);
+            Qpole_buf[i] -= (q_G_square * Qpole_k[i + 24]);
         }
     }
     // compute and multiply with a decay factor
