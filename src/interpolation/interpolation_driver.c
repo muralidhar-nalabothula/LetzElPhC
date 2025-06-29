@@ -155,7 +155,7 @@ void interpolation_driver(const char* ELPH_input_file,
         malloc(phonon->nq_BZ * lattice->nmodes * sizeof(*omega_ph_co));
     CHECK_ALLOC(omega_ph_co);
 
-    ELPH_float EcutRy = 10;
+    ELPH_float EcutRy = 30;
     bool dvscf_composite_form = false;
     // Always initiate to false
     bool nmags_add_long_range[4] = {false, false, false, false};
