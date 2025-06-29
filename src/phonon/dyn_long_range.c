@@ -249,10 +249,14 @@ static void add_ph_dyn_long_range_internal(
                         }
                     }
                 }
-                // subtract Qzz|q+G|^2
-                for (int i = 0; i < 3; ++i)
+                if (lattice->dimension == '2')
                 {
-                    Qpole_buf[i] -= (qplusG_norm * qplusG_norm * Q_k[i + 24]);
+                    // subtract Qzz|q+G|^2
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        Qpole_buf[i] -=
+                            (qplusG_norm * qplusG_norm * Q_k[i + 24]);
+                    }
                 }
             }
             // e^{-iq.tau}
