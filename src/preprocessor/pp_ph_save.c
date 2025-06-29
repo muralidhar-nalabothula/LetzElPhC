@@ -270,10 +270,10 @@ void create_ph_save_dir_pp_qe(const char* inp_file)
 
     ND_int ntype = atoll(ezxml_attr(atom_specs, "ntyp"));
 
-    for (int itype = 0; itype < ntype; ++itype)
+    for (ND_int itype = 0; itype < ntype; ++itype)
     {
         ezxml_t pseudo_file_xml =
-            ezxml_get(atom_specs, "species", itype, "pseudo_file", -1);
+            ezxml_get(atom_specs, "species", (int)itype, "pseudo_file", -1);
         if (NULL == pseudo_file_xml)
         {
             error_msg("Error reading pseudo pot file");
