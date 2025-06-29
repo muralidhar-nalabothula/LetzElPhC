@@ -346,7 +346,7 @@ void interpolation_driver(const char* ELPH_input_file,
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
                                lattice->nmodes, lattice->nmag,
                                lattice->fft_dims[0], lattice->fft_dims[1],
-                               lattice->nfftz_loc, 'C');
+                               lattice->nfftz_loc, 'N');
             // add long range back
             //
             dV_add_longrange(qpt_interpolate, lattice, phonon, Zvals,

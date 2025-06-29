@@ -39,7 +39,8 @@ void dVscf_change_basis(ELPH_cmplx* dvscf, const ELPH_cmplx* rot_vecs,
                              Ny * Nz, nmodes);
                 for (ND_int imode = 0; imode < nmodes; ++imode)
                 {
-                    memcpy(dvscf_tmp + imode * dvscf_stride, tmp_buf,
+                    memcpy(dvscf_tmp + imode * dvscf_stride,
+                           tmp_buf + imode * Ny * Nz,
                            Ny * Nz * sizeof(*tmp_buf));
                 }
             }
