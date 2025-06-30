@@ -45,6 +45,10 @@ void multiply_eikr(ELPH_cmplx* pot_grid, const ELPH_float* qpt_crys,
                    const struct Lattice* lattice, const ND_int nsets,
                    const ND_int sign);
 
+void mul_dvscf_struct_fac(const ELPH_float* qpt_cart, struct Lattice* lattice,
+                          const ND_int nsets, const ND_int sign,
+                          ELPH_cmplx* dVscf);
+
 void create_vlocg_table(const struct Lattice* lattice, struct Pseudo* pseudo,
                         const struct ELPH_MPI_Comms* Comm);
 
