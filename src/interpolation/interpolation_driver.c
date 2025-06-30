@@ -199,11 +199,8 @@ void interpolation_driver(const char* ELPH_input_file,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
-            // so remove the e^-iqr (i.e add e^iqr) factor
-            multiply_eikr(dV_co_tmp, phonon->qpts_iBZ + iqco * 3, lattice,
-                          lattice->nmodes * lattice->nmag, 1);
-            // still not q-periodic due to e^{-iq.tau}. so we need to remove it
-            // too. But this will be done later when dvscf in in cart basis
+            // due to e^{-iq.tau}. so we need to remove it
+            // But this will be done later when dvscf in in cart basis
         }
         ++iqpt_tmp;
         // we will remove the long range part of dynmats later
@@ -372,11 +369,6 @@ void interpolation_driver(const char* ELPH_input_file,
                                lattice->nmodes, lattice->nmag,
                                lattice->fft_dims[0], lattice->fft_dims[1],
                                lattice->nfftz_loc, 'N');
-            //
-            // add back e^-iqr phase
-            multiply_eikr(dvscf_interpolated, qpt_interpolate, lattice,
-                          lattice->nmodes * lattice->nmag, -1);
-            // add long range back
             //
             dV_add_longrange(qpt_interpolate, lattice, phonon, Zvals,
                              ref_pat_basis, dvscf_interpolated, 1,
