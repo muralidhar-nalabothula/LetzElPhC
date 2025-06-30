@@ -199,11 +199,9 @@ void interpolation_driver(const char* ELPH_input_file,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
-            // so remove the e^-iqr (i.e add e^iqr) factor
+            // so multiply with e^iqr factor to make it q periodic
             multiply_eikr(dV_co_tmp, phonon->qpts_iBZ + iqco * 3, lattice,
                           lattice->nmodes * lattice->nmag, 1);
-            // still not q-periodic due to e^{-iq.tau}. so we need to remove it
-            // too. But this will be done later when dvscf in in cart basis
         }
         ++iqpt_tmp;
         // we will remove the long range part of dynmats later
@@ -273,11 +271,10 @@ void interpolation_driver(const char* ELPH_input_file,
             MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
                      qpt_cart_iq);
             //
+            // centre with origin
             mul_dvscf_struct_fac(qpt_cart_iq, lattice,
                                  dvscf_loc_len / lattice->nmodes, -1,
                                  dVscfs_co + iq * dvscf_loc_len);
-            // Now dvscf is fully q-periodic.
-            // Time for fourier transform.
         }
         //
         // Now perform fourier transform
@@ -364,6 +361,7 @@ void interpolation_driver(const char* ELPH_input_file,
                     dvscf_interpolated);
             //
             //// add the phase back due to atomic coordinates (e^{-iq.tau}).
+            ///
             mul_dvscf_struct_fac(qpt_interpolate_cart, lattice,
                                  dvscf_loc_len / lattice->nmodes, 1,
                                  dvscf_interpolated);
@@ -373,7 +371,7 @@ void interpolation_driver(const char* ELPH_input_file,
                                lattice->fft_dims[0], lattice->fft_dims[1],
                                lattice->nfftz_loc, 'N');
             //
-            // add back e^-iqr phase
+            // remove e^iqr phase to make it lattice periodic
             multiply_eikr(dvscf_interpolated, qpt_interpolate, lattice,
                           lattice->nmodes * lattice->nmag, -1);
             // add long range back
