@@ -41,6 +41,10 @@ void dVscf_change_basis(ELPH_cmplx* dvscf, const ELPH_cmplx* rot_vecs,
                         const ND_int nmag, const ND_int Nx, const ND_int Ny,
                         const ND_int Nz, const char blas_char);
 
+void multiply_eikr(ELPH_cmplx* pot_grid, const ELPH_float* qpt_crys,
+                   const struct Lattice* lattice, const ND_int nsets,
+                   const ND_int sign);
+
 void mul_dvscf_struct_fac(const ELPH_float* qpt_cart, struct Lattice* lattice,
                           const ND_int nsets, const ND_int sign,
                           ELPH_cmplx* dVscf);
