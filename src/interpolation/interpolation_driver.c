@@ -261,20 +261,6 @@ void interpolation_driver(const char* ELPH_input_file,
             mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
                                     lattice->natom, -1.0, rot_vecs);
             //
-            // Now remove e^{-iqtau}
-            ND_int iq_iBZ = phonon->qmap[2 * i];
-            ND_int idx_qsym = phonon->qmap[2 * i + 1];
-            //
-            ELPH_float tmp_qpt[3], qpt_cart_iq[3];
-            MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
-                     tmp_qpt);
-            MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
-                     qpt_cart_iq);
-            //
-            // centre with origin
-            mul_dvscf_struct_fac(qpt_cart_iq, lattice,
-                                 dvscf_loc_len / lattice->nmodes, -1,
-                                 dVscfs_co + iq * dvscf_loc_len);
         }
         //
         // Now perform fourier transform
@@ -360,11 +346,6 @@ void interpolation_driver(const char* ELPH_input_file,
                     lattice->fft_dims[1], lattice->nfftz_loc,
                     dvscf_interpolated);
             //
-            //// add the phase back due to atomic coordinates (e^{-iq.tau}).
-            ///
-            mul_dvscf_struct_fac(qpt_interpolate_cart, lattice,
-                                 dvscf_loc_len / lattice->nmodes, 1,
-                                 dvscf_interpolated);
             // change to pattern basis
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
                                lattice->nmodes, lattice->nmag,
