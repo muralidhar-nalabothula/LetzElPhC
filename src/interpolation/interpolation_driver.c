@@ -22,6 +22,7 @@
 #include "phonon/phonon.h"
 #include "symmetries/symmetries.h"
 #include "wfc/wfc.h"
+#include "wigner_seitz.h"
 
 void interpolation_driver(const char* ELPH_input_file,
                           enum ELPH_dft_code dft_code, MPI_Comm comm_world)
@@ -122,6 +123,26 @@ void interpolation_driver(const char* ELPH_input_file,
     // get the coarse q-grid
     ND_int q_grid_co[3];
     find_qpt_grid(phonon->nq_BZ, phonon->qpts_BZ, q_grid_co);
+    // first setup wigner seitz vectors.
+    ND_int* ws_vecs_dyn = NULL;
+    ND_int* nws_vecs_dyn = NULL;
+    ND_int n_ws_vecs_dyn = 0;
+
+    n_ws_vecs_dyn = build_wigner_seitz_vectors(
+        q_grid_co, lattice->alat_vec, ELPH_EPS, lattice->atomic_pos,
+        lattice->natom, lattice->atomic_pos, lattice->natom, &ws_vecs_dyn,
+        &nws_vecs_dyn);
+    //
+    ND_int* ws_vecs_dvscf = NULL;
+    ND_int* nws_vecs_dvscf = NULL;
+    ND_int n_ws_vecs_dvscf = 0;
+    if (interpolate_dvscf)
+    {
+        n_ws_vecs_dvscf = build_wigner_seitz_vectors(
+            q_grid_co, lattice->alat_vec, ELPH_EPS, NULL, 0,
+            lattice->atomic_pos, lattice->natom, &ws_vecs_dvscf,
+            &nws_vecs_dvscf);
+    }
     // find qBZ to fft grid indices
     ND_int* indices_q2fft = malloc(2 * phonon->nq_BZ * sizeof(*indices_q2fft));
     CHECK_ALLOC(indices_q2fft);
@@ -341,10 +362,12 @@ void interpolation_driver(const char* ELPH_input_file,
                      (long long)(iq + 1));
             cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
                           sizeof(read_buf));
-            fft_R2q(dVscfs_co, qpt_interpolate, q_grid_co,
-                    lattice->nmodes * lattice->nmag, lattice->fft_dims[0],
-                    lattice->fft_dims[1], lattice->nfftz_loc,
-                    dvscf_interpolated);
+
+            fft_R2q_dvscf(dVscfs_co, qpt_interpolate, q_grid_co, lattice->natom,
+                          lattice->fft_dims[0] * lattice->fft_dims[1] *
+                              lattice->fft_dims[2] * lattice->nmag,
+                          ws_vecs_dvscf, n_ws_vecs_dvscf, nws_vecs_dvscf,
+                          dvscf_interpolated);
             //
             // change to pattern basis
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
@@ -378,8 +401,10 @@ void interpolation_driver(const char* ELPH_input_file,
             cwk_path_join(ph_save_interpolated, dvscf_dyn_name, read_buf,
                           sizeof(read_buf));
 
-            fft_R2q(dyns_co, qpt_interpolate, q_grid_co, 1, 1, 1,
-                    lattice->nmodes * lattice->nmodes, dyn_interpolated);
+            fft_R2q_dyn(dyns_co, qpt_interpolate, q_grid_co, lattice->natom,
+                        ws_vecs_dyn, n_ws_vecs_dyn, nws_vecs_dyn,
+                        dyn_interpolated);
+
             // add back the long range part
             add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
                                   Ggrid_phonon, 1, atomic_masses,
@@ -413,6 +438,12 @@ void interpolation_driver(const char* ELPH_input_file,
         write_qpts_qe(read_buf, nqpts_to_interpolate, qpts_interpolation,
                       qgrid_new);
     }
+
+    free(ws_vecs_dvscf);
+    free(nws_vecs_dvscf);
+
+    free(ws_vecs_dyn);
+    free(nws_vecs_dyn);
 
     free(dyn_mat_asr_lr);
     free(indices_q2fft);
