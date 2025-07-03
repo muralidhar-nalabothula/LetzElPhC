@@ -33,6 +33,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     // find all vectors T such that |r_m-(r_n+R+T)|
     // for a given grid, R vecs are miller indices given by
     // "get_miller_idx" function "common/numerical_func.c"
+    // R+T are the wigner seitz vectors for particular atomic position.
     //
     // Eq. 46 of G Pizzi et al 2020 J. Phys.: Condens. Matter 32 165902
     //
@@ -78,8 +79,8 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
         rvec_n = zerovec;
     }
     //
-    const ND_int nRmnpts = grid[0] * grid[1] * grid[2] * nrvec_m * nrvec_n;
     const ND_int nRpts = grid[0] * grid[1] * grid[2];
+    const ND_int nRmnpts = nRpts * nrvec_m * nrvec_n;
     //
     // intially allocated 2*nRmnpts ws vectors. if more
     // needed, we can realloc.
