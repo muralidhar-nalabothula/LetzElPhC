@@ -206,7 +206,7 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
             for (ND_int isets = 0; isets < 3 * nsets; ++isets)
             {
                 dataq[ia * 3 * nsets + isets] +=
-                    (eiqTR * dataR[i * nmodes + ia * 3 * nsets + isets]);
+                    (eiqTR * dataR[(i * nmodes + ia * 3) * nsets + isets]);
             }
         }
     }
