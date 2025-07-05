@@ -101,8 +101,8 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     for (ND_int i = 0; i < nRpts; ++i)
     {
         ND_int Rx = i / Gridyz;
-        ND_int Ry = i % Gridyz / grid[2];
-        ND_int Rz = i % Gridyz % grid[2];
+        ND_int Ry = (i % Gridyz) / grid[2];
+        ND_int Rz = (i % Gridyz) % grid[2];
         //
         Rx = get_miller_idx(Rx, grid[0]);
         Ry = get_miller_idx(Ry, grid[1]);

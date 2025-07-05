@@ -95,8 +95,8 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
     for (ND_int i = 0; i < nRpts; ++i)
     {
         ND_int Rx = i / Gridyz;
-        ND_int Ry = i % Gridyz / qgrid[2];
-        ND_int Rz = i % Gridyz % qgrid[2];
+        ND_int Ry = (i % Gridyz) / qgrid[2];
+        ND_int Rz = (i % Gridyz) % qgrid[2];
         //
         Rx = get_miller_idx(Rx, qgrid[0]);
         Ry = get_miller_idx(Ry, qgrid[1]);
@@ -174,8 +174,8 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
     for (ND_int i = 0; i < nRpts; ++i)
     {
         ND_int Rx = i / Gridyz;
-        ND_int Ry = i % Gridyz / qgrid[2];
-        ND_int Rz = i % Gridyz % qgrid[2];
+        ND_int Ry = (i % Gridyz) / qgrid[2];
+        ND_int Rz = (i % Gridyz) % qgrid[2];
         //
         Rx = get_miller_idx(Rx, qgrid[0]);
         Ry = get_miller_idx(Ry, qgrid[1]);
