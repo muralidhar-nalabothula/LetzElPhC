@@ -27,7 +27,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                                   const ELPH_float *lat_vecs, double eps,
                                   const ELPH_float *rvec_m, ND_int nrvec_m,
                                   const ELPH_float *rvec_n, ND_int nrvec_n,
-                                  ND_int **ws_vecs, ND_int **nws_vecs)
+                                  ND_int **ws_vecs, ND_int **ws_degen)
 {
     // Note. you need to free buffer allocated outside of this functions
     // find all vectors T such that |r_m-(r_n+R+T)|
@@ -41,11 +41,11 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     // Rz variying fast followed by Ry and then Rx
     //
     // rvec_m and rvec_n are in cart units
-    // must free ws_vecs and nws_vecs outside of the function
-    // nws_vecs has a size = grid[0]*grid[1]*grid[2]*nrvec_n*nrvec_m with
-    // nws_vecs[i] (Rx,Ry,Rz,nrvec_m, nrvec_n) give the degeneracy of R point.
-    // ws_vecs has as size = 3*sum(nws_vecs)
-    // return sum(nws_vecs)
+    // must free ws_vecs and ws_degen outside of the function
+    // ws_degen has a size = grid[0]*grid[1]*grid[2]*nrvec_n*nrvec_m with
+    // ws_degen[i] (Rx,Ry,Rz,nrvec_m, nrvec_n) give the degeneracy of R point.
+    // ws_vecs has as size = 3*sum(ws_degen)
+    // return sum(ws_degen)
     //
     struct kdtree *tree =
         setup_ws_tree(grid, lat_vecs, WS_SUPERCELL_SEARCH_SIZE);
@@ -90,9 +90,9 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     CHECK_ALLOC(ws_vec_buf);
     *ws_vecs = ws_vec_buf;
 
-    ND_int *nws_vecs_buf = calloc(nRmnpts, sizeof(*nws_vecs_buf));
-    CHECK_ALLOC(nws_vecs_buf);
-    *nws_vecs = nws_vecs_buf;
+    ND_int *ws_degen_buf = calloc(nRmnpts, sizeof(*ws_degen_buf));
+    CHECK_ALLOC(ws_degen_buf);
+    *ws_degen = ws_degen_buf;
     //
     ND_int nws_vec_found = 0;
     //
@@ -118,7 +118,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
             for (ND_int in = 0; in < nrvec_n; ++in)
             {
                 ND_int ishift = in + im * nrvec_n + i * nrvec_m * nrvec_n;
-                nws_vecs_buf[ishift] = 0;
+                ws_degen_buf[ishift] = 0;
                 double query_pnt[3];
                 query_pnt[0] =
                     rvec_m[3 * im + 0] - rvec_n[3 * in + 0] - Rvec[0];
@@ -132,7 +132,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                 {
                     error_msg("No Wigner Seitz vector found.");
                 }
-                nws_vecs_buf[ishift] = i_ws_found;
+                ws_degen_buf[ishift] = i_ws_found;
                 if (nws_vec_found + i_ws_found > ws_vec_size)
                 {
                     // realloc.
