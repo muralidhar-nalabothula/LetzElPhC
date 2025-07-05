@@ -63,15 +63,12 @@ typedef struct kdtree
     struct knn_list knn_list_head;
     int dim;
     int knn_num;
-    double eps;
-    double eps_nearest_dist;
 } kdtree_t;
 
 struct kdtree *kdtree_init(int dim);
 void kdtree_insert(struct kdtree *tree, double *coord);
 void kdtree_rebuild(struct kdtree *tree);
 void kdtree_knn_search(struct kdtree *tree, double *coord, int k);
-void kdtree_eps_nearest_search(struct kdtree *tree, double *target, double EPS);
 void kdtree_destroy(struct kdtree *tree);
 void kdtree_dump(struct kdtree *tree);
 

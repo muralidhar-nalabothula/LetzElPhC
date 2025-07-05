@@ -44,7 +44,7 @@ static inline double distance(double *c1, double *c2, int dim)
     {
         distance += square(*c1++ - *c2++);
     }
-    return sqrt(distance);
+    return distance;
 }
 
 static inline double knn_max(struct kdtree *tree)
@@ -506,53 +506,6 @@ void kdtree_rebuild(struct kdtree *tree)
     kdtree_build(tree);
 }
 
-static void kdtree_eps_recursive(struct kdtree *tree, struct kdnode *node,
-                                 double *target)
-{
-    if (node == NULL || kdnode_passed(tree, node))
-    {
-        return;
-    }
-
-    int r = node->r;
-    double d = distance(node->coord, target, tree->dim);
-
-    if (d < tree->eps_nearest_dist - tree->eps)
-    {
-        // New best distance found
-        knn_list_clear(tree);  // Clear old results
-        knn_list_add(tree, node, d);
-        tree->eps_nearest_dist = d;
-    }
-    else if (fabs(d - tree->eps_nearest_dist) < tree->eps)
-    {
-        // Within EPS of the best
-        knn_list_add(tree, node, d);
-    }
-
-    tree->coord_passed[node->coord_index] = 1;
-
-    // Traverse both sides if within margin
-    double delta = target[r] - node->coord[r];
-    struct kdnode *first = delta <= 0 ? node->left : node->right;
-    struct kdnode *second = delta <= 0 ? node->right : node->left;
-
-    kdtree_eps_recursive(tree, first, target);
-    if (fabs(delta) < sqrt(tree->eps_nearest_dist) + tree->eps)
-    {
-        kdtree_eps_recursive(tree, second, target);
-    }
-}
-
-void kdtree_eps_nearest_search(struct kdtree *tree, double *target, double EPS)
-{
-    knn_list_clear(tree);
-    coord_passed_reset(tree);
-    tree->eps = EPS;
-    tree->eps_nearest_dist = DBL_MAX;
-    kdtree_eps_recursive(tree, tree->root, target);
-}
-
 struct kdtree *kdtree_init(int dim)
 {
     struct kdtree *tree = malloc(sizeof(*tree));
@@ -564,8 +517,6 @@ struct kdtree *kdtree_init(int dim)
         tree->count = 0;
         tree->capacity = 65536;
         tree->knn_num = 0;
-        tree->eps = 0.0;
-        tree->eps_nearest_dist = DBL_MAX;
         tree->coords = malloc(dim * sizeof(double) * tree->capacity);
         tree->coord_table = malloc(sizeof(double *) * tree->capacity);
         tree->coord_indexes = malloc(sizeof(long) * tree->capacity);

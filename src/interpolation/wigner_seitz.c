@@ -282,7 +282,6 @@ static struct kdtree *setup_ws_tree(const ND_int *grid,
     //
     return tree;
 }
-
 static ND_int get_ws_nearest_superlat(struct kdtree *tree, double *query_pnt,
                                       const double eps, ELPH_float *pts_buf)
 {
@@ -292,23 +291,64 @@ static ND_int get_ws_nearest_superlat(struct kdtree *tree, double *query_pnt,
     // return number of point found
     // epsilon is the thresould
     // The return points will be in cart units
-    if (!tree)
+    if (!tree || !tree->count)
     {
         return 0;
     }
+    double eps2 = eps * eps;
     //
-    kdtree_eps_nearest_search(tree, query_pnt, eps);
-    struct knn_list *head = &tree->knn_list_head;
-    struct knn_list *p = head->next;
-    ND_int ifound = 0;
-    while (p != head && ifound < (ND_int)tree->count)
+    size_t count = 8;
+    count = MIN(count, tree->count);
+    // first make 8 nearest searches. Mostly should be fine.
+    ND_int Nfound = 0;
+    //
+    while (1)
     {
-        ELPH_float *tmp_pt = pts_buf + ifound * 3;
-        tmp_pt[0] = p->node->coord[0];
-        tmp_pt[1] = p->node->coord[1];
-        tmp_pt[2] = p->node->coord[2];
-        p = p->next;
-        ++ifound;
+        knn_list_clear(tree);
+        kdtree_knn_search(tree, query_pnt, (int)count);
+        bool break_it = false;
+        ND_int ifound = 0;
+        //
+        struct knn_list *head = &tree->knn_list_head;
+        struct knn_list *p = head->next;
+        double prev_dist = 0.0;
+        while (p != head)
+        {
+            if (0 == ifound)
+            {
+                prev_dist = p->distance;
+            }
+            else
+            {
+                if (fabs(prev_dist - p->distance) > eps2)
+                {
+                    break_it = true;
+                    break;
+                }
+                else
+                {
+                    prev_dist = 0.5 * (p->distance + prev_dist);
+                }
+            }
+            ELPH_float *tmp_pt = pts_buf + ifound * 3;
+            tmp_pt[0] = p->node->coord[0];
+            tmp_pt[1] = p->node->coord[1];
+            tmp_pt[2] = p->node->coord[2];
+            p = p->next;
+            ++ifound;
+        }
+        if (break_it)
+        {
+            Nfound = ifound;
+            break;
+        }
+        count += 8;
+        count = MIN(count, tree->count);
+        if (count >= INT_MAX)
+        {
+            error_msg("Tree too large for query.");
+        }
     }
-    return ifound;
+
+    return Nfound;
 }
