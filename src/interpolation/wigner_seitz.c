@@ -16,6 +16,11 @@
 // we do searching from [-WS_SUPERCELL_SEARCH_SIZE, WS_SUPERCELL_SEARCH_SIZE]
 //
 
+static inline ELPH_float bring_to_FFTbox(ELPH_float p, ND_int M)
+{
+    return p - M * round(p / M);
+}
+
 static struct kdtree *setup_ws_tree(const ND_int *grid,
                                     const ELPH_float *lat_vecs,
                                     const ND_int ws_ssize);
@@ -126,12 +131,27 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                     rvec_m[3 * im + 1] - rvec_n[3 * in + 1] - Rvec[1];
                 query_pnt[2] =
                     rvec_m[3 * im + 2] - rvec_n[3 * in + 2] - Rvec[2];
-                ND_int i_ws_found =
-                    get_ws_nearest_superlat(tree, query_pnt, eps, pts_buf);
+                // find the norm of query point
+                ELPH_float query_norm2 = dot3_macro(query_pnt, query_pnt);
+                //
+                ND_int i_ws_found = get_ws_nearest_superlat(
+                    tree, query_pnt, eps * eps * query_norm2, pts_buf);
                 if (0 == i_ws_found)
                 {
                     error_msg("No Wigner Seitz vector found.");
                 }
+                // convert the query point in crystal units.
+                ELPH_float query_pnt_crys[3];
+                query_pnt_crys[0] = blat[0] * query_pnt[0] +
+                                    blat[3] * query_pnt[1] +
+                                    blat[6] * query_pnt[2];
+                query_pnt_crys[1] = blat[1] * query_pnt[0] +
+                                    blat[4] * query_pnt[1] +
+                                    blat[7] * query_pnt[2];
+                query_pnt_crys[2] = blat[2] * query_pnt[0] +
+                                    blat[5] * query_pnt[1] +
+                                    blat[8] * query_pnt[2];
+                //
                 ws_degen_buf[ishift] = i_ws_found;
                 if (nws_vec_found + i_ws_found > ws_vec_size)
                 {
@@ -176,6 +196,25 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                             "Something wrong with kdtree. not a lattice "
                             "vector.");
                     }
+                    // convert them to [-N/2, N/2) fft box
+                    ELPH_float tmp_Ri = bring_to_FFTbox(
+                        query_pnt_crys[0] - ws_vec_buf[3 * nws_vec_found + 0],
+                        grid[0]);
+                    ws_vec_buf[3 * nws_vec_found + 0] =
+                        rint(tmp_Ri - query_pnt_crys[0]);
+
+                    tmp_Ri = bring_to_FFTbox(
+                        query_pnt_crys[1] - ws_vec_buf[3 * nws_vec_found + 1],
+                        grid[1]);
+                    ws_vec_buf[3 * nws_vec_found + 1] =
+                        rint(tmp_Ri - query_pnt_crys[1]);
+
+                    tmp_Ri = bring_to_FFTbox(
+                        query_pnt_crys[2] - ws_vec_buf[3 * nws_vec_found + 2],
+                        grid[2]);
+                    ws_vec_buf[3 * nws_vec_found + 2] =
+                        rint(tmp_Ri - query_pnt_crys[2]);
+                    //
                     ++nws_vec_found;
                 }
             }
