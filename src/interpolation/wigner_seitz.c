@@ -3,6 +3,7 @@
 //
 #include "wigner_seitz.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -132,10 +133,10 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                 query_pnt[2] =
                     rvec_m[3 * im + 2] - rvec_n[3 * in + 2] - Rvec[2];
                 // find the norm of query point
-                ELPH_float query_norm2 = dot3_macro(query_pnt, query_pnt);
+                ELPH_float query_norm2 = sqrt(dot3_macro(query_pnt, query_pnt));
                 //
                 ND_int i_ws_found = get_ws_nearest_superlat(
-                    tree, query_pnt, eps * eps * query_norm2, pts_buf);
+                    tree, query_pnt, eps * query_norm2, pts_buf);
                 if (0 == i_ws_found)
                 {
                     error_msg("No Wigner Seitz vector found.");
@@ -304,7 +305,6 @@ static ND_int get_ws_nearest_superlat(struct kdtree *tree, double *query_pnt,
     //
     while (1)
     {
-        knn_list_clear(tree);
         kdtree_knn_search(tree, query_pnt, (int)count);
         bool break_it = false;
         ND_int ifound = 0;
