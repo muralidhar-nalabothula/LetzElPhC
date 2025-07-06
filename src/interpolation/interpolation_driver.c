@@ -79,7 +79,7 @@ void interpolation_driver(const char* ELPH_input_file,
     ELPH_float* dummy1 = malloc(sizeof(*dummy1) * lattice->nmodes);
     CHECK_ALLOC(dummy1);
 
-    // There are reference patern basis.
+    // These are reference patern basis.
     ELPH_cmplx* ref_pat_basis =
         malloc(sizeof(*ref_pat_basis) * lattice->nmodes * lattice->nmodes);
     CHECK_ALLOC(ref_pat_basis);
@@ -364,12 +364,18 @@ void interpolation_driver(const char* ELPH_input_file,
                           sizeof(read_buf));
 
             fft_R2q_dvscf(dVscfs_co, qpt_interpolate, q_grid_co, lattice->natom,
-                          lattice->fft_dims[0] * lattice->fft_dims[1] *
-                              lattice->fft_dims[2] * lattice->nmag,
-                          ws_vecs_dvscf, n_ws_vecs_dvscf, ws_degen_dvscf,
-                          dvscf_interpolated);
+                          dvscf_loc_len / lattice->nmodes, ws_vecs_dvscf,
+                          n_ws_vecs_dvscf, ws_degen_dvscf, dvscf_interpolated);
             //
             // change to pattern basis
+            // In principle, we should first construct a regular represenation
+            // matrix for the litle group of q to get the pattern basis,
+            // but since we only use dvscfs internally, we multiply with the
+            // dvscfs in cart basis to pattern basis with the
+            // first pattern basis as when computing electron-phonon we again
+            // unstrip the pattern basis, so it does not effect what we
+            // use. This allows to skip a function to write pattern.xml
+            // file as both are not needed for our purposes.
             dVscf_change_basis(dvscf_interpolated, ref_pat_basis, 1,
                                lattice->nmodes, lattice->nmag,
                                lattice->fft_dims[0], lattice->fft_dims[1],
