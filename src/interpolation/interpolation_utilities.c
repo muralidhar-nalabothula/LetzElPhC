@@ -66,7 +66,7 @@ void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
 
 void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
                  const ND_int* qgrid, const ND_int natom, const ND_int* ws_vecs,
-                 const ND_int nws, const ND_int* nws_vecs, ELPH_cmplx* dataq)
+                 const ND_int nws, const ND_int* ws_degen, ELPH_cmplx* dataq)
 {
     // (Rx, Ry, Rz, nmodes, nmodes)-> (nmodes, nmodes)
     // This is (N^2) fouier transform (slow one).
@@ -116,7 +116,7 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
                 if (0 == jx && 0 == ix)
                 {
                     iws_vecs_degen =
-                        nws_vecs[i * natom * natom + ia * natom + ja];
+                        ws_degen[i * natom * natom + ia * natom + ja];
                     // compute \sum e^iqGr
                     eiqTR = 0.0;
                     for (ND_int ii = 0; ii < iws_vecs_degen; ++ii)
@@ -145,7 +145,7 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
 void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
                    const ND_int* qgrid, const ND_int natom, const ND_int nsets,
                    const ND_int* ws_vecs, const ND_int nws,
-                   const ND_int* nws_vecs, ELPH_cmplx* dataq)
+                   const ND_int* ws_degen, ELPH_cmplx* dataq)
 {
     // (Rx, Ry, Rz, nmodes, nsets)-> (nmodes, nsets)
     // This is (N^2) fouier transform (slow one).
@@ -186,7 +186,7 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
         //
         for (ND_int ia = 0; ia < natom; ++ia)
         {
-            iws_vecs_degen = nws_vecs[i * natom + ia];
+            iws_vecs_degen = ws_degen[i * natom + ia];
             // compute \sum e^iqGr
             eiqTR = 0.0;
             for (ND_int ii = 0; ii < iws_vecs_degen; ++ii)
