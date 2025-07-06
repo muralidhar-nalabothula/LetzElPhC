@@ -7,20 +7,16 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "common/ELPH_timers.h"
 #include "common/constants.h"
 #include "common/error.h"
 #include "common/kdtree/kdtree.h"
 #include "common/numerical_func.h"
 #include "elphC.h"
 
-#define WS_SUPERCELL_SEARCH_SIZE 3
+#define WS_SUPERCELL_SEARCH_SIZE 6
 // we do searching from [-WS_SUPERCELL_SEARCH_SIZE, WS_SUPERCELL_SEARCH_SIZE]
 //
-
-static inline ELPH_float bring_to_FFTbox(ELPH_float p, ND_int M)
-{
-    return p - M * round(p / M);
-}
 
 static struct kdtree *setup_ws_tree(const ND_int *grid,
                                     const ELPH_float *lat_vecs,
@@ -53,6 +49,8 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     // ws_vecs has as size = 3*sum(ws_degen)
     // return sum(ws_degen)
     //
+    ELPH_start_clock("Wigner seitz");
+
     struct kdtree *tree =
         setup_ws_tree(grid, lat_vecs, WS_SUPERCELL_SEARCH_SIZE);
     if (!tree)
@@ -70,7 +68,9 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
 
     const ELPH_float zerovec[3] = {0.0, 0.0, 0.0};
     // create a tmp buffer to read points.
-    ELPH_float *pts_buf = malloc(3 * tree->count * sizeof(*pts_buf));
+    size_t tree_count = 2 * WS_SUPERCELL_SEARCH_SIZE + 1;
+    tree_count = tree_count * tree_count * tree_count;
+    ELPH_float *pts_buf = malloc(3 * tree_count * sizeof(*pts_buf));
     CHECK_ALLOC(pts_buf);
     //
     //
@@ -133,7 +133,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                 query_pnt[2] =
                     rvec_m[3 * im + 2] - rvec_n[3 * in + 2] - Rvec[2];
                 // find the norm of query point
-                ELPH_float query_norm2 = sqrt(dot3_macro(query_pnt, query_pnt));
+                double query_norm2 = sqrt(dot3_macro(query_pnt, query_pnt));
                 //
                 ND_int i_ws_found = get_ws_nearest_superlat(
                     tree, query_pnt, eps * query_norm2, pts_buf);
@@ -197,24 +197,6 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                             "Something wrong with kdtree. not a lattice "
                             "vector.");
                     }
-                    // convert them to [-N/2, N/2) fft box
-                    ELPH_float tmp_Ri = bring_to_FFTbox(
-                        query_pnt_crys[0] - ws_vec_buf[3 * nws_vec_found + 0],
-                        grid[0]);
-                    ws_vec_buf[3 * nws_vec_found + 0] =
-                        rint(tmp_Ri - query_pnt_crys[0]);
-
-                    tmp_Ri = bring_to_FFTbox(
-                        query_pnt_crys[1] - ws_vec_buf[3 * nws_vec_found + 1],
-                        grid[1]);
-                    ws_vec_buf[3 * nws_vec_found + 1] =
-                        rint(tmp_Ri - query_pnt_crys[1]);
-
-                    tmp_Ri = bring_to_FFTbox(
-                        query_pnt_crys[2] - ws_vec_buf[3 * nws_vec_found + 2],
-                        grid[2]);
-                    ws_vec_buf[3 * nws_vec_found + 2] =
-                        rint(tmp_Ri - query_pnt_crys[2]);
                     //
                     ++nws_vec_found;
                 }
@@ -233,8 +215,9 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     //
 
     free(pts_buf);
-    kdtree_destroy(tree);
+    kd_free(tree);
     //
+    ELPH_stop_clock("Wigner seitz");
     return nws_vec_found;
 }
 
@@ -245,7 +228,7 @@ static struct kdtree *setup_ws_tree(const ND_int *grid,
                                     const ND_int ws_ssize)
 {
     // build a kdree for superlattice search
-    struct kdtree *tree = kdtree_init(3);
+    struct kdtree *tree = kd_create(3);
     if (!tree)
     {
         return tree;
@@ -275,11 +258,10 @@ static struct kdtree *setup_ws_tree(const ND_int *grid,
                 treepoint[2] = superlat_vecs[6] * i + superlat_vecs[7] * j +
                                superlat_vecs[8] * k;
                 //
-                kdtree_insert(tree, treepoint);
+                kd_insert(tree, treepoint, NULL);
             }
         }
     }
-    kdtree_rebuild(tree);
     //
     return tree;
 }
@@ -292,63 +274,48 @@ static ND_int get_ws_nearest_superlat(struct kdtree *tree, double *query_pnt,
     // return number of point found
     // epsilon is the thresould
     // The return points will be in cart units
-    if (!tree || !tree->count)
+    if (!tree)
     {
         return 0;
     }
-    double eps2 = eps * eps;
-    //
-    size_t count = 8;
-    count = MIN(count, tree->count);
-    // first make 8 nearest searches. Mostly should be fine.
-    ND_int Nfound = 0;
-    //
-    while (1)
+    // first get the nearest neighbour.
+    struct kdres *nearest = kd_nearest(tree, query_pnt);
+    if (!nearest)
     {
-        kdtree_knn_search(tree, query_pnt, (int)count);
-        bool break_it = false;
-        ND_int ifound = 0;
-        //
-        struct knn_list *head = &tree->knn_list_head;
-        struct knn_list *p = head->next;
-        double prev_dist = 0.0;
-        while (p != head)
-        {
-            if (0 == ifound)
-            {
-                prev_dist = p->distance;
-            }
-            else
-            {
-                if (fabs(prev_dist - p->distance) > eps2)
-                {
-                    break_it = true;
-                    break;
-                }
-                else
-                {
-                    prev_dist = 0.5 * (p->distance + prev_dist);
-                }
-            }
-            ELPH_float *tmp_pt = pts_buf + ifound * 3;
-            tmp_pt[0] = p->node->coord[0];
-            tmp_pt[1] = p->node->coord[1];
-            tmp_pt[2] = p->node->coord[2];
-            p = p->next;
-            ++ifound;
-        }
-        if (break_it)
-        {
-            Nfound = ifound;
-            break;
-        }
-        count += 8;
-        count = MIN(count, tree->count);
-        if (count >= INT_MAX)
-        {
-            error_msg("Tree too large for query.");
-        }
+        error_msg("Nearest neighbor search failed");
     }
+    //
+    // Get the distance and position of the nearest neighbor
+    double nearest_pos[3];
+    kd_res_item(nearest, nearest_pos);
+    kd_res_free(nearest);
+    //
+    nearest_pos[0] -= query_pnt[0];
+    nearest_pos[1] -= query_pnt[1];
+    nearest_pos[2] -= query_pnt[2];
+    //
+    double nearest_dist = sqrt(dot3_macro(nearest_pos, nearest_pos)) + 1e-10;
+
+    // now find all within radius
+    struct kdres *range = kd_nearest_range(tree, query_pnt, nearest_dist + eps);
+    if (!range)
+    {
+        error_msg("Cannot find wigner seitz vectors.");
+    }
+    //
+    kd_res_rewind(range);
+    ND_int Nfound = 0;
+    while (!kd_res_end(range))
+    {
+        double pos[3];
+        kd_res_item(range, pos);
+        pts_buf[3 * Nfound] = pos[0];
+        pts_buf[3 * Nfound + 1] = pos[1];
+        pts_buf[3 * Nfound + 2] = pos[2];
+        kd_res_next(range);
+        ++Nfound;
+    }
+    kd_res_free(range);
 
     return Nfound;
 }
