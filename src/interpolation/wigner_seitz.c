@@ -295,9 +295,11 @@ static ND_int get_ws_nearest_superlat(struct kdtree *tree, double *query_pnt,
     nearest_pos[2] -= query_pnt[2];
     //
     double nearest_dist = sqrt(dot3_macro(nearest_pos, nearest_pos)) + 1e-10;
+    // NM : we add a small absoulte tolerance so to protect eps being 0
 
     // now find all within radius
-    struct kdres *range = kd_nearest_range(tree, query_pnt, nearest_dist + eps);
+    struct kdres *range =
+        kd_nearest_range(tree, query_pnt, nearest_dist + fabs(eps));
     if (!range)
     {
         error_msg("Cannot find wigner seitz vectors.");

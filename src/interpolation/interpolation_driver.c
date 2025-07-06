@@ -125,23 +125,23 @@ void interpolation_driver(const char* ELPH_input_file,
     find_qpt_grid(phonon->nq_BZ, phonon->qpts_BZ, q_grid_co);
     // first setup wigner seitz vectors.
     ND_int* ws_vecs_dyn = NULL;
-    ND_int* nws_vecs_dyn = NULL;
+    ND_int* ws_degen_dyn = NULL;
     ND_int n_ws_vecs_dyn = 0;
 
     n_ws_vecs_dyn = build_wigner_seitz_vectors(
         q_grid_co, lattice->alat_vec, ELPH_EPS, lattice->atomic_pos,
         lattice->natom, lattice->atomic_pos, lattice->natom, &ws_vecs_dyn,
-        &nws_vecs_dyn);
+        &ws_degen_dyn);
     //
     ND_int* ws_vecs_dvscf = NULL;
-    ND_int* nws_vecs_dvscf = NULL;
+    ND_int* ws_degen_dvscf = NULL;
     ND_int n_ws_vecs_dvscf = 0;
     if (interpolate_dvscf)
     {
         n_ws_vecs_dvscf = build_wigner_seitz_vectors(
             q_grid_co, lattice->alat_vec, ELPH_EPS, NULL, 0,
             lattice->atomic_pos, lattice->natom, &ws_vecs_dvscf,
-            &nws_vecs_dvscf);
+            &ws_degen_dvscf);
     }
     // find qBZ to fft grid indices
     ND_int* indices_q2fft = malloc(2 * phonon->nq_BZ * sizeof(*indices_q2fft));
@@ -366,7 +366,7 @@ void interpolation_driver(const char* ELPH_input_file,
             fft_R2q_dvscf(dVscfs_co, qpt_interpolate, q_grid_co, lattice->natom,
                           lattice->fft_dims[0] * lattice->fft_dims[1] *
                               lattice->fft_dims[2] * lattice->nmag,
-                          ws_vecs_dvscf, n_ws_vecs_dvscf, nws_vecs_dvscf,
+                          ws_vecs_dvscf, n_ws_vecs_dvscf, ws_degen_dvscf,
                           dvscf_interpolated);
             //
             // change to pattern basis
@@ -402,7 +402,7 @@ void interpolation_driver(const char* ELPH_input_file,
                           sizeof(read_buf));
 
             fft_R2q_dyn(dyns_co, qpt_interpolate, q_grid_co, lattice->natom,
-                        ws_vecs_dyn, n_ws_vecs_dyn, nws_vecs_dyn,
+                        ws_vecs_dyn, n_ws_vecs_dyn, ws_degen_dyn,
                         dyn_interpolated);
 
             // add back the long range part
@@ -440,10 +440,10 @@ void interpolation_driver(const char* ELPH_input_file,
     }
 
     free(ws_vecs_dvscf);
-    free(nws_vecs_dvscf);
+    free(ws_degen_dvscf);
 
     free(ws_vecs_dyn);
-    free(nws_vecs_dyn);
+    free(ws_degen_dyn);
 
     free(dyn_mat_asr_lr);
     free(indices_q2fft);
