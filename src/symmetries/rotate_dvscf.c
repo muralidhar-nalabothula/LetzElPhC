@@ -203,6 +203,10 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
             iy = rint(tmp_idxs_rot[1]);
             iz = rint(tmp_idxs_rot[2]);
             rot_idx[i] = ix * Nyz + iy * fft_dims[2] + iz;
+            if (rot_idx[i] >= nfft)
+            {
+                error_msg("rotated FFT index out of bounds");
+            }
         }
 
         if (!symm_fft_compat)
