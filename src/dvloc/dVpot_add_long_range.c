@@ -154,11 +154,10 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
             g_temp_set[1] = jy;
             g_temp_set[2] = Gkz;
 
-            ELPH_float qGtemp[3] = {ix + qpt[0], jy + qpt[1],
-                                    Gkz + qpt[2]};  // | q + G|
+            ELPH_float qGtemp[3] = {ix, jy, Gkz};  //|G|
             //
-            MatVec3f(blat, qGtemp, false,
-                     Gvecs_z + 3 * kz);  // 2*pi is included here //
+            MatVec3f(blat, qGtemp, false, Gvecs_z + 3 * kz);
+            // 2*pi is included here //
 
             for (int ii = 0; ii < 3; ++ii)
             {
