@@ -160,12 +160,13 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
                 continue;
             }
             ND_int ix = i / Nyz;
-            ND_int iy = i % Nyz / fft_dims[2];
-            ND_int iz = i % Nyz % fft_dims[2];
+            ND_int iy = (i % Nyz) / fft_dims[2];
+            ND_int iz = (i % Nyz) % fft_dims[2];
             ELPH_float tmp_idxs[3] = {ix, iy, iz};
             for (int xi = 0; xi < 3; ++xi)
             {
-                tmp_idxs[xi] = tmp_idxs[xi] / fft_dims[xi] - tau_red[xi];
+                tmp_idxs[xi] = tmp_idxs[xi] / fft_dims[xi];
+                tmp_idxs[xi] -= tau_red[xi];
             }
             ELPH_float tmp_idxs_rot[3];
             MatVec3f(sym_red, tmp_idxs, false, tmp_idxs_rot);
@@ -173,6 +174,10 @@ void rotate_dvscf(const ELPH_cmplx* dvscf_in, struct symmetry* sym,
             for (int xi = 0; xi < 3; ++xi)
             {
                 tmp_idxs_rot[xi] -= floor(tmp_idxs_rot[xi]);
+                // if there are any 0.9999999999, add a small tolerence and
+                // wrap again to [0,1).
+                tmp_idxs_rot[xi] -= floor(tmp_idxs_rot[xi] + ELPH_EPS);
+                tmp_idxs_rot[xi] -= ELPH_EPS;
                 tmp_idxs_rot[xi] *= fft_dims[xi];
 
                 ELPH_float tmp_diff = tmp_idxs_rot[xi] - rint(tmp_idxs_rot[xi]);

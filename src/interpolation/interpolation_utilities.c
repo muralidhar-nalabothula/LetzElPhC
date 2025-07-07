@@ -14,6 +14,7 @@
 #include "common/constants.h"
 #include "common/error.h"
 #include "common/numerical_func.h"
+#include "common/omp_pragma_def.h"
 static int qpt_sort_cmp(const void* a, const void* b);
 
 void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
@@ -58,6 +59,8 @@ void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
     fftw_fun(destroy_plan)(plan);
     // Normalize
     ELPH_float norm_fft = 1.0 / (qx * qy * qz);
+    //
+    ELPH_OMP_PAR_FOR_SIMD
     for (ND_int i = 0; i < (qx * qy * qz * nsets); ++i)
     {
         data[i] *= norm_fft;
@@ -203,6 +206,8 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
             }
             eiqTR *= eiqR;
             eiqTR *= (1.0 / iws_vecs_degen);
+            //
+            ELPH_OMP_PAR_FOR_SIMD
             for (ND_int isets = 0; isets < 3 * nsets; ++isets)
             {
                 dataq[ia * 3 * nsets + isets] +=

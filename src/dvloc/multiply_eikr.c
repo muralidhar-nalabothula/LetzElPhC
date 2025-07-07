@@ -37,8 +37,9 @@ void multiply_eikr(ELPH_cmplx* pot_grid, const ELPH_float* qpt_crys,
     for (ND_int ig = 0; ig < nffts; ++ig)
     {
         ND_int ix = ig / FFTyz;
-        ND_int iy = ig % FFTyz / lattice->nfftz_loc;
-        ND_int iz = lattice->nfftz_loc_shift + ig % FFTyz % lattice->nfftz_loc;
+        ND_int iy = (ig % FFTyz) / lattice->nfftz_loc;
+        ND_int iz =
+            lattice->nfftz_loc_shift + (ig % FFTyz) % lattice->nfftz_loc;
 
         ELPH_float ri = ((ELPH_float)ix) / lattice->fft_dims[0];
         ELPH_float rj = ((ELPH_float)iy) / lattice->fft_dims[1];

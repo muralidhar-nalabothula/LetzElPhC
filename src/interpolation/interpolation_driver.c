@@ -220,9 +220,8 @@ void interpolation_driver(const char* ELPH_input_file,
                              only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
-            // so multiply with e^iqr factor to make it q periodic
-            multiply_eikr(dV_co_tmp, phonon->qpts_iBZ + iqco * 3, lattice,
-                          lattice->nmodes * lattice->nmag, 1);
+            // so multiply with e^iqr factor to make it q periodic.
+            // Before we make it lattice periodic, we must rotate the dvscfs
         }
         ++iqpt_tmp;
         // we will remove the long range part of dynmats later
@@ -282,6 +281,26 @@ void interpolation_driver(const char* ELPH_input_file,
             mass_normalize_pol_vecs(atomic_masses, lattice->nmodes,
                                     lattice->natom, -1.0, rot_vecs);
             //
+            // Now remove the e^-iqr factor to make the dvscf q periodic
+            // 1) get the rotated q point
+            ND_int iq_iBZ = phonon->qmap[2 * i];
+            ND_int idx_qsym = phonon->qmap[2 * i + 1];
+            //
+            ELPH_float tmp_qpt[3], qpt_cart_iq[3];
+            MatVec3f(lattice->blat_vec, phonon->qpts_iBZ + iq_iBZ * 3, false,
+                     tmp_qpt);
+            MatVec3f(phonon->ph_syms[idx_qsym].Rmat, tmp_qpt, false,
+                     qpt_cart_iq);
+            // remove 2*pi
+            qpt_cart_iq[0] /= (2 * ELPH_PI);
+            qpt_cart_iq[1] /= (2 * ELPH_PI);
+            qpt_cart_iq[2] /= (2 * ELPH_PI);
+            // convert to crystal units
+            MatVec3f(lattice->alat_vec, qpt_cart_iq, true, tmp_qpt);
+            //
+            // 2) multiply with e^iqr
+            multiply_eikr(dVscfs_co + iq * dvscf_loc_len, tmp_qpt, lattice,
+                          lattice->nmodes * lattice->nmag, 1);
         }
         //
         // Now perform fourier transform
