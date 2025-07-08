@@ -94,7 +94,6 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
 
     ND_int *ws_vec_buf = malloc(3 * ws_vec_size * sizeof(*ws_vec_buf));
     CHECK_ALLOC(ws_vec_buf);
-    *ws_vecs = ws_vec_buf;
 
     ND_int *ws_degen_buf = calloc(nRmnpts, sizeof(*ws_degen_buf));
     CHECK_ALLOC(ws_degen_buf);
@@ -124,7 +123,6 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
             for (ND_int in = 0; in < nrvec_n; ++in)
             {
                 ND_int ishift = in + im * nrvec_n + i * nrvec_m * nrvec_n;
-                ws_degen_buf[ishift] = 0;
                 double query_pnt[3];
                 query_pnt[0] =
                     rvec_m[3 * im + 0] - rvec_n[3 * in + 0] - Rvec[0];
@@ -141,17 +139,6 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                 {
                     error_msg("No Wigner Seitz vector found.");
                 }
-                // convert the query point in crystal units.
-                ELPH_float query_pnt_crys[3];
-                query_pnt_crys[0] = blat[0] * query_pnt[0] +
-                                    blat[3] * query_pnt[1] +
-                                    blat[6] * query_pnt[2];
-                query_pnt_crys[1] = blat[1] * query_pnt[0] +
-                                    blat[4] * query_pnt[1] +
-                                    blat[7] * query_pnt[2];
-                query_pnt_crys[2] = blat[2] * query_pnt[0] +
-                                    blat[5] * query_pnt[1] +
-                                    blat[8] * query_pnt[2];
                 //
                 ws_degen_buf[ishift] = i_ws_found;
                 if (nws_vec_found + i_ws_found > ws_vec_size)
@@ -166,7 +153,6 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                     }
                     CHECK_ALLOC(realloc_ptr);
                     ws_vec_buf = realloc_ptr;
-                    *ws_vecs = ws_vec_buf;
                 }
                 // Copy the wigner seitz vectors.
                 for (ND_int ii = 0; ii < i_ws_found; ++ii)
@@ -211,6 +197,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     {
         ws_vec_buf = realloc_ptr;
     }
+    // set the ws_vec pointer
     *ws_vecs = ws_vec_buf;
     //
 
