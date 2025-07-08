@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/ELPH_timers.h"
 #include "common/constants.h"
 #include "common/error.h"
 #include "common/numerical_func.h"
@@ -21,6 +22,7 @@ void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
 {
     // given a data (qx,qy,qz,nsets)
     // performs inplace fourier transform q->R
+    ELPH_start_clock("q2R FFT");
     //
     ND_int qx = qgrid[0];
     ND_int qy = qgrid[1];
@@ -65,6 +67,8 @@ void fft_q2R(ELPH_cmplx* data, const ND_int* qgrid, const ND_int nsets)
     {
         data[i] *= norm_fft;
     }
+    ELPH_stop_clock("q2R FFT");
+    return;
 }
 
 void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
@@ -74,6 +78,9 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
     // (Rx, Ry, Rz, nmodes, nmodes)-> (nmodes, nmodes)
     // This is (N^2) fouier transform (slow one).
     // G. Pizzi et al 2020 J. Phys.: Condens. Matter 32 165902
+
+    ELPH_start_clock("R2q dyn invFFT");
+
     const ND_int qx = qgrid[0];
     const ND_int qy = qgrid[1];
     const ND_int qz = qgrid[2];
@@ -143,6 +150,8 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
             }
         }
     }
+    ELPH_stop_clock("R2q dyn invFFT");
+    return;
 }
 
 void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
@@ -153,6 +162,7 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
     // (Rx, Ry, Rz, nmodes, nsets)-> (nmodes, nsets)
     // This is (N^2) fouier transform (slow one).
     // G. Pizzi et al 2020 J. Phys.: Condens. Matter 32 165902
+    ELPH_start_clock("R2q dvscf invFFT");
     const ND_int qx = qgrid[0];
     const ND_int qy = qgrid[1];
     const ND_int qz = qgrid[2];
@@ -215,6 +225,8 @@ void fft_R2q_dvscf(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
             }
         }
     }
+    ELPH_stop_clock("R2q dvscf invFFT");
+    return;
 }
 
 void Sorted_qpts_idxs(const ND_int nqpts, ELPH_float* qpts, ND_int* indices)
