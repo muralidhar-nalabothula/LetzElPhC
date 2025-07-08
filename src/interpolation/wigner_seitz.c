@@ -134,7 +134,7 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                 double query_norm2 = sqrt(dot3_macro(query_pnt, query_pnt));
                 //
                 ND_int i_ws_found = get_ws_nearest_superlat(
-                    tree, query_pnt, eps * query_norm2, pts_buf);
+                    tree, query_pnt, eps * query_norm2 + 1e-8, pts_buf);
                 if (0 == i_ws_found)
                 {
                     error_msg("No Wigner Seitz vector found.");
