@@ -95,13 +95,12 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
         dataq[i] = 0.0;
     }
 
-    ND_int iws_vec = 0;
-    ND_int iws_vecs_degen = 1;
-    ELPH_cmplx eiqTR = 0.0;
     // Do fourier interpolation
     // See Eq. 47 of
     // G. Pizzi et al 2020 J. Phys.: Condens. Matter 32 165902
     ND_int Gridyz = qy * qz;
+    ND_int iws_vec = 0;
+    //
     for (ND_int i = 0; i < nRpts; ++i)
     {
         ND_int Rx = i / Gridyz;
@@ -113,40 +112,45 @@ void fft_R2q_dyn(const ELPH_cmplx* dataR, const ELPH_float* qpt_crys,
         Rz = get_miller_idx(Rz, qgrid[2]);
 
         ELPH_float Rpt[3] = {Rx, Ry, Rz};
-        ELPH_cmplx eiqR = cexp(I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
+        const ELPH_cmplx eiqR =
+            cexp(I * 2 * ELPH_PI * dot3_macro(qpt_crys, Rpt));
         //
-        for (ND_int im = 0; im < nmodes; ++im)
+        for (ND_int ia = 0; ia < natom; ++ia)
         {
-            ND_int ia = im / 3;
-            ND_int ix = im % 3;
-            for (ND_int jm = 0; jm < nmodes; ++jm)
+            for (ND_int ja = 0; ja < natom; ++ja)
             {
-                ND_int ja = jm / 3;
-                ND_int jx = jm % 3;
-                if (0 == jx && 0 == ix)
+                const ND_int iws_vecs_degen =
+                    ws_degen[i * natom * natom + ia * natom + ja];
+                // compute \sum e^iqGr
+                ELPH_cmplx eiqTR = 0.0;
+                for (ND_int ii = 0; ii < iws_vecs_degen; ++ii)
                 {
-                    iws_vecs_degen =
-                        ws_degen[i * natom * natom + ia * natom + ja];
-                    // compute \sum e^iqGr
-                    eiqTR = 0.0;
-                    for (ND_int ii = 0; ii < iws_vecs_degen; ++ii)
+                    if (iws_vec >= nws)
                     {
-                        if (iws_vec >= nws)
-                        {
-                            error_msg("Wigner seitz vectors Out of bound.");
-                        }
-                        ELPH_float dot_TRq =
-                            qpt_crys[0] * ws_vecs[3 * iws_vec] +
-                            qpt_crys[1] * ws_vecs[3 * iws_vec + 1] +
-                            qpt_crys[2] * ws_vecs[3 * iws_vec + 2];
-                        eiqTR += cexp(I * 2 * ELPH_PI * dot_TRq);
-                        ++iws_vec;
+                        error_msg("Wigner seitz vectors Out of bound.");
                     }
-                    eiqTR *= eiqR;
-                    eiqTR *= (1.0 / iws_vecs_degen);
+                    const ELPH_float dot_TRq =
+                        qpt_crys[0] * ws_vecs[3 * iws_vec] +
+                        qpt_crys[1] * ws_vecs[3 * iws_vec + 1] +
+                        qpt_crys[2] * ws_vecs[3 * iws_vec + 2];
+                    //
+                    eiqTR += cexp(I * 2 * ELPH_PI * dot_TRq);
+                    //
+                    ++iws_vec;
                 }
-                dataq[im * nmodes + jm] +=
-                    (eiqTR * dataR[i * nmodes * nmodes + im * nmodes + jm]);
+                eiqTR *= eiqR;
+                eiqTR *= (1.0 / iws_vecs_degen);
+                //
+                for (ND_int ixy = 0; ixy < 9; ++ixy)
+                {
+                    const ND_int ix = ixy / 3;
+                    const ND_int iy = ixy % 3;
+                    //
+                    const ND_int im = ix + 3 * ia;
+                    const ND_int jm = iy + 3 * ja;
+                    dataq[im * nmodes + jm] +=
+                        (eiqTR * dataR[i * nmodes * nmodes + im * nmodes + jm]);
+                }
             }
         }
     }
