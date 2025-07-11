@@ -32,8 +32,8 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
                                   ND_int **ws_vecs, ND_int **ws_degen)
 {
     // Note. you need to free buffer allocated outside of this functions
-    // find all vectors T such that |r_m-(r_n+R+T)|
-    // for a given grid, R vecs are miller indices given by
+    // find all vectors T such that |r_m-(r_n+R+T)|(or |(r_n+R+T)-r_m|) is
+    // is mim for a given grid, R vecs are miller indices given by
     // "get_miller_idx" function "common/numerical_func.c"
     // R+T are the wigner seitz vectors for particular atomic position.
     //
