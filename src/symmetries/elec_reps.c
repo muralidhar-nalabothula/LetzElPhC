@@ -384,7 +384,7 @@ void electronic_reps(const struct WFC* wfcs, const struct Lattice* lattice,
             wfc_RS1k + ispin * lattice->nbnds * npw_spinor_k1, Dkmn_rep_tmp,
             1.0, 0.0, npw_spinor_k1, npw_spinor_k1, lattice->nbnds,
             lattice->nbnds, lattice->nbnds, npw_spinor_k1);
-        // (nbn,pw)^* @(nba,pw).T
+        // (nb,pw)^* @(na,pw).T
         // reduce to root node
         ELPH_cmplx* Dkmn_ptr = NULL;
         if (Comm->commK_rank == 0)
