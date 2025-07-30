@@ -191,11 +191,14 @@ ND_int build_wigner_seitz_vectors(const ND_int *grid,
     }
 
     // shrink the buffer
-    ND_int *realloc_ptr =
-        realloc(ws_vec_buf, 3 * nws_vec_found * sizeof(*ws_vec_buf));
-    if (realloc_ptr)
+    if (nws_vec_found)
     {
-        ws_vec_buf = realloc_ptr;
+        ND_int *realloc_ptr =
+            realloc(ws_vec_buf, 3 * nws_vec_found * sizeof(*ws_vec_buf));
+        if (realloc_ptr)
+        {
+            ws_vec_buf = realloc_ptr;
+        }
     }
     // set the ws_vec pointer
     *ws_vecs = ws_vec_buf;
