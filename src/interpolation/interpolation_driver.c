@@ -387,10 +387,9 @@ void interpolation_driver(const char* ELPH_input_file,
                           n_ws_vecs_dvscf, ws_degen_dvscf, dvscf_interpolated);
             //
             // change to pattern basis
-            // In principle, we should first construct a regular represenation
-            // matrix for the litle group of q to get the pattern basis,
-            // but since we only use dvscfs internally, we multiply with the
-            // dvscfs in cart basis to pattern basis with the
+            // In principle, we should first construct pattern basis based on
+            // the litle group of q but since we only use dvscfs internally, we
+            // multiply with the dvscfs in cart basis to pattern basis with the
             // first pattern basis as when computing electron-phonon we again
             // unstrip the pattern basis, so it does not effect what we
             // use. This allows to skip a function to write pattern.xml
