@@ -178,9 +178,19 @@ void interpolation_driver(const char* ELPH_input_file,
 
     ELPH_float EcutRy = 30;
     bool dvscf_composite_form = false;
+    // If true, then we use dvscf is V*s0 + Bx*s1 + By*s2 + Bz*s3
+    // where si are pauli matrices (2x2)
+    // if false, then dvscf is [V,Bx, By, Bz]
     // Always initiate to false
     bool nmags_add_long_range[4] = {false, false, false, false};
     bool only_induced_part_long_range = false;
+    // In case dvscf potential contains only part from Hartree +
+    // exchange-correlation then we need to remove long_range couloumb only due
+    // to change density + induced potential due to dipoles and higher order
+    // multipole terms. So  only_induced_part_long_range = true; means we remove
+    // only long-range due to higher order multipole (dipole + quadrupole ...)
+    // if false, we also need to remove longrange part from valance change i.e (
+    // monopole + dipole + quadrupole...)
     if (dft_code == DFT_CODE_QE)
     {
         // q.e stores dvscf in [V,Bx,By,Bz]
