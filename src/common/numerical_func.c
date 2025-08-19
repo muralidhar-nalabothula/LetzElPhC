@@ -183,7 +183,9 @@ ELPH_float simpson(const ELPH_float* func_vals, const ELPH_float* dx,
     }
     else
     {
-        sum -= func_vals[npts - 2] * dx[npts - 2];
+        sum -= func_vals[npts - 3] * dx[npts - 3] * 0.25;
+        sum += func_vals[npts - 2] * dx[npts - 2];
+        sum += func_vals[npts - 1] * dx[npts - 1] * 1.25;
     }
 
     return sum / 3.0;
