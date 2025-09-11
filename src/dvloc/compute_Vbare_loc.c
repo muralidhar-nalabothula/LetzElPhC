@@ -138,7 +138,6 @@ void elphLocal(const ELPH_float* qpt, struct WFC* wfcs, struct Lattice* lattice,
     }
 
     // Finally get the ulmvec by subtracting q from q+G
-    // Skq+G = Sk + q => G = Sk+q-Skq
     for (int xi = 0; xi < 3; ++xi)
     {
         ulmveckq[xi] = (tempSkq[xi] - tempSk[xi]);
