@@ -170,7 +170,7 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
             {
                 error_msg("Atomic Name is very long.");
             }
-            while (isspace(*tmp_xml_str))
+            while (isspace((unsigned char)(*tmp_xml_str)))
             {
                 ++tmp_xml_str;
             }
@@ -204,7 +204,7 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
                 error_msg(
                     "error name attribute from data-file-schema.xml file");
             }
-            while (isspace(*tmp_xml_str))
+            while (isspace((unsigned char)(*tmp_xml_str)))
             {
                 ++tmp_xml_str;
             }

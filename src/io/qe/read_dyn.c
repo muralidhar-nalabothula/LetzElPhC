@@ -614,7 +614,7 @@ static bool is_dyn_xml(FILE* fp)
     {
         // Skip leading whitespace
         char* p = line;
-        while (isspace(*p))
+        while (isspace((unsigned char)(*p)))
         {
             p++;
         }

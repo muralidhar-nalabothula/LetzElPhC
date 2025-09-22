@@ -53,7 +53,7 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
             "parsing DONE_EFFECTIVE_CHARGE_EU from tensor.xml file failed\n");
     }
     tmp_str = txml->txt;
-    if ('t' == tolower(*tmp_str))
+    if ('t' == tolower((unsigned char)(*tmp_str)))
     {
         Zeu_exists = true;
     }
@@ -65,7 +65,7 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
             "parsing DONE_EFFECTIVE_CHARGE_EU from tensor.xml file failed\n");
     }
     tmp_str = txml->txt;
-    if ('t' == tolower(*tmp_str))
+    if ('t' == tolower((unsigned char)(*tmp_str)))
     {
         epsilon_exists = true;
     }

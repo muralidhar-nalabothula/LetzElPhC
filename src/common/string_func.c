@@ -30,7 +30,7 @@ void lowercase_str(char* str)
     // lower case all the chars in a string
     for (char* p = str; *p; ++p)
     {
-        *p = tolower(*p);
+        *p = tolower((unsigned char)(*p));
     }
 }
 
@@ -48,7 +48,8 @@ ND_int parser_doubles_from_string(const char* str, ELPH_float* out)
 
     while (*p)
     {
-        if (isdigit(*p) || ((*p == '-' || *p == '+') && isdigit(*(p + 1))))
+        if (isdigit((unsigned char)(*p)) ||
+            ((*p == '-' || *p == '+') && isdigit((unsigned char)(*(p + 1)))))
         {
             temp_val = strtod(p, &q);
 
@@ -86,11 +87,11 @@ bool string_start_with(char* str, char* compare_str, bool trim)
     b = compare_str;
     if (trim)
     {
-        while (isspace(*a))
+        while (isspace((unsigned char)(*a)))
         {
             ++a;
         }
-        while (isspace(*b))
+        while (isspace((unsigned char)(*b)))
         {
             ++b;
         }
@@ -121,11 +122,11 @@ bool string_end_with(char* str, char* compare_str, bool trim)
     str_reverse_in_place(b);
     if (trim)
     {
-        while (isspace(*a))
+        while (isspace((unsigned char)(*a)))
         {
             ++a;
         }
-        while (isspace(*b))
+        while (isspace((unsigned char)(*b)))
         {
             ++b;
         }

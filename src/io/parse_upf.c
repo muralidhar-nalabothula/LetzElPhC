@@ -4,6 +4,7 @@ Only Local part, grids , valance electron info are read rest are available in
 yambo
 */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +75,14 @@ void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval)
     else
     {
         error_msg("Only UPF-1 or UPF-2 file formats supported");
+    }
+    // Make sure in case of single alphabet element, there is no
+    // whitespace in the start.
+    if (isspace((unsigned char)atomic_sym[0]))
+    {
+        char temp = atomic_sym[0];
+        atomic_sym[0] = atomic_sym[1];
+        atomic_sym[1] = temp;
     }
 
     fclose(fp);
@@ -416,13 +425,13 @@ static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
     // Now read line by line
     fgets(xml_buf, 1000, fp);  // version number
     fgets(xml_buf, 1000, fp);  // element label
-    char tmp_read[30];
+    char tmp_read[32];
     char* token_tmp = strtok(xml_buf, " ");
     sscanf(token_tmp, "%s", tmp_read);
     size_t atm_lab_size = strlen(tmp_read);
     if (atm_lab_size > 2)
     {
-        error_msg("Buffer over when reading element from upf file");
+        error_msg("Buffer overflow when reading element from upf file");
     }
     strcpy(atomic_sym, tmp_read);
     if (atm_lab_size == 1)
