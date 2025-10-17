@@ -76,14 +76,14 @@ struct calc_details
  * @struct symmetry
  * @brief Crystallographic symmetry operation
  * 
- * Represents a symmetry operation as: \f$ \mathbf{r}' = R\mathbf{r} + \boldsymbol{\tau} \f$
- * with optional time-reversal.
+ * Represents a symmetry operation as: \f$ \mathbf{r}' = R\mathbf{r} + \boldsymbol{\tau} \f$.
+ * In case of time reversal symmetry, R -> -R and tau -> -tau and time_rev is true 
  */
 struct symmetry
 {
     ELPH_float Rmat[9];  /**< 3×3 rotation matrix (row-major, Cartesian coords) */
-    ELPH_float tau[3];   /**< Fractional translation vector */
-    bool time_rev;       /**< True if operation includes time reversal */
+    ELPH_float tau[3];   /**< Fractional translation vector (Cartesian coords) */
+    bool time_rev;       /**< True if operation is time reversal */
 };
 
 /**
@@ -105,7 +105,7 @@ struct Lattice
     int end_band;                /**< Ending band for ELPH calculation */
     int nbnds;                   /**< Number of bands used in ELPH (end-start+1) */
     char dimension;              /**< '1','2','3' for 1D/2D/3D (for Coulomb cutoff) */
-    ND_int nmag;                 /**< Magnetic components: 1 (none), 2 (LSDA), 4 (non-collinear) */
+    ND_int nmag;                 /**< Magnetic components: 1 (none or non-magnetic non-collinear), 2 (LSDA), 4 (magnetic non-collinear) */
     ND_int nmodes;               /**< Number of phonon modes (3×natom) */
     ND_int nkpts_iBZ;            /**< Number of k-points in irreducible BZ */
     ND_int nkpts_BZ;             /**< Number of k-points in full BZ */
@@ -142,7 +142,7 @@ struct Phonon
     ND_int nph_sym;              /**< Number of phonon symmetries */
     ELPH_float* qpts_iBZ;        /**< q-points in iBZ (crystal units, nq_iBZ×3) */
     ELPH_float* qpts_BZ;         /**< q-points in full BZ (crystal units, nq_BZ×3) */
-    struct symmetry* ph_syms;    /**< Phonon symmetry operations (Cartesian, nph_sym) */
+    struct symmetry* ph_syms;    /**< Phonon symmetry operations (nph_sym) */
     int* qmap;                   /**< Map full BZ to iBZ: (nq_BZ×2) → [iBZ_idx, sym_idx] */
     ND_int* nqstar;              /**< Number of q-points in each star (nq_iBZ) */
     ELPH_float* epsilon;         /**< Dielectric tensor ε∞ (3×3), NULL if not available */
