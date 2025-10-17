@@ -1,5 +1,10 @@
-/*
- * This is the starting point of the program
+/**
+ * @file main.c
+ * @brief Main entry point for the ELPH program
+ * 
+ * This file contains the main function that initializes MPI, parses command-line
+ * arguments, and dispatches to the appropriate calculation driver (elph, 
+ * interpolation, or preprocessor utilities).
  */
 
 #include "elphC.h"
@@ -10,6 +15,20 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+/**
+ * @brief Main entry point of the ELPH program
+ *
+ * Initializes MPI environment (with thread support if OpenMP is enabled),
+ * parses command-line arguments on rank 0, broadcasts calculation parameters
+ * to all processes, and executes the requested calculation type.
+ *
+ * @param argc Number of command-line arguments
+ * @param argv Array of command-line argument strings
+ * @return int Exit status (0 for success)
+ *
+ * @note Uses MPI_THREAD_FUNNELED when compiled with OpenMP support
+ * @note Rank 0 performs all I/O operations and broadcasts to other ranks
+ */
 int main(int argc, char* argv[])
 {
 #if defined(ELPH_OMP_PARALLEL_BUILD)
@@ -28,6 +47,8 @@ int main(int argc, char* argv[])
     // this is used to broad cast the enum
     bool run_elph_calc = false;
     bool run_interpolation = false;
+
+    /* Parse command-line arguments and determine calculation type on rank 0 */
     if (my_rank == 0)
     {
         ELPH_cli_parser(argc, argv, calc_info);
@@ -44,6 +65,7 @@ int main(int argc, char* argv[])
         }
     }
 
+    /* Broadcast calculation parameters to all MPI ranks */
     MPI_Bcast(&dft_code_tmp, 1, ELPH_MPI_ND_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&run_elph_calc, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
     MPI_Bcast(&run_interpolation, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
@@ -51,6 +73,7 @@ int main(int argc, char* argv[])
 
     calc_info->code = dft_code_tmp;
 
+    /* Execute the requested calculation */
     if (run_elph_calc)
     {
         elph_driver(calc_info->input_file, calc_info->code, MPI_COMM_WORLD);
@@ -61,7 +84,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        // run preprocessor
+        /* Run preprocessor utilities (rank 0 only) */
         if (my_rank == 0)
         {
             if (calc_info->calc == CALC_HELP)
