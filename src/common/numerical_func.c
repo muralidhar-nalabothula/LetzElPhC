@@ -1,7 +1,13 @@
-/*
-This file contains numerical functions used in the code.
-These functions are called with high frequency, so need a good optimization
-*/
+/**
+ * @file
+ * @brief High-frequency numerical functions with optimization focus
+ *
+ * Contains commonly-used numerical routines including special functions,
+ * linear algebra operations, FFT utilities, and vector operations.
+ * These functions are performance-critical and rely on compiler optimization
+ * (compile with -O3 -march=native for auto-vectorization).
+ */
+
 #include "numerical_func.h"
 
 #include <complex.h>
@@ -13,26 +19,37 @@ These functions are called with high frequency, so need a good optimization
 #include "elphC.h"
 #include "error.h"
 #include "omp_pragma_def.h"
-/*
-Most of the modern compilers will auto vectorize most parts of the code if
-compiled with -O3 -march=native
-Additionally we can also use omp_simd to provide hint to the compilers
-*/
 
 /* Static function declarations */
 static ELPH_float factorial(ND_int n);
 
 /* Function bodies */
 
-/* Function to compute legendre transforms */
+/**
+ * @brief Computes associated Legendre polynomial P_l^m(x)
+ *
+ * Calculates the associated Legendre polynomial without the Condon-Shortley
+ * phase. Uses the recurrence relations from Eqs. 9-12 in: M.A. Blanco et al.,
+ * J. Mol. Struct. THEOCHEM 419, 19-27 (1997)
+ *
+ * Recurrence relations:
+ * - P_l^l(x) = (2l-1) * sqrt(1-x^2) * P_{l-1}^{l-1}(x)
+ * - P_l^{l+1}(x) = (2l+1) * x * P_l^l(x)
+ * - P_l^m(x) = [(2l-1)*x*P_{l-1}^m(x) - (l+m-1)*P_{l-2}^m(x)] / (l-m)
+ *
+ * Also uses the relations:
+ * - P_{-l-1}^m(x) = P_l^m(x)
+ * - P_l^{-m}(x) = (-1)^m * [(l-m)!/(l+m)!] * P_l^m(x)
+ *
+ * @param l_val Degree l (l >= 0)
+ * @param m_val Order m (|m| <= l)
+ * @param x_in Argument x in range [-1, 1]
+ * @return Associated Legendre polynomial value P_l^m(x)
+ *
+ * @note Returns 0 if |m| > l
+ */
 ELPH_float legendre(int l_val, int m_val, ELPH_float x_in)
 {
-    /* This does not contain Condon–Shortley phase
-    Eq: 9-12 in
-    "Miguel A. Blanco, M. Flórez, M. Bermejo
-    Evaluation of the rotation matrices in the basis of real spherical harmonics
-    J. Mol. Struct. THEOCHEM 419, 19-27 (1997)"
-    */
     /* Order of below if-else conditions is important */
     if (l_val == 0 && m_val == 0)
     {
@@ -92,14 +109,29 @@ ELPH_float legendre(int l_val, int m_val, ELPH_float x_in)
     }
 }
 
-/* Compute real spherical Harmonics for vector direction*/
+/**
+ * @brief Computes real spherical harmonic Y_l^m for a given direction vector
+ *
+ * Calculates real spherical harmonics using the convention from:
+ * M.A. Blanco et al., J. Mol. Struct. THEOCHEM 419, 19-27 (1997)
+ *
+ * The real spherical harmonic is defined as:
+ * - For m > 0: Y_l^m = sqrt(2) * N_l^m * P_l^m(cos theta) * cos(m*phi)
+ * - For m < 0: Y_l^m = sqrt(2) * N_l^|m| * P_l^|m|(cos theta) * sin(|m|*phi)
+ * - For m = 0: Y_l^0 = N_l^0 * P_l^0(cos theta)
+ *
+ * where N_l^m = sqrt[(2l+1)*(l-m)! / (4*pi*(l+m)!)] is the normalization.
+ *
+ * @param l_val Degree l (l >= 0)
+ * @param m_val Order m (-l <= m <= l)
+ * @param vec Direction vector (3 components, Cartesian)
+ * @return Real spherical harmonic value Y_l^m(theta, phi)
+ *
+ * @note Returns 0 for l < 0
+ * @note For zero vector, returns 1/sqrt(4*pi) if l=0, otherwise 0
+ */
 ELPH_float Ylm(int l_val, int m_val, ELPH_float* vec)
 {
-    /*
-    Miguel A. Blanco, M. Flórez, M. Bermejo
-    Evaluation of the rotation matrices in the basis of real spherical harmonics
-    J. Mol. Struct. THEOCHEM 419, 19-27 (1997)
-    */
     if (l_val < 0)
     {
         return 0.0;  // error
@@ -150,13 +182,26 @@ ELPH_float Ylm(int l_val, int m_val, ELPH_float* vec)
     return sh;
 }
 
-/* Function for simpson integration*/
+/**
+ * @brief Performs numerical integration using Simpson's 1/3 rule
+ *
+ * Computes the integral: integral f(x) dx using composite Simpson's rule.
+ *
+ * For odd number of points (n = 2k+1):
+ * I = (dx/3) * [f_0 + 4*(f_1+f_3+...+f_{n-2}) + 2*(f_2+f_4+...+f_{n-3}) + f_n]
+ *
+ * For even number of points, uses Simpson's 3/8 rule for last segment.
+ *
+ * @param func_vals Function values at grid points (npts)
+ * @param dx Grid spacing at each point (npts)
+ * @param npts Number of grid points
+ * @return Approximate integral value
+ *
+ * @note Returns 0 if npts < 3 (insufficient points)
+ */
 ELPH_float simpson(const ELPH_float* func_vals, const ELPH_float* dx,
                    ND_int npts)
 {
-    /*
-    Compute the integral using simpson 1/3 rules i.e /int f(x) dx
-    */
     if (npts < 3)
     {
         return 0;  // Need atleast 3 points . Return an error instead
@@ -190,12 +235,19 @@ ELPH_float simpson(const ELPH_float* func_vals, const ELPH_float* dx,
     return sum / 3.0;
 }
 
-/* Function to compute cosine of angle between two vectors*/
+/**
+ * @brief Computes cosine of angle between two 3D vectors
+ *
+ * Calculates: cos(omega) = (vec1 . vec2) / (|vec1| * |vec2|)
+ *
+ * @param vec1 First vector (3 components)
+ * @param vec2 Second vector (3 components)
+ * @return Cosine of angle between vectors
+ *
+ * @note Returns 0 if either vector has norm < ELPH_EPS
+ */
 ELPH_float cos_angle_bw_Vec(const ELPH_float* vec1, const ELPH_float* vec2)
 {
-    /*
-    This function returns Cos(w) where w is angle between vec1 and vec2
-    */
     ELPH_float norm1 =
         vec1[0] * vec1[0] + vec1[1] * vec1[1] + vec1[2] * vec1[2];
     ELPH_float norm2 =
@@ -212,7 +264,16 @@ ELPH_float cos_angle_bw_Vec(const ELPH_float* vec1, const ELPH_float* vec2)
 
 /** Static functions **/
 
-/* Compute factorial */
+/**
+ * @brief Computes factorial n! using gamma function
+ *
+ * Calculates: n! = Gamma(n+1)
+ *
+ * @param n Non-negative integer
+ * @return Factorial value n!
+ *
+ * @note Returns 0 for n < 0 (error case)
+ */
 static ELPH_float factorial(ND_int n)
 {
     if (n < 0)
@@ -222,6 +283,20 @@ static ELPH_float factorial(ND_int n)
     return tgamma(n + 1);
 }
 
+/**
+ * @brief Matrix-vector multiplication for 3x3 matrix and 3D vector
+ *
+ * Computes:
+ * - If trans = false: out = Mat * vec
+ * - If trans = true:  out = Mat^T * vec
+ *
+ * Matrix is stored in row-major order (C-style).
+ *
+ * @param Mat 3x3 matrix (9 elements, row-major)
+ * @param vec Input vector (3 elements)
+ * @param trans If true, use transpose of Mat
+ * @param out Output vector (3 elements)
+ */
 void MatVec3f(const ELPH_float* Mat, const ELPH_float* vec, const bool trans,
               ELPH_float* restrict out)
 {
@@ -239,6 +314,16 @@ void MatVec3f(const ELPH_float* Mat, const ELPH_float* vec, const bool trans,
     }
 }
 
+/**
+ * @brief Computes complex dot product of two vectors
+ *
+ * Calculates: sum = conj(vec1) . vec2 = sum_i conj(vec1[i]) * vec2[i]
+ *
+ * @param vec1 First complex vector (n elements)
+ * @param vec2 Second complex vector (n elements)
+ * @param n Number of elements
+ * @return Complex dot product
+ */
 ELPH_cmplx Cmplxdot(const ELPH_cmplx* vec1, const ELPH_cmplx* vec2,
                     const ND_int n)
 {
@@ -252,6 +337,16 @@ ELPH_cmplx Cmplxdot(const ELPH_cmplx* vec1, const ELPH_cmplx* vec2,
     return sum;
 }
 
+/**
+ * @brief Normalizes a complex vector in-place
+ *
+ * Normalizes vec such that sqrt(vec^dagger * vec) = 1.
+ *
+ * @param vec Complex vector to normalize (n elements, modified in-place)
+ * @param n Number of elements
+ *
+ * @note Does nothing if norm < ELPH_EPS (zero vector)
+ */
 void normalize_Cmplx_vec(ELPH_cmplx* vec, const ND_int n)
 {
     ELPH_float norm = sqrt(cabs(Cmplxdot(vec, vec, n)));
@@ -267,6 +362,16 @@ void normalize_Cmplx_vec(ELPH_cmplx* vec, const ND_int n)
     }
 }
 
+/**
+ * @brief Computes determinant of 3x3 matrix
+ *
+ * Calculates: det(A) using cofactor expansion along first row:
+ * det = a_00*(a_11*a_22 - a_12*a_21) - a_01*(a_10*a_22 - a_12*a_20) +
+ * a_02*(a_10*a_21 - a_11*a_20)
+ *
+ * @param mat 3x3 matrix (9 elements, row-major)
+ * @return Determinant value
+ */
 ELPH_float det3x3(const ELPH_float* mat)
 {
     ELPH_float det = 0;
@@ -276,13 +381,23 @@ ELPH_float det3x3(const ELPH_float* mat)
     return det;
 }
 
+/**
+ * @brief Computes reciprocal lattice vectors from direct lattice vectors
+ *
+ * Calculates reciprocal lattice vectors using:
+ * b_i = 2*pi * (a_j x a_k) / V
+ * where V = det(a) is the unit cell volume.
+ *
+ * Result includes the 2*pi factor.
+ *
+ * @param lat_vec Direct lattice vectors (9 elements, row-major: a_1, a_2, a_3)
+ * @param blat Reciprocal lattice vectors output (9 elements, row-major: b_1,
+ * b_2, b_3)
+ *
+ * @note Calls error_msg if determinant < ELPH_EPS (singular matrix)
+ */
 void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* restrict blat)
 {
-    /*
-    a[:,i]  are latvecs
-    b[:,i]  are blat
-    result is multiplied with 2*pi
-    */
     ELPH_float det = det3x3(lat_vec);
     if (det < ELPH_EPS)
     {
@@ -300,10 +415,17 @@ void reciprocal_vecs(const ELPH_float* lat_vec, ELPH_float* restrict blat)
     blat[8] = (lat_vec[0] * lat_vec[4] - lat_vec[1] * lat_vec[3]) * det;
 }
 
+/**
+ * @brief Performs AXPY operation: Y = a*X + Y
+ *
+ * @param n Number of elements
+ * @param a Complex scalar multiplier
+ * @param X Complex input vector (n elements)
+ * @param Y Complex input/output vector (n elements, modified in-place)
+ */
 void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* X,
           ELPH_cmplx* Y)
 {
-    /* computes y= aX + y */
     // ELPH_OMP_PAR_FOR_SIMD
     for (ND_int i = 0; i < n; ++i)
     {
@@ -311,9 +433,14 @@ void aXpY(const ND_int n, const ELPH_cmplx a, const ELPH_cmplx* X,
     }
 }
 
+/**
+ * @brief Transposes a 3x3 matrix (out-of-place)
+ *
+ * @param inmat Input 3x3 matrix (9 elements, row-major)
+ * @param outmat Output transposed matrix (9 elements, row-major)
+ */
 void transpose3x3f(const ELPH_float* inmat, ELPH_float* restrict outmat)
 {
-    /* Transpose 3x3 matrix */
     outmat[0] = inmat[0];
     outmat[1] = inmat[3];
     outmat[2] = inmat[6];
@@ -327,14 +454,25 @@ void transpose3x3f(const ELPH_float* inmat, ELPH_float* restrict outmat)
     outmat[8] = inmat[8];
 }
 
+/**
+ * @brief Transposes a 3x3 matrix in-place
+ *
+ * @param mat 3x3 matrix (9 elements, row-major, modified in-place)
+ */
 void transpose3x3f_inplace(ELPH_float* mat)
 {
-    /* inplace Transpose 3x3 matrix */
     swap_floats(mat + 1, mat + 3);
     swap_floats(mat + 2, mat + 6);
     swap_floats(mat + 5, mat + 7);
 }
 
+/**
+ * @brief Finds maximum value in integer array
+ *
+ * @param in_arr Input integer array (nelements)
+ * @param nelements Number of elements
+ * @return Maximum value in array
+ */
 ND_int find_maxint(ND_int* in_arr, ND_int nelements)
 {
     ND_int max = in_arr[0];
@@ -349,6 +487,13 @@ ND_int find_maxint(ND_int* in_arr, ND_int nelements)
     return max;
 }
 
+/**
+ * @brief Finds maximum value in floating-point array
+ *
+ * @param in_arr Input floating-point array (nelements)
+ * @param nelements Number of elements
+ * @return Maximum value in array
+ */
 ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements)
 {
     ELPH_float max = in_arr[0];
@@ -363,6 +508,19 @@ ELPH_float find_maxfloat(ELPH_float* in_arr, ND_int nelements)
     return max;
 }
 
+/**
+ * @brief 3x3 matrix multiplication with optional transposes: C = op(A) * op(B)
+ *
+ * Performs matrix multiplication with optional transposes on A and/or B.
+ *
+ * @param A First 3x3 matrix (9 elements, row-major)
+ * @param transA 'N' for A, 'T' for A^T
+ * @param B Second 3x3 matrix (9 elements, row-major)
+ * @param transB 'N' for B, 'T' for B^T
+ * @param C Output 3x3 matrix (9 elements, row-major)
+ *
+ * @note Calls error_msg for invalid transpose flags
+ */
 void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
               const char transB, ELPH_float* restrict C)
 {
@@ -421,6 +579,13 @@ void Gemm3x3f(const ELPH_float* A, const char transA, const ELPH_float* B,
     return;
 }
 
+/**
+ * @brief Multiplies two 2x2 complex matrices: out = mat1 * mat2
+ *
+ * @param mat1 First 2x2 complex matrix (4 elements, row-major)
+ * @param mat2 Second 2x2 complex matrix (4 elements, row-major)
+ * @param out Output 2x2 complex matrix (4 elements, row-major)
+ */
 void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2,
                     ELPH_cmplx* restrict out)
 {
@@ -432,10 +597,19 @@ void matmul_Cmpl2x2(ELPH_cmplx* mat1, ELPH_cmplx* mat2,
 
 /* functions related to fft */
 
+/**
+ * @brief Converts FFT index to Miller index
+ *
+ * Maps FFT indices [0, N) to Miller indices:
+ * - For even N: [-N/2, N/2)
+ * - For odd N: [-(N-1)/2, (N-1)/2]
+ *
+ * @param idx_in FFT index in range [0, FFT_dimension)
+ * @param FFT_dimension FFT grid size
+ * @return Miller index
+ */
 ND_int get_miller_idx(ND_int idx_in, ND_int FFT_dimension)
 {
-    // returns FFT Indices to [-N/2, N/2) if FFT_dimension is even
-    // [-(n-1)/2,(n-1)/2 )] of FFT_dimension is odd
     ND_int mid_pnt = (FFT_dimension - 1) / 2 + 1;
     if (idx_in < mid_pnt)
     {
@@ -447,15 +621,19 @@ ND_int get_miller_idx(ND_int idx_in, ND_int FFT_dimension)
     }
 }
 
-/* This function converts miller indices to FFT indices*/
+/**
+ * @brief Converts Miller index to FFT index
+ *
+ * Maps Miller indices (typically [-N/2, N/2)) to FFT indices [0, N).
+ * FFT libraries assume indices run from [0, N), but Miller indices
+ * conventionally run from [-N/2, N/2).
+ *
+ * @param idx_in Miller index (will be rounded to nearest integer)
+ * @param FFT_dimension FFT grid size
+ * @return FFT index in range [0, N-1]
+ */
 int get_fft_idx(ELPH_float idx_in, int FFT_dimension)
 {
-    /*
-    We need this functions because FFT libraries assume that the
-    indices run from [0,N) but where as miller indices are from
-    [-N/2,N/1)
-    */
-    // returns FFT Indices to [0, N-1]
     int temp_idx = rint(idx_in);
     if (temp_idx >= 0)
     {
@@ -467,13 +645,22 @@ int get_fft_idx(ELPH_float idx_in, int FFT_dimension)
     }
 }
 
+/**
+ * @brief Finds index of k-point in list using crystal coordinates
+ *
+ * Searches for a k-point in the list by comparing crystal coordinates
+ * with periodic boundary conditions (difference modulo reciprocal lattice
+ * vector). Two k-points are considered equivalent if their difference (mod G)
+ * has norm < ELPH_EPS.
+ *
+ * @param nkpts Number of k-points in list
+ * @param kpts_list k-point list in crystal coordinates (nkpts,3)
+ * @param kpt k-point to search for in crystal coordinates (3)
+ * @return Index of k-point in list, or -1 if not found
+ */
 ND_int find_kidx_in_list(ND_int nkpts, const ELPH_float* kpts_list,
                          const ELPH_float* kpt)
 {
-    /*
-    kpt and kpts_list must be in crystal coordinates
-    return -1 if not found
-    */
     ND_int kidx = -1;
     for (ND_int ik = 0; ik < nkpts; ++ik)
     {
@@ -495,13 +682,23 @@ ND_int find_kidx_in_list(ND_int nkpts, const ELPH_float* kpts_list,
     return kidx;
 }
 
-/* This Function finds the K+Q indices in kpoint grid */
+/**
+ * @brief Finds K+Q point indices in k-point grid
+ *
+ * For each k-point in the grid, finds the index of k+Q (with periodic
+ * boundary conditions). Used to establish k to k+q mapping for electron-phonon
+ * calculations.
+ *
+ * @param Nbz Number of k-points in Brillouin zone
+ * @param kpoints k-point grid in crystal coordinates (Nbz,3)
+ * @param Q_pt q-point in crystal coordinates (3)
+ * @param KplusQidxs Output array of k+Q indices (Nbz)
+ *
+ * @note Calls error_msg if any k+Q point is not found (incommensurate grids)
+ */
 void get_KplusQ_idxs(const ND_int Nbz, const ELPH_float* kpoints,
                      const ELPH_float* Q_pt, int* KplusQidxs)
 {
-    /* returns index of the k+q point in the kpoints*/
-    // kpoitsn and  kpoints must be in crystal coordinates
-
     for (ND_int i = 0; i < Nbz; ++i)
     {
         const ELPH_float* ktemp = kpoints + 3 * i;
@@ -522,7 +719,12 @@ void get_KplusQ_idxs(const ND_int Nbz, const ELPH_float* kpoints,
     }
 }
 
-// some helper functions
+/**
+ * @brief Swaps two integer values
+ *
+ * @param a Pointer to first integer
+ * @param b Pointer to second integer
+ */
 void swap_ints(int* a, int* b)
 {
     const int c = *b;
@@ -530,6 +732,12 @@ void swap_ints(int* a, int* b)
     *a = c;
 }
 
+/**
+ * @brief Swaps two floating-point values
+ *
+ * @param a Pointer to first float
+ * @param b Pointer to second float
+ */
 void swap_floats(ELPH_float* a, ELPH_float* b)
 {
     const ELPH_float c = *b;
