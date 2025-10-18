@@ -1,5 +1,5 @@
 /**
- * @file elphC.h
+ * @file
  * @brief Core type definitions and configuration for the ELPH library
  *
  * This header defines the fundamental data types used throughout the ELPH

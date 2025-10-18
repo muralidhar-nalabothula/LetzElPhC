@@ -1,5 +1,5 @@
 /**
- * @file numerical_func.c
+ * @file
  * @brief BLAS wrapper functions for matrix operations
  *
  * Provides simplified wrappers around CBLAS matrix multiplication routines

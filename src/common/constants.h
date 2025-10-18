@@ -1,5 +1,5 @@
 /**
- * @file constants.h
+ * @file
  * @brief Physical and mathematical constants with precision selection
  *
  * Defines fundamental constants used throughout the ELPH library.

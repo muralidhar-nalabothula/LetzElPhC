@@ -1,5 +1,5 @@
 /**
- * @file main.c
+ * @file 
  * @brief Main entry point for the ELPH program
  * 
  * This file contains the main function that initializes MPI, parses command-line

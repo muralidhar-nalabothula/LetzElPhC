@@ -1,5 +1,5 @@
 /**
- * @file ELPH_hmap.c
+ * @file
  * @brief Hash map implementation for string keys and generic values
  *
  * This file implements a hash map data structure with string keys and void

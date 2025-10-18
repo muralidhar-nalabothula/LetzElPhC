@@ -1,5 +1,5 @@
 /**
- * @file ELPH_timers.h
+ * @file
  * @brief Wall-clock timing utilities for performance profiling
  *
  * Provides functions for measuring and reporting execution times of code

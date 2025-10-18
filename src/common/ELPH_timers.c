@@ -1,5 +1,5 @@
 /**
- * @file ELPH_timers.c
+ * @file
  * @brief Wall-clock timing utilities for performance profiling
  *
  * Implements a timer system using MPI_Wtime() for measuring execution times

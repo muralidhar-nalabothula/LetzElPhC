@@ -1,5 +1,5 @@
 /**
- * @file ELPH_hmap.h
+ * @file
  * @brief Generic hash map implementation with string keys
  *
  * This header provides a type-safe hash map implementation for C using macros.

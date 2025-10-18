@@ -1,5 +1,5 @@
 /**
- * @file data_structures.h
+ * @file
  * @brief Core data structures for electron-phonon coupling calculations
  *
  * Defines all major data structures used throughout the ELPH code including:
@@ -7,7 +7,8 @@
  * communication topology, and user input parameters.
  *
  * @note Convention: Always use struct/enum keywords explicitly when declaring
- *       variables (e.g., "struct lattice a;" not "lattice a;")
+ *       variables (e.g., "struct lattice a;" not "lattice a;".
+ *       "DO NOT typedef structs !")
  */
 
 #pragma once
