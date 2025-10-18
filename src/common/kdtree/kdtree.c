@@ -1,30 +1,37 @@
-/*
-This file is part of ``kdtree'', a library for working with kd-trees.
-Copyright (C) 2007-2011 John Tsiombikas <nuclear@member.fsf.org>
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-3. The name of the author may not be used to endorse or promote products
-   derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
-/* single nearest neighbor search written by Tamas Nepusz <tamas@cs.rhul.ac.uk>
+/**
+ * @file
+ * @brief K-d tree implementation for efficient spatial searching
+ *
+ * Implements a k-dimensional tree data structure for fast nearest-neighbor
+ * searches in k-dimensional space. Supports single nearest neighbor, k-nearest
+ * neighbors, and range queries.
+ *
+ * This file is part of ``kdtree'', a library for working with kd-trees.
+ * Copyright (C) 2007-2011 John Tsiombikas <nuclear@member.fsf.org>
+ *
+ * Single nearest neighbor search written by Tamas Nepusz <tamas@cs.rhul.ac.uk>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "kdtree.h"
@@ -35,6 +42,13 @@ OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @def SQ(x)
+ * @brief Computes square of a value
+ *
+ * @param x Value to square
+ * @return x * x
+ */
 #define SQ(x) ((x) * (x))
 
 static void clear_rec(struct kdnode *node, void (*destr)(void *));
@@ -56,6 +70,12 @@ static struct res_node *alloc_resnode(void);
 static void free_resnode(struct res_node *);
 static void free_resnode_buffer();
 
+/**
+ * @brief Creates a new k-d tree
+ *
+ * @param k Dimensionality of the space
+ * @return Pointer to newly created kdtree, or NULL on allocation failure
+ */
 struct kdtree *kd_create(int k)
 {
     struct kdtree *tree;
@@ -73,6 +93,14 @@ struct kdtree *kd_create(int k)
     return tree;
 }
 
+/**
+ * @brief Frees a k-d tree and all its resources
+ *
+ * Clears all nodes and deallocates the tree structure. Also frees
+ * the result node buffer pool.
+ *
+ * @param tree Pointer to kdtree to free
+ */
 void kd_free(struct kdtree *tree)
 {
     if (tree)
@@ -84,6 +112,12 @@ void kd_free(struct kdtree *tree)
     free_resnode_buffer();
 }
 
+/**
+ * @brief Recursively clears all nodes in subtree
+ *
+ * @param node Root of subtree to clear
+ * @param destr Optional destructor function for data pointers
+ */
 static void clear_rec(struct kdnode *node, void (*destr)(void *))
 {
     if (!node)
@@ -102,6 +136,11 @@ static void clear_rec(struct kdnode *node, void (*destr)(void *))
     free(node);
 }
 
+/**
+ * @brief Removes all elements from the tree
+ *
+ * @param tree Pointer to kdtree to clear
+ */
 void kd_clear(struct kdtree *tree)
 {
     clear_rec(tree->root, tree->destr);
@@ -114,11 +153,33 @@ void kd_clear(struct kdtree *tree)
     }
 }
 
+/**
+ * @brief Sets destructor function for data pointers
+ *
+ * The provided function will be called on data pointers when nodes
+ * are removed from the tree.
+ *
+ * @param tree Pointer to kdtree
+ * @param destr Destructor function (can be NULL)
+ */
 void kd_data_destructor(struct kdtree *tree, void (*destr)(void *))
 {
     tree->destr = destr;
 }
 
+/**
+ * @brief Recursively inserts node into k-d tree
+ *
+ * Uses standard k-d tree insertion: cycles through dimensions, splitting
+ * on the current dimension and recursing into appropriate subtree.
+ *
+ * @param nptr Pointer to node pointer (for recursive insertion)
+ * @param pos Position coordinates (dim elements)
+ * @param data User data pointer
+ * @param dir Current splitting dimension
+ * @param dim Total dimensionality
+ * @return 0 on success, -1 on allocation failure
+ */
 static int insert_rec(struct kdnode **nptr, const double *pos, void *data,
                       int dir, int dim)
 {
@@ -153,6 +214,14 @@ static int insert_rec(struct kdnode **nptr, const double *pos, void *data,
     return insert_rec(&(*nptr)->right, pos, data, new_dir, dim);
 }
 
+/**
+ * @brief Inserts a node into the k-d tree
+ *
+ * @param tree Pointer to kdtree
+ * @param pos Position coordinates (tree->dim elements)
+ * @param data Optional user data pointer
+ * @return 0 on success, -1 on failure
+ */
 int kd_insert(struct kdtree *tree, const double *pos, void *data)
 {
     if (insert_rec(&tree->root, pos, data, 0, tree->dim))
@@ -172,6 +241,17 @@ int kd_insert(struct kdtree *tree, const double *pos, void *data)
     return 0;
 }
 
+/**
+ * @brief Inserts a node with float coordinates
+ *
+ * Converts float array to double internally. Uses stack buffer for
+ * dimensions <= 16, heap allocation for larger dimensions.
+ *
+ * @param tree Pointer to kdtree
+ * @param pos Position coordinates as floats (tree->dim elements)
+ * @param data Optional user data pointer
+ * @return 0 on success, -1 on failure
+ */
 int kd_insertf(struct kdtree *tree, const float *pos, void *data)
 {
     static double sbuf[16];
@@ -204,6 +284,16 @@ int kd_insertf(struct kdtree *tree, const float *pos, void *data)
     return res;
 }
 
+/**
+ * @brief Inserts a 3D point (convenience function)
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param data Optional user data pointer
+ * @return 0 on success, -1 on failure
+ */
 int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data)
 {
     double buf[3];
@@ -213,6 +303,16 @@ int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data)
     return kd_insert(tree, buf, data);
 }
 
+/**
+ * @brief Inserts a 3D point with float coordinates (convenience function)
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param data Optional user data pointer
+ * @return 0 on success, -1 on failure
+ */
 int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data)
 {
     double buf[3];
@@ -222,6 +322,23 @@ int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data)
     return kd_insert(tree, buf, data);
 }
 
+/**
+ * @brief Recursively finds all nodes within range of query point
+ *
+ * Traverses tree, adding nodes within range to result list.
+ * Uses pruning: only explores subtrees that could contain points within range.
+ *
+ * Distance metric: Euclidean distance squared
+ * d^2 = sum_i (node_i - pos_i)^2
+ *
+ * @param node Current node in traversal
+ * @param pos Query position (dim elements)
+ * @param range Search radius
+ * @param list Result list to append to
+ * @param ordered If true, maintain sorted order; if false, use -1.0 for dist_sq
+ * @param dim Dimensionality
+ * @return Number of nodes added, or -1 on error
+ */
 static int find_nearest(struct kdnode *node, const double *pos, double range,
                         struct res_node *list, int ordered, int dim)
 {
@@ -266,6 +383,21 @@ static int find_nearest(struct kdnode *node, const double *pos, double range,
     return added_res;
 }
 
+/**
+ * @brief Recursively finds N nearest nodes to query point
+ *
+ * Maintains a bounded priority queue of size N. Updates dist_max as
+ * queue fills to enable more aggressive pruning.
+ *
+ * @param node Current node in traversal
+ * @param pos Query position (dim elements)
+ * @param num Maximum number of neighbors to find
+ * @param size Current number of results found
+ * @param dist_max Maximum distance squared in current result set
+ * @param list Result list (sorted by distance)
+ * @param dim Dimensionality
+ * @return 0 on success, -1 on error
+ */
 static int find_nearest_n(struct kdnode *node, const double *pos, int num,
                           int *size, double *dist_max, struct res_node *list,
                           int dim)
@@ -318,6 +450,20 @@ static int find_nearest_n(struct kdnode *node, const double *pos, int num,
     return ret;
 }
 
+/**
+ * @brief Internal recursive single nearest neighbor search
+ *
+ * Uses hyperrectangle pruning for efficient search. At each node:
+ * 1. Recursively search nearer subtree
+ * 2. Check current node
+ * 3. If splitting plane distance < current best, search farther subtree
+ *
+ * @param node Current node in traversal
+ * @param pos Query position (rect->dim elements)
+ * @param result Output: pointer to nearest node found
+ * @param result_dist_sq Output: squared distance to nearest node
+ * @param rect Bounding hyperrectangle for current subtree
+ */
 static void kd_nearest_i(struct kdnode *node, const double *pos,
                          struct kdnode **result, double *result_dist_sq,
                          struct kdhyperrect *rect)
@@ -387,6 +533,15 @@ static void kd_nearest_i(struct kdnode *node, const double *pos,
     }
 }
 
+/**
+ * @brief Finds single nearest neighbor to query point
+ *
+ * @param kd Pointer to kdtree
+ * @param pos Query position (kd->dim elements)
+ * @return Result set with at most one element, or NULL on error
+ *
+ * @note Caller must free result set with kd_res_free()
+ */
 struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 {
     struct kdhyperrect *rect;
@@ -457,6 +612,13 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
     }
 }
 
+/**
+ * @brief Finds single nearest neighbor with float coordinates
+ *
+ * @param tree Pointer to kdtree
+ * @param pos Query position as floats (tree->dim elements)
+ * @return Result set with at most one element, or NULL on error
+ */
 struct kdres *kd_nearestf(struct kdtree *tree, const float *pos)
 {
     static double sbuf[16];
@@ -490,6 +652,15 @@ struct kdres *kd_nearestf(struct kdtree *tree, const float *pos)
     return res;
 }
 
+/**
+ * @brief Finds single nearest neighbor in 3D (convenience function)
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @return Result set with at most one element, or NULL on error
+ */
 struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z)
 {
     double pos[3];
@@ -499,6 +670,15 @@ struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z)
     return kd_nearest(tree, pos);
 }
 
+/**
+ * @brief Finds single nearest neighbor in 3D with float coordinates
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @return Result set with at most one element, or NULL on error
+ */
 struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
 {
     double pos[3];
@@ -508,8 +688,16 @@ struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
     return kd_nearest(tree, pos);
 }
 
-/* ---- nearest N search ---- */
-
+/**
+ * @brief Finds N nearest neighbors to query point
+ *
+ * @param kd Pointer to kdtree
+ * @param pos Query position (kd->dim elements)
+ * @param num Maximum number of neighbors to find
+ * @return Result set with at most num elements, or NULL on error
+ *
+ * @note Caller must free result set with kd_res_free()
+ */
 struct kdres *kd_nearest_n(struct kdtree *kd, const double *pos, int num)
 {
     int ret, size = 0;
@@ -540,6 +728,14 @@ struct kdres *kd_nearest_n(struct kdtree *kd, const double *pos, int num)
     return rset;
 }
 
+/**
+ * @brief Finds N nearest neighbors with float coordinates
+ *
+ * @param tree Pointer to kdtree
+ * @param pos Query position as floats (tree->dim elements)
+ * @param num Maximum number of neighbors to find
+ * @return Result set with at most num elements, or NULL on error
+ */
 struct kdres *kd_nearest_nf(struct kdtree *tree, const float *pos, int num)
 {
     static double sbuf[16];
@@ -573,6 +769,16 @@ struct kdres *kd_nearest_nf(struct kdtree *tree, const float *pos, int num)
     return res;
 }
 
+/**
+ * @brief Finds N nearest neighbors in 3D (convenience function)
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param num Maximum number of neighbors to find
+ * @return Result set with at most num elements, or NULL on error
+ */
 struct kdres *kd_nearest_n3(struct kdtree *tree, double x, double y, double z,
                             int num)
 {
@@ -583,6 +789,16 @@ struct kdres *kd_nearest_n3(struct kdtree *tree, double x, double y, double z,
     return kd_nearest_n(tree, pos, num);
 }
 
+/**
+ * @brief Finds N nearest neighbors in 3D with float coordinates
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param num Maximum number of neighbors to find
+ * @return Result set with at most num elements, or NULL on error
+ */
 struct kdres *kd_nearest_n3f(struct kdtree *tree, float x, float y, float z,
                              int num)
 {
@@ -593,6 +809,16 @@ struct kdres *kd_nearest_n3f(struct kdtree *tree, float x, float y, float z,
     return kd_nearest_n(tree, pos, num);
 }
 
+/**
+ * @brief Finds all nodes within range of query point
+ *
+ * @param kd Pointer to kdtree
+ * @param pos Query position (kd->dim elements)
+ * @param range Search radius
+ * @return Result set with all nodes within range, or NULL on error
+ *
+ * @note Caller must free result set with kd_res_free()
+ */
 struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos,
                                double range)
 {
@@ -622,6 +848,14 @@ struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos,
     return rset;
 }
 
+/**
+ * @brief Finds all nodes within range with float coordinates
+ *
+ * @param kd Pointer to kdtree
+ * @param pos Query position as floats (kd->dim elements)
+ * @param range Search radius
+ * @return Result set with all nodes within range, or NULL on error
+ */
 struct kdres *kd_nearest_rangef(struct kdtree *kd, const float *pos,
                                 float range)
 {
@@ -656,6 +890,16 @@ struct kdres *kd_nearest_rangef(struct kdtree *kd, const float *pos,
     return res;
 }
 
+/**
+ * @brief Finds all nodes within range in 3D (convenience function)
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param range Search radius
+ * @return Result set with all nodes within range, or NULL on error
+ */
 struct kdres *kd_nearest_range3(struct kdtree *tree, double x, double y,
                                 double z, double range)
 {
@@ -666,6 +910,16 @@ struct kdres *kd_nearest_range3(struct kdtree *tree, double x, double y,
     return kd_nearest_range(tree, buf, range);
 }
 
+/**
+ * @brief Finds all nodes within range in 3D with float coordinates
+ *
+ * @param tree Pointer to kdtree (must be 3-dimensional)
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param z Z coordinate
+ * @param range Search radius
+ * @return Result set with all nodes within range, or NULL on error
+ */
 struct kdres *kd_nearest_range3f(struct kdtree *tree, float x, float y, float z,
                                  float range)
 {
@@ -676,6 +930,11 @@ struct kdres *kd_nearest_range3f(struct kdtree *tree, float x, float y, float z,
     return kd_nearest_range(tree, buf, range);
 }
 
+/**
+ * @brief Frees a result set
+ *
+ * @param rset Result set to free
+ */
 void kd_res_free(struct kdres *rset)
 {
     clear_results(rset);
@@ -683,18 +942,48 @@ void kd_res_free(struct kdres *rset)
     free(rset);
 }
 
+/**
+ * @brief Returns the number of elements in result set
+ *
+ * @param set Result set
+ * @return Number of elements
+ */
 int kd_res_size(struct kdres *set) { return (set->size); }
 
+/**
+ * @brief Rewinds result set iterator to beginning
+ *
+ * @param rset Result set to rewind
+ */
 void kd_res_rewind(struct kdres *rset) { rset->riter = rset->rlist->next; }
 
+/**
+ * @brief Checks if result set iterator is at end
+ *
+ * @param rset Result set to check
+ * @return Non-zero if at end, zero otherwise
+ */
 int kd_res_end(struct kdres *rset) { return rset->riter == 0; }
 
+/**
+ * @brief Advances result set iterator to next element
+ *
+ * @param rset Result set
+ * @return Non-zero if advanced successfully, zero if no more elements
+ */
 int kd_res_next(struct kdres *rset)
 {
     rset->riter = rset->riter->next;
     return rset->riter != 0;
 }
 
+/**
+ * @brief Returns data pointer and position of current result element
+ *
+ * @param rset Result set
+ * @param pos Output array for position (rset->tree->dim elements, can be NULL)
+ * @return Data pointer associated with current element, or NULL if at end
+ */
 void *kd_res_item(struct kdres *rset, double *pos)
 {
     if (rset->riter)
@@ -708,6 +997,13 @@ void *kd_res_item(struct kdres *rset, double *pos)
     return 0;
 }
 
+/**
+ * @brief Returns data pointer and position with float output
+ *
+ * @param rset Result set
+ * @param pos Output array for position as floats (can be NULL)
+ * @return Data pointer associated with current element, or NULL if at end
+ */
 void *kd_res_itemf(struct kdres *rset, float *pos)
 {
     if (rset->riter)
@@ -725,6 +1021,15 @@ void *kd_res_itemf(struct kdres *rset, float *pos)
     return 0;
 }
 
+/**
+ * @brief Returns data pointer and 3D position (convenience function)
+ *
+ * @param rset Result set (must be 3-dimensional)
+ * @param x Output pointer for X coordinate (can be NULL)
+ * @param y Output pointer for Y coordinate (can be NULL)
+ * @param z Output pointer for Z coordinate (can be NULL)
+ * @return Data pointer associated with current element, or NULL if at end
+ */
 void *kd_res_item3(struct kdres *rset, double *x, double *y, double *z)
 {
     if (rset->riter)
@@ -746,6 +1051,15 @@ void *kd_res_item3(struct kdres *rset, double *x, double *y, double *z)
     return 0;
 }
 
+/**
+ * @brief Returns data pointer and 3D position with float output
+ *
+ * @param rset Result set (must be 3-dimensional)
+ * @param x Output pointer for X coordinate (can be NULL)
+ * @param y Output pointer for Y coordinate (can be NULL)
+ * @param z Output pointer for Z coordinate (can be NULL)
+ * @return Data pointer associated with current element, or NULL if at end
+ */
 void *kd_res_item3f(struct kdres *rset, float *x, float *y, float *z)
 {
     if (rset->riter)
@@ -767,11 +1081,34 @@ void *kd_res_item3f(struct kdres *rset, float *x, float *y, float *z)
     return 0;
 }
 
+/**
+ * @brief Returns data pointer of current result element
+ *
+ * Equivalent to kd_res_item(set, NULL)
+ *
+ * @param set Result set
+ * @return Data pointer, or NULL if at end
+ */
 void *kd_res_item_data(struct kdres *set) { return kd_res_item(set, 0); }
 
+/**
+ * @brief Returns distance from query point to current result element
+ *
+ * @param set Result set
+ * @return Euclidean distance (not squared)
+ */
 double kd_res_dist(struct kdres *set) { return sqrt(set->riter->dist_sq); }
 
 /* ---- hyperrectangle helpers ---- */
+
+/**
+ * @brief Creates a hyperrectangle with given bounds
+ *
+ * @param dim Dimensionality
+ * @param min Minimum coordinates (dim elements)
+ * @param max Maximum coordinates (dim elements)
+ * @return Pointer to new hyperrectangle, or NULL on allocation failure
+ */
 static struct kdhyperrect *hyperrect_create(int dim, const double *min,
                                             const double *max)
 {
@@ -801,6 +1138,11 @@ static struct kdhyperrect *hyperrect_create(int dim, const double *min,
     return rect;
 }
 
+/**
+ * @brief Frees a hyperrectangle
+ *
+ * @param rect Hyperrectangle to free
+ */
 static void hyperrect_free(struct kdhyperrect *rect)
 {
     free(rect->min);
@@ -808,11 +1150,25 @@ static void hyperrect_free(struct kdhyperrect *rect)
     free(rect);
 }
 
+/**
+ * @brief Duplicates a hyperrectangle
+ *
+ * @param rect Hyperrectangle to duplicate
+ * @return Pointer to new copy, or NULL on allocation failure
+ */
 static struct kdhyperrect *hyperrect_duplicate(const struct kdhyperrect *rect)
 {
     return hyperrect_create(rect->dim, rect->min, rect->max);
 }
 
+/**
+ * @brief Extends hyperrectangle to include given point
+ *
+ * Updates min/max bounds to ensure point is contained.
+ *
+ * @param rect Hyperrectangle to extend
+ * @param pos Point coordinates (rect->dim elements)
+ */
 static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
 {
     int i;
@@ -830,6 +1186,20 @@ static void hyperrect_extend(struct kdhyperrect *rect, const double *pos)
     }
 }
 
+/**
+ * @brief Computes squared distance from point to hyperrectangle
+ *
+ * Returns 0 if point is inside or on boundary of hyperrectangle.
+ * Otherwise returns sum of squared distances along each axis where
+ * point is outside bounds.
+ *
+ * Distance formula:
+ * d^2 = sum_i [max(0, min_i - pos_i)]^2 + [max(0, pos_i - max_i)]^2
+ *
+ * @param rect Hyperrectangle
+ * @param pos Point coordinates (rect->dim elements)
+ * @return Squared distance to nearest point on hyperrectangle
+ */
 static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos)
 {
     int i;
@@ -852,9 +1222,18 @@ static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos)
 
 /* ---- static helpers ---- */
 
-/* special list node allocators. */
+/**
+ * @brief Static pool of free result nodes for reuse
+ */
 static struct res_node *free_nodes;
 
+/**
+ * @brief Allocates a result node from pool or heap
+ *
+ * Uses object pool pattern to reduce allocation overhead.
+ *
+ * @return Pointer to result node, or NULL on allocation failure
+ */
 static struct res_node *alloc_resnode(void)
 {
     struct res_node *node;
@@ -873,12 +1252,22 @@ static struct res_node *alloc_resnode(void)
     return node;
 }
 
+/**
+ * @brief Returns result node to pool for reuse
+ *
+ * @param node Result node to free
+ */
 static void free_resnode(struct res_node *node)
 {
     node->next = free_nodes;
     free_nodes = node;
 }
 
+/**
+ * @brief Frees all nodes in the result node pool
+ *
+ * Should be called at program termination to avoid memory leaks.
+ */
 static void free_resnode_buffer()
 {
     if (free_nodes)
@@ -894,8 +1283,19 @@ static void free_resnode_buffer()
     }
 }
 
-/* inserts the item. if dist_sq is >= 0, then do an ordered insert */
-/* TODO make the ordering code use heapsort */
+/**
+ * @brief Inserts item into sorted result list
+ *
+ * If dist_sq >= 0, maintains sorted order by distance.
+ * If dist_sq < 0, performs unsorted insertion at head.
+ *
+ * @param list Result list (head sentinel node)
+ * @param item k-d tree node to insert
+ * @param dist_sq Squared distance (-1.0 for unsorted insertion)
+ * @return 0 on success, -1 on allocation failure
+ *
+ * @note TODO: Use heap sort for better performance with large result sets
+ */
 static int rlist_insert(struct res_node *list, struct kdnode *item,
                         double dist_sq)
 {
@@ -920,6 +1320,14 @@ static int rlist_insert(struct res_node *list, struct kdnode *item,
     return 0;
 }
 
+/**
+ * @brief Removes and returns last element from result list
+ *
+ * @param list Result list (head sentinel node)
+ * @return Previous-to-last node (new tail), or NULL if list empty
+ *
+ * @note The removed node is returned to the pool via free_resnode
+ */
 static struct res_node *rlist_pop_back(struct res_node *list)
 {
     struct res_node *previous = 0;
@@ -936,6 +1344,13 @@ static struct res_node *rlist_pop_back(struct res_node *list)
     return previous;
 }
 
+/**
+ * @brief Clears all elements from result list
+ *
+ * Returns all nodes to pool except the head sentinel.
+ *
+ * @param rset Result set containing list to clear
+ */
 static void clear_results(struct kdres *rset)
 {
     struct res_node *tmp, *node = rset->rlist->next;
