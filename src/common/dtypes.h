@@ -113,15 +113,15 @@ struct Lattice
     ND_int fft_dims[3];          /**< FFT grid dimensions [nx, ny, nz] */
     ND_int nfftz_loc;            /**< Number of FFT z-vectors on this MPI rank */
     ND_int nfftz_loc_shift;      /**< Global index of first FFT z-vector on this rank */
-    ELPH_float alat_vec[9];      /**< Lattice vectors in Cartesian (row-major: a₁,a₂,a₃) */
+    ELPH_float alat_vec[9];      /**< Lattice vectors in Cartesian (row-major: [a₁,a₂,a₃]), each column represents a lattice vector */
     ELPH_float blat_vec[9];      /**< Reciprocal lattice vectors (includes 2π) */
-    ELPH_float volume;           /**< Unit cell volume: \f$ V = \det(\mathbf{a}) \f$ */
-    ELPH_float* atomic_pos;      /**< Atomic positions in Cartesian coords (natom×3) */
-    int* atom_type;              /**< Atom type indices (natom) */
-    ELPH_float* kpt_iredBZ;      /**< k-points in irreducible BZ (Cartesian, nkpts_iBZ×3) */
-    ELPH_float* kpt_fullBZ;      /**< k-points in full BZ (Cartesian, nkpts_BZ×3) */
-    ELPH_float* kpt_fullBZ_crys; /**< k-points in full BZ (crystal coords, nkpts_BZ×3) */
-    int* kmap;                   /**< Map full BZ to iBZ: (nkpts_BZ×2) → [iBZ_idx, sym_idx] */
+    ELPH_float volume;           /**< Unit cell volume: \f$ V = |\det(\mathbf{a})| \f$ */
+    ELPH_float* atomic_pos;      /**< Atomic positions in Cartesian coords (natom,3) */
+    int* atom_type;              /**< Atom type indices for each atom (natom) */
+    ELPH_float* kpt_iredBZ;      /**< k-points in irreducible BZ in Cartesian units (nkpts_iBZ,3) */
+    ELPH_float* kpt_fullBZ;      /**< k-points in full BZ in Cartesian units, (nkpts_BZ,3) */
+    ELPH_float* kpt_fullBZ_crys; /**< k-points in full BZ in crystal coords, (nkpts_BZ,3) */
+    int* kmap;                   /**< Map full BZ to iBZ: (nkpts_BZ,2) → [iBZ_idx, sym_idx] */
     struct symmetry* syms;       /**< Array of symmetry operations (nsym) */
     bool is_soc_present;         /**< True if spin-orbit coupling is present */
 };
@@ -140,14 +140,14 @@ struct Phonon
     ND_int nq_iBZ_loc;           /**< Number of q-points on this q-pool */
     ND_int nq_shift;             /**< Global q-index offset: [nq_shift, nq_shift+nq_iBZ_loc) */
     ND_int nph_sym;              /**< Number of phonon symmetries */
-    ELPH_float* qpts_iBZ;        /**< q-points in iBZ (crystal units, nq_iBZ×3) */
-    ELPH_float* qpts_BZ;         /**< q-points in full BZ (crystal units, nq_BZ×3) */
+    ELPH_float* qpts_iBZ;        /**< q-points in iBZ in crystal units, (nq_iBZ,3) */
+    ELPH_float* qpts_BZ;         /**< q-points in full BZ in crystal units, (nq_BZ,3) */
     struct symmetry* ph_syms;    /**< Phonon symmetry operations (nph_sym) */
-    int* qmap;                   /**< Map full BZ to iBZ: (nq_BZ×2) → [iBZ_idx, sym_idx] */
+    int* qmap;                   /**< Map full BZ to iBZ: (nq_BZ,2) → [iBZ_idx, sym_idx] */
     ND_int* nqstar;              /**< Number of q-points in each star (nq_iBZ) */
-    ELPH_float* epsilon;         /**< Dielectric tensor ε∞ (3×3), NULL if not available */
-    ELPH_float* Zborn;           /**< Born effective charges Z* (natom×3×3), NULL if not available */
-    ELPH_float* Qpole;           /**< Quadrupole tensor (natom×3×3×3), currently unused (NULL) */
+    ELPH_float* epsilon;         /**< Dielectric tensor ε∞ (3,3), NULL if not available */
+    ELPH_float* Zborn;           /**< Born effective charges Z* (natom,3,3), NULL if not available */
+    ELPH_float* Qpole;           /**< Quadrupole tensor (natom,3,3,3), currently unused (NULL) */
 };
 
 /**
@@ -163,8 +163,8 @@ struct Vloc_table
     ND_int npts_co;        /**< Number of points in interpolation table */
     ELPH_float* g_co;      /**< |G| grid points (coarse grid, npts_co) */
     ELPH_float dg;         /**< Spacing between grid points: Δ|G| */
-    ELPH_float* vlocg;     /**< V(G) on coarse grid (ntype×npts_co) */
-    ELPH_float* vploc_co;  /**< dV/d|G| on coarse grid (ntype×npts_co) */
+    ELPH_float* vlocg;     /**< V(G) on coarse grid (ntype,npts_co)  */
+    ELPH_float* vploc_co;  /**< dV/d|G| on coarse grid (ntype,npts_co) */
 };
 
 /**
@@ -184,16 +184,17 @@ struct local_pseudo
  * @struct Pseudo
  * @brief Complete pseudopotential information
  * 
- * Contains both local and non-local (Kleinman-Bylander) parts of the
+ * Contains local potential and some non-local (Kleinman-Bylander) components of the
  * pseudopotential for all atom types.
  */
 struct Pseudo
 {
     struct local_pseudo* loc_pseudo; /**< Local pseudopotential data (ntype) */
-    ELPH_float* PP_table;            /**< PP table from Yambo format (nltimesj×ntype×3) */
-    ELPH_float* Fsign;               /**< Sign of KB coefficients (nlj_max×ntype) */
+    ELPH_float* PP_table;            /**< PP table from Yambo format (nltimesj,natom_types,3) (l+1,2j,pp_spin), pp_spin =
+    // 1 ? */
+    ELPH_float* Fsign;               /**< Sign of KB coefficients (nlj_max, ntype) */
     ELPH_cmplx** fCoeff;             /**< KB form factors per Eq.9 of PRB 71, 115106 (2005)
-                                          (ntype)[array of (spin×spin×(2l+1)×(2l+1))] */
+                                          (natom_types,l*j) length array of (spin, spin, 2l+1, 2l+1) */
     struct Vloc_table vloc_table[1]; /**< Interpolation table for local potential */
     ND_int nltimesj;                 /**< Maximum number of projectors (n×j) */
     ND_int ngrid_max;                /**< Maximum radial grid size: max(len(r_grid)) */
@@ -205,14 +206,13 @@ struct Pseudo
  * @struct WFC
  * @brief Wavefunction data in reciprocal space
  * 
- * Stores wavefunctions and associated plane-wave coefficients for k-points
- * in the irreducible Brillouin zone.
+ * Stores wavefunctions and associated plane-wave coefficients for each k-point
  */
 struct WFC
 {
-    ELPH_cmplx* wfc;    /**< Wavefunction coefficients (nspin×nbnd×nspinor×npw_loc) */
-    ELPH_float* gvec;   /**< G-vectors (Cartesian, no 2π, npw_loc×3) */
-    ELPH_float* Fk;     /**< Kleinman-Bylander factors in k-space (nltimesj×ntype×npw_loc)
+    ELPH_cmplx* wfc;    /**< Wavefunction coefficients (nspin,nbnd,nspinor,npw_loc) */
+    ELPH_float* gvec;   /**< G-vectors in Cartesian coordinates with no 2π, (npw_loc,3) */
+    ELPH_float* Fk;     /**< Kleinman-Bylander factors in k-space (nltimesj, ntype, npw_loc)
                              Fₖ in Eq.6 of ABINIT pseudopotential theory docs */
     ND_int npw_total;   /**< Total number of G-vectors for this wavefunction */
     ND_int npw_loc;     /**< Number of G-vectors on this MPI rank */
