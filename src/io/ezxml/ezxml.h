@@ -1,4 +1,10 @@
-/* ezxml.h
+/**
+ * @file
+ * @brief Lightweight XML parsing library
+ *
+ * ezxml is a C library for parsing XML documents. It provides a simple
+ * DOM-like interface for reading, manipulating, and writing XML data.
+ * The parser modifies the input string in-place for efficiency.
  *
  * Copyright 2004-2006 Aaron Voisine <aaron@voisine.org>
  *
@@ -34,124 +40,329 @@ extern "C"
 {
 #endif
 
-#define EZXML_BUFSIZE 1024  // size of internal memory buffers
-#define EZXML_NAMEM 0x80    // name is malloced
-#define EZXML_TXTM 0x40     // txt is malloced
-#define EZXML_DUP 0x20      // attribute name and value are strduped
+/**
+ * @def EZXML_BUFSIZE
+ * @brief Size of internal memory buffers for reallocation
+ */
+#define EZXML_BUFSIZE 1024
 
+/**
+ * @def EZXML_NAMEM
+ * @brief Flag: tag name is malloc'ed and must be freed
+ */
+#define EZXML_NAMEM 0x80
+
+/**
+ * @def EZXML_TXTM
+ * @brief Flag: text content is malloc'ed and must be freed
+ */
+#define EZXML_TXTM 0x40
+
+/**
+ * @def EZXML_DUP
+ * @brief Flag: attribute name and value are strdup'ed
+ */
+#define EZXML_DUP 0x20
+
+    /**
+     * @typedef ezxml_t
+     * @brief Pointer to an ezxml structure
+     */
     typedef struct ezxml* ezxml_t;
+
+    /**
+     * @struct ezxml
+     * @brief XML element node structure
+     *
+     * Represents a single XML element with its attributes, text content,
+     * and relationships to other elements in the document tree.
+     */
     struct ezxml
     {
-        char* name;    // tag name
-        char** attr;   // tag attributes { name, value, name, value, ... NULL }
-        char* txt;     // tag character content, empty string if none
-        size_t off;    // tag offset from start of parent tag character content
-        ezxml_t next;  // next tag with same name in this section at this depth
-        ezxml_t
-            sibling;  // next tag with different name in same section and depth
-        ezxml_t ordered;  // next tag, same section and depth, in original order
-        ezxml_t child;    // head of sub tag list, NULL if none
-        ezxml_t parent;   // parent tag, NULL if current tag is root tag
-        short flags;      // additional information
+        char* name;  /**< Tag name */
+        char** attr; /**< Tag attributes as array: name, value, name, value,
+                        ..., NULL */
+        char* txt;   /**< Tag character content (empty string if none) */
+        size_t off;  /**< Offset from start of parent tag's character content */
+        ezxml_t next;    /**< Next tag with same name at same depth */
+        ezxml_t sibling; /**< Next tag with different name at same depth */
+        ezxml_t ordered; /**< Next tag at same depth in document order */
+        ezxml_t child;  /**< First child tag (one level deeper), NULL if none */
+        ezxml_t parent; /**< Parent tag, NULL if this is root */
+        short flags;    /**< Memory management flags (EZXML_NAMEM, EZXML_TXTM,
+                           EZXML_DUP) */
     };
 
-    // Given a string of xml data and its length, parses it and creates an ezxml
-    // structure. For efficiency, modifies the data by adding null terminators
-    // and decoding ampersand sequences. If you don't want this, copy the data
-    // and pass in the copy. Returns NULL on failure.
+    /**
+     * @brief Parses an XML string and creates an ezxml structure
+     *
+     * For efficiency, modifies the input string by adding null terminators
+     * and decoding ampersand sequences. If you don't want the input modified,
+     * pass a copy.
+     *
+     * @param s XML string to parse (will be modified in-place)
+     * @param len Length of XML string
+     * @return Root element of parsed XML tree, or NULL on failure
+     *
+     * @note The input string is modified during parsing
+     * @note Use ezxml_error() to retrieve error messages on failure
+     */
     ezxml_t ezxml_parse_str(char* s, size_t len);
 
-    // Wrapper for ezxml_parse_str() that accepts a file stream. Reads the
-    // entire stream into memory and then parses it. For xml files, use
-    // ezxml_parse_file() or ezxml_parse_fd()
+    /**
+     * @brief Parses XML from a file stream
+     *
+     * Reads entire stream into memory and parses it. Wrapper for
+     * ezxml_parse_str().
+     *
+     * @param fp File stream to read from
+     * @return Root element of parsed XML tree, or NULL on failure
+     *
+     * @note For XML files, consider using ezxml_parse_file() or
+     * ezxml_parse_fd()
+     */
     ezxml_t ezxml_parse_fp(FILE* fp);
 
-    // returns the first child tag (one level deeper) with the given name or
-    // NULL if not found
+    /**
+     * @brief Returns first child tag with given name
+     *
+     * @param xml Parent element
+     * @param name Tag name to search for
+     * @return First child with matching name, or NULL if not found
+     */
     ezxml_t ezxml_child(ezxml_t xml, const char* name);
 
-// returns the next tag of the same name in the same section and depth or NULL
-// if not found
+/**
+ * @def ezxml_next(xml)
+ * @brief Returns next tag with same name at same depth
+ *
+ * @param xml Current element
+ * @return Next sibling with same tag name, or NULL if none
+ */
 #define ezxml_next(xml) ((xml) ? xml->next : NULL)
 
-    // Returns the Nth tag with the same name in the same section at the same
-    // depth or NULL if not found. An index of 0 returns the tag given.
+    /**
+     * @brief Returns Nth tag with same name at same depth
+     *
+     * @param xml Starting element
+     * @param idx Index (0 returns xml itself, 1 returns next, etc.)
+     * @return Nth element with same name, or NULL if not found
+     */
     ezxml_t ezxml_idx(ezxml_t xml, int idx);
 
-// returns the name of the given tag
+/**
+ * @def ezxml_name(xml)
+ * @brief Returns tag name of given element
+ *
+ * @param xml Element
+ * @return Tag name, or NULL if xml is NULL
+ */
 #define ezxml_name(xml) ((xml) ? xml->name : NULL)
 
-// returns the given tag's character content or empty string if none
+/**
+ * @def ezxml_txt(xml)
+ * @brief Returns text content of given element
+ *
+ * @param xml Element
+ * @return Text content, or empty string if none
+ */
 #define ezxml_txt(xml) ((xml) ? xml->txt : "")
 
-    // returns the value of the requested tag attribute, or NULL if not found
+    /**
+     * @brief Returns value of requested tag attribute
+     *
+     * @param xml Element to query
+     * @param attr Attribute name
+     * @return Attribute value, or NULL if not found
+     */
     const char* ezxml_attr(ezxml_t xml, const char* attr);
 
-    // Traverses the ezxml sturcture to retrieve a specific subtag. Takes a
-    // variable length list of tag names and indexes. The argument list must be
-    // terminated by either an index of -1 or an empty string tag name. Example:
-    // title = ezxml_get(library, "shelf", 0, "book", 2, "title", -1);
-    // This retrieves the title of the 3rd book on the 1st shelf of library.
-    // Returns NULL if not found.
+    /**
+     * @brief Traverses XML tree to retrieve specific subtag
+     *
+     * Takes variable-length list of tag names and indices. Argument list
+     * must be terminated by either index -1 or empty string tag name.
+     *
+     * Example:
+     * @code
+     * title = ezxml_get(library, "shelf", 0, "book", 2, "title", -1);
+     * @endcode
+     * This retrieves title of 3rd book on 1st shelf of library.
+     *
+     * @param xml Starting element
+     * @param ... Variable arguments: tag name (const char*), index (int), ...
+     * @return Found element, or NULL if not found
+     */
     ezxml_t ezxml_get(ezxml_t xml, ...);
 
-    // Converts an ezxml structure back to xml. Returns a string of xml data
-    // that must be freed.
+    /**
+     * @brief Converts ezxml structure back to XML string
+     *
+     * @param xml Root element to convert
+     * @return XML string that must be freed by caller
+     */
     char* ezxml_toxml(ezxml_t xml);
 
-    // returns a NULL terminated array of processing instructions for the given
-    // target
+    /**
+     * @brief Returns processing instructions for given target
+     *
+     * @param xml Element (typically root)
+     * @param target PI target name
+     * @return NULL-terminated array of PI strings
+     */
     const char** ezxml_pi(ezxml_t xml, const char* target);
 
-    // frees the memory allocated for an ezxml structure
+    /**
+     * @brief Frees memory allocated for ezxml structure
+     *
+     * Recursively frees element and all its children.
+     *
+     * @param xml Element to free
+     */
     void ezxml_free(ezxml_t xml);
 
-    // returns parser error message or empty string if none
+    /**
+     * @brief Returns parser error message
+     *
+     * @param xml Any element from parsed tree
+     * @return Error message, or empty string if no error
+     */
     const char* ezxml_error(ezxml_t xml);
 
-    // returns a new empty ezxml structure with the given root tag name
+    /**
+     * @brief Creates new empty ezxml structure with given root tag name
+     *
+     * @param name Root tag name (not copied - must remain valid)
+     * @return New root element
+     */
     ezxml_t ezxml_new(const char* name);
 
-// wrapper for ezxml_new() that strdup()s name
+/**
+ * @def ezxml_new_d(name)
+ * @brief Wrapper for ezxml_new() that strdup's name
+ *
+ * @param name Root tag name (will be duplicated)
+ * @return New root element with duplicated name
+ */
 #define ezxml_new_d(name) ezxml_set_flag(ezxml_new(strdup(name)), EZXML_NAMEM)
 
-    // Adds a child tag. off is the offset of the child tag relative to the
-    // start of the parent tag's character content. Returns the child tag.
+    /**
+     * @brief Adds child tag to element
+     *
+     * @param xml Parent element
+     * @param name Child tag name (not copied - must remain valid)
+     * @param off Offset from start of parent's character content
+     * @return Newly created child element
+     */
     ezxml_t ezxml_add_child(ezxml_t xml, const char* name, size_t off);
 
-// wrapper for ezxml_add_child() that strdup()s name
+/**
+ * @def ezxml_add_child_d(xml, name, off)
+ * @brief Wrapper for ezxml_add_child() that strdup's name
+ *
+ * @param xml Parent element
+ * @param name Child tag name (will be duplicated)
+ * @param off Offset from start of parent's character content
+ * @return Newly created child element with duplicated name
+ */
 #define ezxml_add_child_d(xml, name, off) \
     ezxml_set_flag(ezxml_add_child(xml, strdup(name), off), EZXML_NAMEM)
 
-    // sets the character content for the given tag and returns the tag
+    /**
+     * @brief Sets character content for given tag
+     *
+     * @param xml Element
+     * @param txt Text content (not copied - must remain valid)
+     * @return The element (xml parameter)
+     */
     ezxml_t ezxml_set_txt(ezxml_t xml, const char* txt);
 
-// wrapper for ezxml_set_txt() that strdup()s txt
+/**
+ * @def ezxml_set_txt_d(xml, txt)
+ * @brief Wrapper for ezxml_set_txt() that strdup's txt
+ *
+ * @param xml Element
+ * @param txt Text content (will be duplicated)
+ * @return The element with duplicated text
+ */
 #define ezxml_set_txt_d(xml, txt) \
     ezxml_set_flag(ezxml_set_txt(xml, strdup(txt)), EZXML_TXTM)
 
-    // Sets the given tag attribute or adds a new attribute if not found. A
-    // value of NULL will remove the specified attribute. Returns the tag given.
+    /**
+     * @brief Sets or adds tag attribute
+     *
+     * If attribute exists, updates its value. If not found, adds new attribute.
+     * A value of NULL removes the attribute.
+     *
+     * @param xml Element
+     * @param name Attribute name (not copied - must remain valid)
+     * @param value Attribute value (not copied), or NULL to remove attribute
+     * @return The element (xml parameter)
+     */
     ezxml_t ezxml_set_attr(ezxml_t xml, const char* name, const char* value);
 
-// Wrapper for ezxml_set_attr() that strdup()s name/value. Value cannot be NULL
+/**
+ * @def ezxml_set_attr_d(xml, name, value)
+ * @brief Wrapper for ezxml_set_attr() that strdup's name and value
+ *
+ * @param xml Element
+ * @param name Attribute name (will be duplicated)
+ * @param value Attribute value (will be duplicated, cannot be NULL)
+ * @return The element with duplicated attribute
+ */
 #define ezxml_set_attr_d(xml, name, value) \
     ezxml_set_attr(ezxml_set_flag(xml, EZXML_DUP), strdup(name), strdup(value))
 
-    // sets a flag for the given tag and returns the tag
+    /**
+     * @brief Sets flag for given tag
+     *
+     * @param xml Element
+     * @param flag Flag value (EZXML_NAMEM, EZXML_TXTM, or EZXML_DUP)
+     * @return The element (xml parameter)
+     */
     ezxml_t ezxml_set_flag(ezxml_t xml, short flag);
 
-    // removes a tag along with its subtags without freeing its memory
+    /**
+     * @brief Removes tag and its subtags without freeing memory
+     *
+     * Detaches element from tree structure but does not free it.
+     *
+     * @param xml Element to remove
+     * @return The removed element (xml parameter)
+     */
     ezxml_t ezxml_cut(ezxml_t xml);
 
-    // inserts an existing tag into an ezxml structure
+    /**
+     * @brief Inserts existing tag into ezxml structure
+     *
+     * @param xml Element to insert
+     * @param dest Destination parent element
+     * @param off Offset from start of dest's character content
+     * @return The inserted element (xml parameter)
+     */
     ezxml_t ezxml_insert(ezxml_t xml, ezxml_t dest, size_t off);
 
-// Moves an existing tag to become a subtag of dest at the given offset from
-// the start of dest's character content. Returns the moved tag.
+/**
+ * @def ezxml_move(xml, dest, off)
+ * @brief Moves existing tag to become subtag of dest
+ *
+ * Combines ezxml_cut() and ezxml_insert().
+ *
+ * @param xml Element to move
+ * @param dest Destination parent element
+ * @param off Offset from start of dest's character content
+ * @return The moved element
+ */
 #define ezxml_move(xml, dest, off) ezxml_insert(ezxml_cut(xml), dest, off)
 
-// removes a tag along with all its subtags
+/**
+ * @def ezxml_remove(xml)
+ * @brief Removes tag and all its subtags, freeing memory
+ *
+ * Combines ezxml_cut() and ezxml_free().
+ *
+ * @param xml Element to remove and free
+ */
 #define ezxml_remove(xml) ezxml_free(ezxml_cut(xml))
 
 #ifdef __cplusplus
