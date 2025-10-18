@@ -1,7 +1,7 @@
 /**
  * @file numerical_func.c
  * @brief BLAS wrapper functions for matrix operations
- * 
+ *
  * Provides simplified wrappers around CBLAS matrix multiplication routines
  * (GEMM) with automatic precision selection and overflow checking.
  * Supports both real and complex matrix operations.
@@ -9,6 +9,7 @@
 
 #define CBLAS_INT int
 #include <limits.h>
+
 #include "cblas.h"
 #include "elphC.h"
 #include "error.h"
@@ -54,20 +55,22 @@ static enum CBLAS_TRANSPOSE get_gemmn_T(char Trans);
 
 /**
  * @brief Complex matrix multiplication wrapper (ZGEMM/CGEMM)
- * 
+ *
  * Computes the matrix operation:
  * \f$ C = \alpha \cdot \text{op}(A) \cdot \text{op}(B) + \beta \cdot C \f$
- * 
+ *
  * where \f$ \text{op}(X) \f$ can be \f$ X \f$, \f$ X^T \f$, or \f$ X^H \f$
  * (identity, transpose, or conjugate transpose).
- * 
+ *
  * Matrix dimensions after applying operations:
  * - \f$ \text{op}(A) \f$: \f$ m \times k \f$
  * - \f$ \text{op}(B) \f$: \f$ k \times n \f$
  * - \f$ C \f$: \f$ m \times n \f$
- * 
- * @param TransA Operation on matrix A: 'N' (none), 'T' (transpose), 'C' (conjugate transpose)
- * @param TransB Operation on matrix B: 'N' (none), 'T' (transpose), 'C' (conjugate transpose)
+ *
+ * @param TransA Operation on matrix A: 'N' (none), 'T' (transpose), 'C'
+ * (conjugate transpose)
+ * @param TransB Operation on matrix B: 'N' (none), 'T' (transpose), 'C'
+ * (conjugate transpose)
  * @param arr_A Pointer to matrix A (row-major order)
  * @param arr_B Pointer to matrix B (row-major order)
  * @param arr_C Pointer to matrix C (row-major order, input/output)
@@ -79,8 +82,9 @@ static enum CBLAS_TRANSPOSE get_gemmn_T(char Trans);
  * @param m Number of rows in op(A) and C
  * @param n Number of columns in op(B) and C
  * @param k Number of columns in op(A) and rows in op(B)
- * 
- * @note All dimension parameters are checked for overflow before passing to BLAS
+ *
+ * @note All dimension parameters are checked for overflow before passing to
+ * BLAS
  * @note Uses row-major storage order (C-style arrays)
  */
 void matmul_cmplx(const char TransA, const char TransB, const ELPH_cmplx* arr_A,
@@ -102,18 +106,18 @@ void matmul_cmplx(const char TransA, const char TransB, const ELPH_cmplx* arr_A,
 
 /**
  * @brief Real matrix multiplication wrapper (DGEMM/SGEMM)
- * 
+ *
  * Computes the matrix operation:
  * \f$ C = \alpha \cdot \text{op}(A) \cdot \text{op}(B) + \beta \cdot C \f$
- * 
+ *
  * where \f$ \text{op}(X) \f$ can be \f$ X \f$ or \f$ X^T \f$
  * (identity or transpose).
- * 
+ *
  * Matrix dimensions after applying operations:
  * - \f$ \text{op}(A) \f$: \f$ m \times k \f$
  * - \f$ \text{op}(B) \f$: \f$ k \times n \f$
  * - \f$ C \f$: \f$ m \times n \f$
- * 
+ *
  * @param TransA Operation on matrix A: 'N' (none) or 'T' (transpose)
  * @param TransB Operation on matrix B: 'N' (none) or 'T' (transpose)
  * @param arr_A Pointer to matrix A (row-major order)
@@ -127,8 +131,9 @@ void matmul_cmplx(const char TransA, const char TransB, const ELPH_cmplx* arr_A,
  * @param m Number of rows in op(A) and C
  * @param n Number of columns in op(B) and C
  * @param k Number of columns in op(A) and rows in op(B)
- * 
- * @note All dimension parameters are checked for overflow before passing to BLAS
+ *
+ * @note All dimension parameters are checked for overflow before passing to
+ * BLAS
  * @note Uses row-major storage order (C-style arrays)
  */
 void matmul_float(const char TransA, const char TransB, const ELPH_float* arr_A,
@@ -149,10 +154,11 @@ void matmul_float(const char TransA, const char TransB, const ELPH_float* arr_A,
 
 /**
  * @brief Converts character transpose flag to CBLAS enumeration
- * 
- * @param Trans Character flag: 'N' (no transpose), 'T' (transpose), 'C' (conjugate transpose)
+ *
+ * @param Trans Character flag: 'N' (no transpose), 'T' (transpose), 'C'
+ * (conjugate transpose)
  * @return enum CBLAS_TRANSPOSE Corresponding CBLAS transpose operation
- * 
+ *
  * @note Calls error_msg() and returns CblasNoTrans for invalid input
  */
 static enum CBLAS_TRANSPOSE get_gemmn_T(char Trans)

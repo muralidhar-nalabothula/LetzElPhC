@@ -1,16 +1,18 @@
 /**
  * @file ELPH_timers.c
  * @brief Wall-clock timing utilities for performance profiling
- * 
+ *
  * Implements a timer system using MPI_Wtime() for measuring execution times
  * of different code sections. Timers are identified by string keys and can
  * be started/stopped multiple times (accumulating total time and count).
  */
 
 #include "ELPH_timers.h"
+
 #include <mpi.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "common/ELPH_hash_map/ELPH_hmap.h"
 
 /**
@@ -19,8 +21,8 @@
  */
 struct ELPH_timer
 {
-    double Wtime;  /**< Accumulated wall-clock time in seconds */
-    size_t count;  /**< Number of times this timer has been stopped */
+    double Wtime; /**< Accumulated wall-clock time in seconds */
+    size_t count; /**< Number of times this timer has been stopped */
 };
 
 /**
@@ -36,10 +38,10 @@ static map_timer_t timer_map;
 
 /**
  * @brief Initializes the global timer system
- * 
+ *
  * Must be called before using any other timer functions. Also automatically
  * starts the "Total time" timer to track overall program execution.
- * 
+ *
  * @note This function should be called once at program initialization
  */
 void init_ELPH_clocks(void)
@@ -50,14 +52,14 @@ void init_ELPH_clocks(void)
 
 /**
  * @brief Starts or restarts a named timer
- * 
+ *
  * If the timer doesn't exist, creates it. If it already exists, records
  * the current time to resume accumulating from the previous total.
  * The implementation stores a negative timestamp to enable accumulation:
  * \f$ t_{stored} = -(t_{current} - t_{previous}) \f$
- * 
+ *
  * @param str Name/identifier for the timer (must not be NULL)
- * 
+ *
  * @note Safe to call multiple times for the same timer
  * @note Does nothing if str is NULL
  */
@@ -84,15 +86,15 @@ void ELPH_start_clock(const char *str)
 
 /**
  * @brief Stops a named timer and accumulates elapsed time
- * 
+ *
  * Computes elapsed time since the corresponding start call and adds it to
  * the timer's accumulated total. Also increments the call count.
  * The elapsed time is computed as:
  * \f$ t_{elapsed} = t_{stop} + t_{stored} \f$
  * where \f$ t_{stored} \f$ is the negative value from start_clock.
- * 
+ *
  * @param str Name/identifier for the timer (must not be NULL)
- * 
+ *
  * @note Does nothing if str is NULL or timer doesn't exist
  * @note Must be preceded by a corresponding ELPH_start_clock() call
  */
@@ -122,29 +124,26 @@ void ELPH_stop_clock(const char *str)
 
 /**
  * @brief Cleans up and deallocates all timer resources
- * 
+ *
  * Frees all memory used by the timer system. No timer functions should
  * be called after this.
- * 
+ *
  * @note Should be called at program termination
  */
-void cleanup_ELPH_clocks(void)
-{
-    map_deinit(&timer_map);
-}
+void cleanup_ELPH_clocks(void) { map_deinit(&timer_map); }
 
 /**
  * @brief Prints formatted summary of all timers to stdout
- * 
+ *
  * Automatically stops the "Total time" timer before printing.
  * Displays all timers except "Total time" in a formatted table showing
  * accumulated wall time and call counts, followed by the total execution time.
- * 
+ *
  * Output format:
  * - Function name (left-aligned, 20 chars)
  * - Wall time in seconds (12.4f format)
  * - Call count (8 digits)
- * 
+ *
  * @note Should typically be called once before program termination
  */
 void print_ELPH_clock_summary(void)

@@ -1,7 +1,7 @@
 /**
  * @file elphC.h
  * @brief Core type definitions and configuration for the ELPH library
- * 
+ *
  * This header defines the fundamental data types used throughout the ELPH
  * library, including floating-point precision selection and MPI type mappings.
  * It enforces C99 standard compliance and complex number support.
@@ -21,7 +21,7 @@
 /**
  * @typedef ND_int
  * @brief Standard integer type for array dimensions and indices
- * 
+ *
  * Defined as a 64-bit signed integer to support large array dimensions
  */
 typedef long long int ND_int;
@@ -36,13 +36,15 @@ typedef long long int ND_int;
 #if defined(COMPILE_ELPH_DOUBLE)
 /**
  * @typedef ELPH_float
- * @brief Floating-point type (double precision when COMPILE_ELPH_DOUBLE is defined)
+ * @brief Floating-point type (double precision when COMPILE_ELPH_DOUBLE is
+ * defined)
  */
 typedef double ELPH_float;
 
 /**
  * @typedef ELPH_cmplx
- * @brief Complex number type (double precision when COMPILE_ELPH_DOUBLE is defined)
+ * @brief Complex number type (double precision when COMPILE_ELPH_DOUBLE is
+ * defined)
  */
 typedef double _Complex ELPH_cmplx;
 
