@@ -110,7 +110,7 @@ struct Lattice
     char dimension;     /**< '1','2','3' for 1D/2D/3D (for Coulomb cutoff) */
     ND_int nmag;        /**< Magnetic components: 1 (none or non-magnetic
                            non-collinear), 2 (LSDA), 4 (magnetic non-collinear) */
-    ND_int nmodes;      /**< Number of phonon modes (3×natom) */
+    ND_int nmodes;      /**< Number of phonon modes (3 * natom) */
     ND_int nkpts_iBZ;   /**< Number of k-points in irreducible BZ */
     ND_int nkpts_BZ;    /**< Number of k-points in full BZ */
     ND_int npw_max;     /**< Maximum plane waves in spherical grid for all
@@ -120,7 +120,7 @@ struct Lattice
     ND_int
         nfftz_loc_shift; /**< Global index of first FFT z-vector on this rank */
     ELPH_float
-        alat_vec[9]; /**< Lattice vectors in Cartesian (row-major: [a₁,a₂,a₃]),
+        alat_vec[9]; /**< Lattice vectors in Cartesian (row-major: [a1,a2,a3]),
                         each column represents a lattice vector */
     ELPH_float blat_vec[9]; /**< Reciprocal lattice vectors (includes 2π) */
     ELPH_float volume; /**< Unit cell volume: \f$ V = |\det(\mathbf{a})| \f$ */
@@ -133,7 +133,7 @@ struct Lattice
         kpt_fullBZ; /**< k-points in full BZ in Cartesian units, (nkpts_BZ,3) */
     ELPH_float* kpt_fullBZ_crys; /**< k-points in full BZ in crystal coords,
                                     (nkpts_BZ,3) */
-    int* kmap; /**< Map full BZ to iBZ: (nkpts_BZ,2) → [iBZ_idx, sym_idx] */
+    int* kmap; /**< Map full BZ to iBZ: (nkpts_BZ,2) -> [iBZ_idx, sym_idx] */
     struct symmetry* syms; /**< Array of symmetry operations (nsym) */
     bool is_soc_present;   /**< True if spin-orbit coupling is present */
 };
@@ -156,12 +156,12 @@ struct Phonon
     ELPH_float* qpts_iBZ; /**< q-points in iBZ in crystal units, (nq_iBZ,3) */
     ELPH_float* qpts_BZ; /**< q-points in full BZ in crystal units, (nq_BZ,3) */
     struct symmetry* ph_syms; /**< Phonon symmetry operations (nph_sym) */
-    int* qmap;      /**< Map full BZ to iBZ: (nq_BZ,2) → [iBZ_idx, sym_idx] */
+    int* qmap;      /**< Map full BZ to iBZ: (nq_BZ,2) -> [iBZ_idx, sym_idx] */
     ND_int* nqstar; /**< Number of q-points in each star (nq_iBZ) */
-    ELPH_float*
-        epsilon;       /**< Dielectric tensor ε∞ (3,3), NULL if not available */
-    ELPH_float* Zborn; /**< Born effective charges Z* (natom,3,3), NULL if not
-                          available */
+    ELPH_float* epsilon; /**< Dielectric tensor \f$\epsilion_\infty\f$ (3,3),
+                            NULL if not available */
+    ELPH_float* Zborn;   /**< Born effective charges Z* (natom,3,3), NULL if not
+                            available */
     ELPH_float*
         Qpole; /**< Quadrupole tensor (natom,3,3,3), currently unused (NULL) */
 };
@@ -176,7 +176,7 @@ struct Phonon
 struct Vloc_table
 {
     ELPH_float qmax_abs;  /**< Maximum absolute q-coordinate (crystal units):
-                             max(|qₓ|,|qᵧ|,|qᵤ|) */
+                             max(|qx|,|qy|,|qz|) */
     ND_int npts_co;       /**< Number of points in interpolation table */
     ELPH_float* g_co;     /**< |G| grid points (coarse grid, npts_co) */
     ELPH_float dg;        /**< Spacing between grid points: Δ|G| */
@@ -191,8 +191,8 @@ struct Vloc_table
 struct local_pseudo
 {
     ELPH_float* Vloc_atomic; /**< Local pseudopotential (ntype) */
-    ELPH_float* r_grid;      /**< Radial grid points r (ntype×ngrid) */
-    ELPH_float* rab_grid;    /**< Radial grid derivative dr/dξ (ntype×ngrid) */
+    ELPH_float* r_grid;      /**< Radial grid points r (ntype, ngrid) */
+    ELPH_float* rab_grid;    /**< Radial grid derivative dr/dξ (ntype, ngrid) */
     ND_int ngrid;            /**< Number of radial grid points */
     ELPH_float Zval;         /**< Number of valence electrons */
 };
