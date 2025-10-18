@@ -58,20 +58,19 @@ struct ELPH_fft_plan
     ND_int fft_dims[3]; /**< FFT grid dimensions (Nx, Ny, Nz) */
     ND_int nzloc;       /**< Number of local z elements on this MPI rank */
     ND_int align_len;   /**< SIMD alignment length */
-    const int* gvecs;   /**< Local G-vectors (not owned, do not free) */
+    const int* gvecs;   /**< Local G-vectors  */
     ND_int ngvecs_loc;  /**< Number of local G-vectors */
     ND_int nGxyloc;     /**< Number of local G-vectors in xy plane */
     ND_int nGxy;        /**< Total number of G-vectors in xy plane */
     bool* gx_inGvecs; /**< Boolean array (Nx): true if gx is present in gvecs */
-    int*
-        Gxy_total; /**< All xy G-vector components (nGxy,2), indices in [0,N) */
-    int* ngxy_z;   /**< Number of z components for each (gx,gy) pair */
-    int* comm_bufs; /**< Communication buffers for MPI_Alltoallv (4,comm_size)
-                       arrays: 0: gxy_counts - G-vectors per rank times nzloc 1:
-                       xy_disp - Starting index of gxy for each rank times nzloc
-                         2: z_counts - Nz elements per rank times nGxy_loc
-                         3: z_disp - Starting z index for each rank times
-                       nGxy_loc */
+    int* Gxy_total;   /**< All xy G-vector components (nGxy,2) */
+    int* ngxy_z;      /**< Number of z components for each (gx,gy) pair */
+    int* comm_bufs;   /**< Communication buffers for MPI_Alltoallv (4,comm_size)
+                         arrays: 0: gxy_counts - G-vectors per rank times nzloc 1:
+                         xy_disp - Starting index of gxy for each rank times nzloc
+                           2: z_counts - Nz elements per rank times nGxy_loc
+                           3: z_disp - Starting z index for each rank times
+                         nGxy_loc */
 
     /* Forward transform plans (real-space to reciprocal space) */
     fftw_generic_plan*
