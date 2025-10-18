@@ -1,6 +1,12 @@
-/*
-This file contains function which distributes cpus
-*/
+/**
+ * @file
+ * @brief MPI process distribution and communicator management
+ *
+ * Implements functions for distributing work among MPI processes and
+ * creating hierarchical communicator topology for q-pool and k-pool
+ * parallelization schemes.
+ */
+
 #include "parallel.h"
 
 #include <mpi.h>
@@ -10,7 +16,28 @@ This file contains function which distributes cpus
 #include "elphC.h"
 #include "error.h"
 
-/*get block size and starting idx of dimension that is distrbuted amoung cpus*/
+/**
+ * @brief Computes local size and starting index for distributed dimension
+ *
+ * Distributes n elements among MPI processes in a communicator using
+ * a balanced distribution scheme. Assigns extra elements to lower-ranked
+ * processes when n is not evenly divisible.
+ *
+ * Distribution formula:
+ * - Base size per process: q = floor(n / size)
+ * - Remainder: r = n mod size
+ * - Processes 0 to r-1 get (q+1) elements
+ * - Processes r to size-1 get q elements
+ *
+ * Starting index for rank i:
+ * - If i < r: start = i * (q+1) = q*i + i
+ * - If i >= r: start = q*i + r
+ *
+ * @param n Total number of elements to distribute
+ * @param start_idx Output pointer for starting index (can be NULL)
+ * @param Comm MPI communicator
+ * @return Number of elements assigned to calling process
+ */
 ND_int get_mpi_local_size_idx(const ND_int n, ND_int* start_idx, MPI_Comm Comm)
 {
     int my_rank, total_size;
@@ -45,14 +72,21 @@ ND_int get_mpi_local_size_idx(const ND_int n, ND_int* start_idx, MPI_Comm Comm)
     return n_this_cpu;
 }
 
+/**
+ * @brief Distributes elements among groups and computes offset
+ *
+ * Similar to get_mpi_local_size_idx but for generic group distribution
+ * without MPI communication. Used for distributing k/q points among pools.
+ *
+ * @param n Total number of elements to distribute
+ * @param ngrp Total number of groups
+ * @param igrp Group index (0 to ngrp-1)
+ * @param shift Output pointer for starting index/shift
+ * @return Number of elements assigned to group igrp
+ */
 ND_int distribute_to_grps(const ND_int n, const ND_int ngrp, const ND_int igrp,
                           ND_int* shift)
 {
-    /*
-    This function is used to distribute k/q points between  n groups
-    return k/q for each group, and the shift
-    */
-
     ND_int n_q = n / ngrp;
     ND_int n_r = n % ngrp;
 
@@ -75,15 +109,31 @@ ND_int distribute_to_grps(const ND_int n, const ND_int ngrp, const ND_int igrp,
     return n_this_grp;
 }
 
-/* allocate comms */
+/**
+ * @brief Creates hierarchical MPI communicator topology
+ *
+ * Establishes a two-level parallelization hierarchy:
+ * - Level 1: Q-pools (nqpools groups)
+ * - Level 2: K-pools within each Q-pool (nkpools groups)
+ *
+ * Creates five communicators:
+ * - commQ: Processes within same q-pool
+ * - commK: Processes within same k-pool
+ * - commR: Processes with same k-pool rank across all q-pools
+ * - commRq: Processes with same k-pool rank within a q-pool
+ *
+ * @param nqpools Number of q-point pools
+ * @param nkpools Number of k-point pools per q-pool
+ * @param MPI_world_comm Global MPI communicator (typically MPI_COMM_WORLD)
+ * @param Comm Output structure to store all communicators and metadata
+ *
+ * @note Total processes must be divisible by (nqpools * nkpools)
+ * @note The key parameter in MPI_Comm_split preserves original rank ordering
+ */
 void create_parallel_comms(const int nqpools, const int nkpools,
                            const MPI_Comm MPI_world_comm,
                            struct ELPH_MPI_Comms* Comm)
 {
-    /*
-    !! Warning : Order of arrangement of cpus is very important. the key given
-    to comm_split must be the rank of world comm
-    */
     int mpi_error;
     // first set the basic things
     Comm->commW = MPI_world_comm;
@@ -161,7 +211,14 @@ void create_parallel_comms(const int nqpools, const int nkpools,
     }
 }
 
-/* free allocated comms */
+/**
+ * @brief Frees all allocated MPI communicators
+ *
+ * Releases communicators created by create_parallel_comms.
+ * Does not free commW as it is not owned by this structure.
+ *
+ * @param Comm Communicator structure to clean up
+ */
 void free_parallel_comms(struct ELPH_MPI_Comms* Comm)
 {
     int mpi_error;
