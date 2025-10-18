@@ -81,10 +81,10 @@ struct ELPH_fft_plan
 
     /* Backward transform plans (reciprocal space to real-space) */
     fftw_generic_plan*
-        bplan_x; /**< Array of FFT plans for x direction (align_len plans) */
+        bplan_x; /**< Array of invFFT plans for x direction (align_len plans) */
     fftw_generic_plan*
-        bplan_y; /**< Array of FFT plans for y direction (align_len plans) */
-    fftw_generic_plan bplan_z; /**< FFT plan for z direction */
+        bplan_y; /**< Array of invFFT plans for y direction (align_len plans) */
+    fftw_generic_plan bplan_z; /**< invFFT plan for z direction */
 
     /* Convolution plans */
     fftw_generic_plan* cplan_x; /**< Array of FFT plans for x in convolutions
