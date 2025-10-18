@@ -1,15 +1,40 @@
+/**
+ * @file
+ * @brief Cubic spline interpolation functions
+ *
+ * Implements cubic spline interpolation with not-a-knot boundary conditions.
+ * Uses tridiagonal matrix solver (Thomas algorithm) for O(N) computation.
+ *
+ * Reference: https://en.wikipedia.org/wiki/Spline_interpolation
+ */
+
 #include <stdlib.h>
 
 #include "elphC.h"
 #include "error.h"
 #include "numerical_func.h"
-/*
-This file contains functions related to cublic spline interpolation
-https://en.wikipedia.org/wiki/Spline_interpolation
-*/
 
-// int xin_xmp(const void* a, const void* b);
-
+/**
+ * @brief Performs cubic spline interpolation at given point
+ *
+ * Evaluates the cubic spline at position x using precomputed second
+ * derivatives. Uses Hermite interpolation formula:
+ *
+ * S(x) = (1-t)*y_i + t*y_{i+1} + t(1-t)*[(1-t)*a + t*b]
+ *
+ * where:
+ * - t = (x - x_i) / (x_{i+1} - x_i)
+ * - a = y''_i * h - (y_{i+1} - y_i)
+ * - b = -y''_{i+1} * h + (y_{i+1} - y_i)
+ * - h = x_{i+1} - x_i
+ *
+ * @param x Point at which to interpolate
+ * @param inear Index of nearest grid point (should satisfy x_i <= x <= x_{i+1})
+ * @param xi Array of x coordinates (grid points)
+ * @param yi Array of y values at grid points
+ * @param dy Array of second derivatives (from prepare_spline)
+ * @return Interpolated value at x
+ */
 ELPH_float spline_interpolate(const ELPH_float x, ND_int inear,
                               const ELPH_float* xi, const ELPH_float* yi,
                               const ELPH_float* dy)
@@ -23,14 +48,34 @@ ELPH_float spline_interpolate(const ELPH_float x, ND_int inear,
            tx * (1 - tx) * ((1 - tx) * ax + tx * bx);
 }
 
+/**
+ * @brief Prepares cubic spline by computing second derivatives
+ *
+ * Solves tridiagonal system to find second derivatives at each point
+ * using not-a-knot boundary conditions. These boundary conditions enforce
+ * continuity of the third derivative at the second and second-to-last points.
+ *
+ * The natural cubic spline satisfies:
+ * S''_i * h_{i-1} + 2*S''_{i-1}*(h_i + h_{i-1}) + S''_{i+1}*h_i =
+ *     3*(s_{i-1}*h_i + s_i*h_{i-1})
+ *
+ * where h_i = x_{i+1} - x_i and s_i = (y_{i+1} - y_i) / h_i
+ *
+ * Not-a-knot boundary conditions:
+ * - At left: S'''(x_1-) = S'''(x_1+)
+ * - At right: S'''(x_{n-2}-) = S'''(x_{n-2}+)
+ *
+ * @param nvals Number of data points
+ * @param xin Array of x coordinates (nvals, should be sorted)
+ * @param yin Array of y values at grid points (nvals)
+ * @param dy Output array for second derivatives (nvals)
+ *
+ * @note Uses Thomas algorithm (forward sweep + back substitution) for O(N)
+ * solve
+ */
 void prepare_spline(const ND_int nvals, ELPH_float* xin, ELPH_float* yin,
                     ELPH_float* dy)
 {
-    /*
-    Compute the derivate for given tabulated data.
-    This solves tridiagonal equation with not-a-knot bcs O(N)
-    */
-
     /* first allocate a buffer required for scratch space*/
     ELPH_float* buf = malloc(sizeof(ELPH_float) * 4 * nvals);
     CHECK_ALLOC(buf);

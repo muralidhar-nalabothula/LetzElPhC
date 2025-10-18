@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Information printing utilities for calculation parameters
+ *
+ * Provides functions to print formatted information about calculation
+ * configuration, lattice structure, phonon data, and parallelization
+ * settings to stdout. All output is restricted to rank 0.
+ */
+
 #include "print_info.h"
 
 #include <math.h>
@@ -12,6 +21,16 @@
 
 #include "dtypes.h"
 
+/**
+ * @brief Prints formatted message from rank 0 only
+ *
+ * Variadic printf-style function that outputs to stdout with automatic
+ * newline and flush. Non-zero ranks silently return without printing.
+ *
+ * @param mpi_rank MPI rank of calling process
+ * @param fmt Printf-style format string
+ * @param ... Variable arguments for format string
+ */
 void print_info_msg(int mpi_rank, const char* fmt, ...)
 {
     if (mpi_rank)
@@ -26,6 +45,20 @@ void print_info_msg(int mpi_rank, const char* fmt, ...)
     fflush(stdout);
 }
 
+/**
+ * @brief Prints input configuration and parallelization information
+ *
+ * Displays basic calculation setup including DFT code, directory paths,
+ * screening kernel, scattering convention, and MPI/OpenMP parallelization
+ * details.
+ *
+ * @param save_dir Path to DFT save directory
+ * @param ph_save_dir Path to phonon save directory
+ * @param kernel Screening kernel description string
+ * @param kminusq Scattering convention: true for k-q->k, false for k->k+q
+ * @param dft_code DFT code identifier
+ * @param Comm MPI communicator structure
+ */
 void print_input_info(const char* save_dir, const char* ph_save_dir,
                       const char* kernel, const bool kminusq,
                       const enum ELPH_dft_code dft_code,
@@ -86,6 +119,17 @@ void print_input_info(const char* save_dir, const char* ph_save_dir,
 #endif
 }
 
+/**
+ * @brief Prints lattice and electronic structure information
+ *
+ * Displays crystal structure details including atomic composition,
+ * spin/spinor configuration, dimensionality, spin-orbit coupling,
+ * magnetic properties, k-point sampling, symmetries, FFT grid, and
+ * band range for electron-phonon calculation.
+ *
+ * @param Comm MPI communicator structure
+ * @param lattice Lattice structure containing system information
+ */
 void print_lattice_info(const struct ELPH_MPI_Comms* Comm,
                         const struct Lattice* lattice)
 {
@@ -157,6 +201,15 @@ void print_lattice_info(const struct ELPH_MPI_Comms* Comm,
                    (int)lattice->start_band, (int)lattice->end_band);
 }
 
+/**
+ * @brief Prints phonon structure information
+ *
+ * Displays phonon q-point sampling, symmetries, and time-reversal
+ * symmetry presence for phonons.
+ *
+ * @param Comm MPI communicator structure
+ * @param phonon Phonon structure containing phonon data
+ */
 void print_phonon_info(const struct ELPH_MPI_Comms* Comm,
                        const struct Phonon* phonon)
 {
