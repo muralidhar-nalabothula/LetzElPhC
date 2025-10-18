@@ -1,5 +1,10 @@
-/* This is a routine to perform 3D FFT convolution of potential and wavefunction
-    i.e FFT(V(r)*psi(r)). */
+/**
+ * @file
+ * @brief 3D FFT convolution of potential and wavefunction in real space
+ *
+ * This file implements 3D FFT convolution computing FFT(V(r)*psi(r)) where
+ * V(r) is a potential and psi(r) is a wavefunction in real space.
+ */
 
 #include <complex.h>
 #include <fftw3.h>
@@ -10,28 +15,45 @@
 #include "elphC.h"
 #include "fft.h"
 
+/**
+ * @brief Performs 3D FFT convolution of potential and wavefunction
+ *
+ * Computes the Fourier transform of the product V(r)*psi(r) where V(r) is
+ * a potential and psi(r) is a wavefunction. The algorithm proceeds as:
+ *
+ * a) Compute V(r)*psi(r) and perform FFT along X and Y directions
+ *    - For nmag = 1 or 2: element-wise multiplication "i,si=>si"
+ *    - For nmag = 4: spinor contraction "rsxyz,sxyz->rxyz"
+ *
+ * b) Scatter (Gx,Gy) components to different MPI ranks for parallel FFT along Z
+ *
+ * c) Perform FFT along Z direction
+ *
+ * d) Extract sphere of G-vectors from FFT box
+ *
+ * @param[in,out] plan FFT plan containing buffers, dimensions, and FFTW plans
+ * @param[in] nspinor Number of spinor components (1 or 2)
+ * @param[in] nmag Number of magnetic/spinor components (1, 2, or 4)
+ *                 - nmag=1: non-magnetic or collinear with nspinor=1
+ *                 - nmag=2: LSDA (two spin channels)
+ *                 - nmag=4: non-collinear with nspinor=2
+ * @param[in] Vpotr Potential in real space
+ *                  - Shape: (nmag, Nx, Ny, nzloc) for nmag=1,2
+ *                  - Shape: (2, 2, Nx, Ny, nzloc) for nmag=4
+ * @param[in] psir Wavefunction in real space, shape: (nspinor, Nx, Ny, nzloc)
+ * @param[out] wfcG Output in G-space, shape: (nspinor, ngvecs_loc)
+ * @param[in] conjugate If true, conjugate the output
+ *
+ * @note For nspinor=1, nmag is forced to 1
+ * @note For nmag=2 (LSDA), two separate V(r) exist for each spin, treated as
+ * nmag=1
+ * @note For nmag=4, requires nspinor=2 (non-collinear magnetism)
+ */
 void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
                        ND_int nmag, const ELPH_cmplx* Vpotr,
                        const ELPH_cmplx* psir, ELPH_cmplx* wfcG,
                        const bool conjugate)
 {
-    /*
-    Note: if conjugate is true, then the output of convolution is conjugated.
-
-    a) FFt along X for V(r)*psi(r) followed by fft along z
-
-    if nmag = 1 or 2, "i,si=>si"
-    if nmag = 4, "rsxyz,sxyz->rxyz"
-
-    b) scatter Gx,Gy to different cpus to perform fft along x and y.
-        *Note that we use scatter instead of alltoallv so that some FFTs
-        can be computed while being communicating
-
-    c) Perform FFT along Z
-
-    d) box to sphere
-    */
-
     // basic checks
     if (nspinor == 1)
     {
@@ -49,10 +71,6 @@ void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
     {
         error_msg("nspinor must be <= 2.");
     }
-    /*
-    In case of nmag  = 2 (i.e lsda), we have two V(r) for each spin component.
-    so this can be treated as nmag = 1 case
-    */
 
     // first some basic stuff
     ND_int Nx = plan->fft_dims[0];
@@ -103,7 +121,7 @@ void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
             if (ispinor == 1)
             {
                 dV_r = Vpotr + 2 * fft_buf_size;
-            }  // [1,2],[3,4]
+            }
 
             for (ND_int iy = 0; iy < Ny; ++iy)
             {
@@ -137,8 +155,7 @@ void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
             {
                 continue;
             }
-            ELPH_cmplx* wfcr_tmp_y =
-                plan->fft_data + ix * Ny_stride;  //(Gx,Ny,Nz_log)
+            ELPH_cmplx* wfcr_tmp_y = plan->fft_data + ix * Ny_stride;
             ND_int iax = fftw_fun(alignment_of)((void*)wfcr_tmp_y);
             iax /= sizeof(ELPH_cmplx);
             fftw_fun(execute_dft)(plan->fplan_y[iax], wfcr_tmp_y, wfcr_tmp_y);
@@ -156,7 +173,7 @@ void fft_convolution3D(struct ELPH_fft_plan* plan, const ND_int nspinor,
                    sizeof(ELPH_cmplx) * plan->nzloc);
         }
         // b) (ii)  transpose the data
-        fwd_transpose(plan);  // nz_buf has (NGxy_loc,Nz)
+        fwd_transpose(plan);
 
         // c) perform fft along z
         fftw_fun(execute)(plan->fplan_z);

@@ -1,6 +1,11 @@
-/*
-This is a routine to perform 3D FFT in parallel
-*/
+/**
+ * @file
+ * @brief Parallel forward 3D FFT from real space to G-space
+ *
+ * This file implements parallel forward FFT transforms converting wavefunctions
+ * from real space to reciprocal (G-space).
+ */
+
 #include <complex.h>
 #include <fftw3.h>
 #include <stdbool.h>
@@ -10,44 +15,44 @@ This is a routine to perform 3D FFT in parallel
 #include "elphC.h"
 #include "fft.h"
 
+/**
+ * @brief Performs parallel forward 3D FFT from real space to G-space
+ *
+ * Transforms wavefunctions from real space grid to reciprocal space
+ * (G-vectors). The algorithm proceeds as:
+ *
+ * a) FFT along X and Y directions to get (Gx, Gy, Nz_loc)
+ * b) Scatter (Gx,Gy) pairs to different MPI ranks for parallel FFT along Z
+ * c) FFT along Z direction
+ * d) Extract G-vectors from FFT box (box to sphere)
+ *
+ * The output is normalized by \f$ \frac{1}{N_x N_y N_z} \f$.
+ *
+ * @param[in,out] plan FFT plan containing buffers, dimensions, and FFTW plans
+ * @param[in] nsets Number of wavefunctions to transform
+ * @param[in] wfcr Input wavefunctions in real space, shape: (nsets, Nx, Ny,
+ * nzloc)
+ * @param[out] wfcG Output wavefunctions in G-space, shape: (nsets, ngvecs_loc)
+ * @param[in] conjugate If true, conjugate the output
+ */
 void fft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcr,
            ELPH_cmplx* wfcG, const bool conjugate)
 {
-    /*
-    Note: if conjugate is true, then the output of FFT is conjugated
-
-    a) FFT along xy and  (Nx,Ny,Nz_loc)-> (Gx, Gy, Nz_loc)
-
-    b) scatter Gx,Gy to different cpus to perform fft along x and y.
-        *Note that we use scatter instead of alltoallv so that some FFTs
-        can be computed while being communicating
-
-    c) Perform FFT along Z
-
-    d) box to sphere
-    */
-
     ND_int Nx = plan->fft_dims[0];
     ND_int Ny = plan->fft_dims[1];
     ND_int Nz = plan->fft_dims[2];
-
     ELPH_float norm = Nx * Ny * Nz;
     norm = 1.0 / norm;
-
     ND_int Ny_stride = plan->nzloc * Ny;
-
     ND_int fft_buf_size = Nx * Ny * plan->nzloc;
-
     for (ND_int iset = 0; iset < nsets; ++iset)
     {
         ELPH_cmplx* wfcr_tmp = wfcr + iset * fft_buf_size;
         ELPH_cmplx* wfcG_tmp = wfcG + iset * plan->ngvecs_loc;
-
         ND_int ia = fftw_fun(alignment_of)((void*)wfcr_tmp);
         ia /= sizeof(ELPH_cmplx);
         // a) (i) FFT along X
         fftw_fun(execute_dft)(plan->fplan_x[ia], wfcr_tmp, wfcr_tmp);
-
         // a) (ii) FFT along Y
         for (ND_int ix = 0; ix < plan->fft_dims[0]; ++ix)
         {
@@ -55,9 +60,7 @@ void fft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcr,
             {
                 continue;
             }
-
-            ELPH_cmplx* wfcr_tmp_y =
-                wfcr_tmp + ix * Ny_stride;  //(Gx,Ny,Nz_log)
+            ELPH_cmplx* wfcr_tmp_y = wfcr_tmp + ix * Ny_stride;
             ND_int iax = fftw_fun(alignment_of)((void*)wfcr_tmp_y);
             iax /= sizeof(ELPH_cmplx);
             fftw_fun(execute_dft)(plan->fplan_y[iax], wfcr_tmp_y, wfcr_tmp_y);
@@ -74,11 +77,9 @@ void fft3D(struct ELPH_fft_plan* plan, const ND_int nsets, ELPH_cmplx* wfcr,
                    sizeof(ELPH_cmplx) * plan->nzloc);
         }
         // b) (ii)  transpose the data
-        fwd_transpose(plan);  // nz_buf has (NGxy_loc,Nz)
-
+        fwd_transpose(plan);
         // c) perform fft along z
         fftw_fun(execute)(plan->fplan_z);
-
         // d) box to sphere
         ND_int igvec = 0;
         for (ND_int ixy = 0; ixy < plan->nGxyloc; ++ixy)

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief FFT plan creation and destruction for wavefunction transforms
+ *
+ * This file implements the creation and destruction of FFTW plans for
+ * parallel 3D FFT transforms of wavefunctions distributed across MPI ranks.
+ */
+
 #include <complex.h>
 #include <fftw3.h>
 #include <mpi.h>
@@ -9,10 +17,30 @@
 #include "elphC.h"
 #include "fft.h"
 
-/*
-Create plan creation function for FFTs
-*/
-
+/**
+ * @brief Creates FFT plans for parallel 3D wavefunction transforms
+ *
+ * Initializes all FFTW plans and communication buffers needed for parallel
+ * 3D FFT transforms. The wavefunctions are distributed in G-space by
+ * (Gx, Gy) pairs, and in real space by Z slices across MPI ranks.
+ *
+ * Creates multiple aligned plans for X and Y directions to handle different
+ * memory alignments, and a single plan for Z direction transforms.
+ *
+ * @param[out] plan FFT plan structure to initialize
+ * @param[in] ngvecs_loc Number of local G-vectors on this MPI rank
+ * @param[in] nzloc Number of local Z grid points on this MPI rank
+ * @param[in] nGxyloc Number of local (Gx,Gy) pairs on this MPI rank
+ * @param[in] gvecs Array of G-vectors, shape: (ngvecs_loc,3)
+ * @param[in] fft_dims FFT grid dimensions [Nx, Ny, Nz]
+ * @param[in] fft_flags FFTW planner flags (e.g., FFTW_MEASURE, FFTW_ESTIMATE)
+ * @param[in] comm MPI communicator for parallel FFT operations
+ *
+ * @note G-vectors must be sorted by (Gx, Gy) to group Z components together
+ * @note Negative G-vector components are wrapped: G < 0 becomes G + N
+ * @note Multiple aligned plans are created to handle SIMD alignment
+ * requirements
+ */
 void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
               const ND_int nzloc, const ND_int nGxyloc, const int* gvecs,
               const ND_int* fft_dims, unsigned fft_flags, MPI_Comm comm)
@@ -24,10 +52,6 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
 
     plan->comm_bufs = malloc(sizeof(int) * 4 * ncpus);
     CHECK_ALLOC(plan->comm_bufs);
-
-    /*
-    gxy_counts, xy_disp, z_counts, z_disp
-    */
 
     plan->nzloc = get_mpi_local_size_idx(fft_dims[2], NULL, comm);
     if (plan->nzloc != nzloc)
@@ -42,8 +66,7 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
     }
 
     plan->align_len = alignment_len();
-    size_fft_data += plan->align_len;  // we add alignment_len to make
-                                       // alignment_len plans for x and y
+    size_fft_data += plan->align_len;
 
     // alloc memory for fft_data and nz_buf;
     plan->fft_data = fftw_fun(malloc)(size_fft_data * sizeof(ELPH_cmplx));
@@ -52,17 +75,14 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
     plan->nz_buf = fftw_fun(malloc)(size_fft_data * sizeof(ELPH_cmplx));
     CHECK_ALLOC(plan->nz_buf);
 
-    memset(plan->fft_data, 0,
-           size_fft_data * sizeof(ELPH_cmplx));  // 0 the buffer
-    memset(plan->nz_buf, 0,
-           size_fft_data * sizeof(ELPH_cmplx));  // 0 the buffer
+    memset(plan->fft_data, 0, size_fft_data * sizeof(ELPH_cmplx));
+    memset(plan->nz_buf, 0, size_fft_data * sizeof(ELPH_cmplx));
 
     plan->comm = comm;
     plan->gvecs = gvecs;
     plan->nGxyloc = nGxyloc;
     plan->ngvecs_loc = ngvecs_loc;
 
-    // fft_dims Nx,Ny,Nz
     memcpy(plan->fft_dims, fft_dims, sizeof(ND_int) * 3);
 
     mpi_error = MPI_Allreduce(&nGxyloc, &(plan->nGxy), 1, ELPH_MPI_ND_INT,
@@ -74,7 +94,7 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
         error_msg("Wrong xy local dimensions to planner.");
     }
 
-    int* Gxy_loc = malloc(sizeof(int) * 2 * nGxyloc);  // local gxy (nGxyloc,2)
+    int* Gxy_loc = malloc(sizeof(int) * 2 * nGxyloc);
     CHECK_ALLOC(Gxy_loc);
 
     plan->Gxy_total = malloc(sizeof(int) * 2 * plan->nGxy);
@@ -195,23 +215,17 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
     // iii) create plan for along z only for set of (Gx,Gy) pairs
 
     // create plan buffers
-    // fftw_fun(plan) expands to fftwf_plan or fftw_plan
-
-    plan->fplan_x = malloc(sizeof(fftw_generic_plan) * 5 *
-                           plan->align_len);  // (naligment plans) for x
+    plan->fplan_x = malloc(sizeof(fftw_generic_plan) * 5 * plan->align_len);
     CHECK_ALLOC(plan->fplan_x);
 
-    plan->fplan_y = plan->fplan_x + plan->align_len;  // (naligment plans) for y
+    plan->fplan_y = plan->fplan_x + plan->align_len;
 
     /* backward plans G->r */
-    plan->bplan_x =
-        plan->fplan_x + 2 * plan->align_len;  // (naligment plans) for x
-    plan->bplan_y =
-        plan->fplan_x + 3 * plan->align_len;  // (naligment plans) for y
+    plan->bplan_x = plan->fplan_x + 2 * plan->align_len;
+    plan->bplan_y = plan->fplan_x + 3 * plan->align_len;
 
     /* convolution plan x */
-    plan->cplan_x =
-        plan->fplan_x + 4 * plan->align_len;  // (naligment plans) for x
+    plan->cplan_x = plan->fplan_x + 4 * plan->align_len;
 
     // i) create forward plan and bwd plan along X
     for (ND_int i = 0; i < plan->align_len; ++i)
@@ -250,7 +264,7 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
 
         ND_int ia = fftw_fun(alignment_of)((void*)tmp_fft_plan_ptr);
         ia /= sizeof(ELPH_cmplx);
-        //
+
         int nff_dimy = fft_dims[1];
         // (k, Nz_loc)
         plan->fplan_y[ia] = fftw_fun(plan_many_dft)(
@@ -272,7 +286,7 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
     }
 
     // iii) create a single z plan.
-    // forward plan->
+    // forward plan
     plan->fplan_z = fftw_fun(plan_many_dft)(
         1, (int[1]){fft_dims[2]}, nGxyloc, plan->nz_buf, NULL, 1, fft_dims[2],
         plan->nz_buf, NULL, 1, fft_dims[2], FFTW_FORWARD, fft_flags);
@@ -312,6 +326,14 @@ void wfc_plan(struct ELPH_fft_plan* plan, const ND_int ngvecs_loc,
     }
 }
 
+/**
+ * @brief Destroys FFT plan and frees all allocated resources
+ *
+ * Frees all FFTW plans, work buffers, and communication buffers allocated
+ * during plan creation.
+ *
+ * @param[in,out] plan FFT plan to destroy, can be NULL (no-op)
+ */
 void wfc_destroy_plan(struct ELPH_fft_plan* plan)
 {
     if (NULL == plan)
