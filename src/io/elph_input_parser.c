@@ -81,7 +81,7 @@ static int elph_input_handler(void* user, const char* section, const char* name,
                               const char* value)
 {
     // All the new inputs are added here.
-    // Note : Set the defaults in init_elph_usr_input.
+    // Note : Set the defaults in init_elph_usr_input function.
     struct elph_usr_input* inp = user;
 
     // check if value is just an empty string
