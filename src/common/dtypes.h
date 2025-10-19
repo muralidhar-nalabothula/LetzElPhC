@@ -304,7 +304,7 @@ struct ELPH_MPI_Comms
 };
 
 /* This struct contains all the input file details */
-struct usr_input
+struct elph_usr_input
 {
     // system varibles
     int nkpool;         // k point parallelization

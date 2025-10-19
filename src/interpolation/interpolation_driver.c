@@ -231,7 +231,7 @@ void interpolation_driver(const char* ELPH_input_file,
                              nmags_add_long_range, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
             // so multiply with e^iqr factor to make it q periodic.
-            // Before we make it lattice periodic, we must rotate the dvscfs
+            // Before we make it q periodic, we must rotate the dvscfs
         }
         ++iqpt_tmp;
         // we will remove the long range part of dynmats later

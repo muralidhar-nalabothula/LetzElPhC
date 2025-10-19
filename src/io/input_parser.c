@@ -12,18 +12,19 @@
 
 #define READ_STR_LEN 600
 
-static void Bcast_input_data(struct usr_input* input, int root, MPI_Comm comm);
+static void Bcast_input_data(struct elph_usr_input* input, int root,
+                             MPI_Comm comm);
 static int handler(void* user, const char* section, const char* name,
                    const char* value);
 
-// function to alloc, initiate usr_input
-void init_usr_input(struct usr_input** input)
+// function to alloc, initiate elph_usr_input
+void init_elph_usr_input(struct elph_usr_input** input)
 {
     // this function also sets defaults for the user input file
-    *input = malloc(sizeof(struct usr_input));
+    *input = malloc(sizeof(struct elph_usr_input));
     CHECK_ALLOC(*input);
 
-    struct usr_input* inp = *input;
+    struct elph_usr_input* inp = *input;
 
     inp->save_dir = calloc(READ_STR_LEN * 3, 1);
     CHECK_ALLOC(inp->save_dir);
@@ -42,14 +43,15 @@ void init_usr_input(struct usr_input** input)
     inp->kminusq = false;  // default is standard
 }
 
-// function to free usr_input struct data
-void free_usr_input(struct usr_input* input)
+// function to free elph_usr_input struct data
+void free_elph_usr_input(struct elph_usr_input* input)
 {
     free(input->save_dir);
     free(input);
 }
 
-static void Bcast_input_data(struct usr_input* input, int root, MPI_Comm comm)
+static void Bcast_input_data(struct elph_usr_input* input, int root,
+                             MPI_Comm comm)
 {
     int mpi_error;
 
@@ -78,7 +80,7 @@ static void Bcast_input_data(struct usr_input* input, int root, MPI_Comm comm)
 static int handler(void* user, const char* section, const char* name,
                    const char* value)
 {
-    struct usr_input* inp = user;
+    struct elph_usr_input* inp = user;
 
     // check if value is just an empty string
     size_t nospace_len = 0;
@@ -151,12 +153,12 @@ static int handler(void* user, const char* section, const char* name,
     return 1;
 }
 
-void read_input_file(const char* input_file, struct usr_input** input_data,
+void read_input_file(const char* input_file, struct elph_usr_input** input_data,
                      MPI_Comm MPI_world_comm)
 {
     // input_data must be free outside
 
-    init_usr_input(input_data);
+    init_elph_usr_input(input_data);
 
     int mpi_world_rank, mpi_error;
 

@@ -27,9 +27,9 @@ void free_save_data(struct WFC* wfcs, struct Lattice* lattice,
 void parse_upf(const char* filename, struct local_pseudo* loc_pseudo);
 void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval);
 
-void init_usr_input(struct usr_input** input);
-void free_usr_input(struct usr_input* input);
-void read_input_file(const char* input_file, struct usr_input** input_data,
+void init_elph_usr_input(struct elph_usr_input** input);
+void free_elph_usr_input(struct elph_usr_input* input);
+void read_input_file(const char* input_file, struct elph_usr_input** input_data,
                      MPI_Comm MPI_world_comm);
 
 //======= nc4 function

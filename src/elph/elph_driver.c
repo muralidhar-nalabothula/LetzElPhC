@@ -27,7 +27,7 @@ THe starting point for the entire code
 void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
                  MPI_Comm comm_world)
 {
-    struct usr_input* input_data;
+    struct elph_usr_input* input_data;
     // start the clocks
     init_ELPH_clocks();
     //
@@ -354,7 +354,7 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 
     // cleanup
     free(kernel);
-    free_usr_input(input_data);
+    free_elph_usr_input(input_data);
     free_save_data(wfcs, lattice, pseudo, phonon);
     free(lattice);
     free(pseudo);
