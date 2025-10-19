@@ -29,8 +29,9 @@ void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval);
 
 void init_elph_usr_input(struct elph_usr_input** input);
 void free_elph_usr_input(struct elph_usr_input* input);
-void read_input_file(const char* input_file, struct elph_usr_input** input_data,
-                     MPI_Comm MPI_world_comm);
+void read_elph_input_file(const char* input_file,
+                          struct elph_usr_input** input_data,
+                          MPI_Comm MPI_world_comm);
 
 //======= nc4 function
 void def_ncVar(const int ncid, int* varid, ND_int rank, nc_type xtype,

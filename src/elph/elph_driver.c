@@ -32,7 +32,7 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
     init_ELPH_clocks();
     //
     // read the input file
-    read_input_file(ELPH_input_file, &input_data, comm_world);
+    read_elph_input_file(ELPH_input_file, &input_data, comm_world);
     // Note input parameters are broadcasted internally
     // All the parameters in input_data must be available for all cpus in
     // comm_world

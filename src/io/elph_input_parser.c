@@ -12,10 +12,10 @@
 
 #define READ_STR_LEN 600
 
-static void Bcast_input_data(struct elph_usr_input* input, int root,
-                             MPI_Comm comm);
-static int handler(void* user, const char* section, const char* name,
-                   const char* value);
+static void Bcast_elph_input_data(struct elph_usr_input* input, int root,
+                                  MPI_Comm comm);
+static int elph_input_handler(void* user, const char* section, const char* name,
+                              const char* value);
 
 // function to alloc, initiate elph_usr_input
 void init_elph_usr_input(struct elph_usr_input** input)
@@ -50,8 +50,8 @@ void free_elph_usr_input(struct elph_usr_input* input)
     free(input);
 }
 
-static void Bcast_input_data(struct elph_usr_input* input, int root,
-                             MPI_Comm comm)
+static void Bcast_elph_input_data(struct elph_usr_input* input, int root,
+                                  MPI_Comm comm)
 {
     int mpi_error;
 
@@ -77,8 +77,8 @@ static void Bcast_input_data(struct elph_usr_input* input, int root,
     MPI_error_msg(mpi_error);
 }
 
-static int handler(void* user, const char* section, const char* name,
-                   const char* value)
+static int elph_input_handler(void* user, const char* section, const char* name,
+                              const char* value)
 {
     struct elph_usr_input* inp = user;
 
@@ -153,8 +153,9 @@ static int handler(void* user, const char* section, const char* name,
     return 1;
 }
 
-void read_input_file(const char* input_file, struct elph_usr_input** input_data,
-                     MPI_Comm MPI_world_comm)
+void read_elph_input_file(const char* input_file,
+                          struct elph_usr_input** input_data,
+                          MPI_Comm MPI_world_comm)
 {
     // input_data must be free outside
 
@@ -167,11 +168,11 @@ void read_input_file(const char* input_file, struct elph_usr_input** input_data,
 
     if (mpi_world_rank == 0)
     {
-        if (ini_parse(input_file, handler, *input_data) < 0)
+        if (ini_parse(input_file, elph_input_handler, *input_data) < 0)
         {
             error_msg("Cannot open input file.");
         }
     }
     // broad cast;
-    Bcast_input_data(*input_data, 0, MPI_world_comm);
+    Bcast_elph_input_data(*input_data, 0, MPI_world_comm);
 }
