@@ -80,6 +80,8 @@ static void Bcast_elph_input_data(struct elph_usr_input* input, int root,
 static int elph_input_handler(void* user, const char* section, const char* name,
                               const char* value)
 {
+    // All the new inputs are added here.
+    // please note that to set the defaults in init_elph_usr_input.
     struct elph_usr_input* inp = user;
 
     // check if value is just an empty string
@@ -99,6 +101,7 @@ static int elph_input_handler(void* user, const char* section, const char* name,
         error_msg("Invalid input");
     }
 
+    // add inputs from here. use else if
     if (strcmp(name, "nkpool") == 0)
     {
         inp->nkpool = atoi(value);
