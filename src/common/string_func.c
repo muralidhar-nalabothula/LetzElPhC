@@ -213,3 +213,88 @@ void str_replace_chars(char* str_in, const char* delimters,
         }
     }
 }
+
+static int my_strcasecmp(const char* a, const char* b)
+{
+    if (!a || !b)
+    {
+        return (a == b) ? 0 : -1;
+    }
+
+    while (*a && *b)
+    {
+        int diff = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+        if (diff != 0)
+        {
+            return diff;
+        }
+        a++;
+        b++;
+    }
+    return tolower((unsigned char)*a) - tolower((unsigned char)*b);
+}
+
+bool parse_bool_input(const char* str)
+{
+    if (!str)
+    {
+        return false;
+    }
+
+    const char* s = str;
+
+    // Skip leading whitespace
+    while (*s && isspace((unsigned char)*s))
+    {
+        s++;
+    }
+
+    // Empty string after trimming
+    if (*s == '\0')
+    {
+        return false;
+    }
+
+    // Check for Fortran-style logicals: .true. or .TRUE. or .false. or .FALSE.
+    if (*s == '.')
+    {
+        s++;  // Skip leading dot
+
+        // Check for .true. or .TRUE.
+        if ((strncmp(s, "true.", 5) == 0) || (strncmp(s, "TRUE.", 5) == 0))
+        {
+            return true;
+        }
+        // Check for .false. or .FALSE.
+        else if ((strncmp(s, "false.", 6) == 0) ||
+                 (strncmp(s, "FALSE.", 6) == 0))
+        {
+            return false;
+        }
+
+        error_msg(
+            ".true./true/yes/on/1 or .false./false/no/off/0 (case insensitive) "
+            "are only accepted.");
+        return false;
+    }
+
+    // Check for common true values (case-insensitive)
+    if (my_strcasecmp(s, "true") == 0 || my_strcasecmp(s, "yes") == 0 ||
+        my_strcasecmp(s, "on") == 0 || *s == '1')
+    {
+        return true;
+    }
+
+    // Check for common false values (case-insensitive)
+    else if (my_strcasecmp(s, "false") == 0 || my_strcasecmp(s, "no") == 0 ||
+             my_strcasecmp(s, "off") == 0 || *s == '0')
+    {
+        return false;
+    }
+
+    error_msg(
+        ".true./true/yes/on/1 or .false./false/no/off/0 (case insensitive) are "
+        "only accepted.");
+    // Default to false for unrecognized input
+    return false;
+}

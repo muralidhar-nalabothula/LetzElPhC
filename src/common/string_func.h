@@ -26,3 +26,6 @@ char* str_reverse_in_place(char* str);
 
 void str_replace_chars(char* str_in, const char* delimters,
                        const char* replace_chars);
+
+// given a string, returns bool
+bool parse_bool_input(const char* str);

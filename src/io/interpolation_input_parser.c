@@ -103,30 +103,6 @@ static void Bcast_interpolation_input_data(
     }
 }
 
-static bool parse_bool_input(const char* str)
-{
-    if (!str)
-    {
-        return false;
-    }
-    const char* s = str;
-    while (*s && isspace((unsigned char)*s))
-    {
-        s++;
-    }
-    while (*s && *s == '.')
-    {
-        s++;
-    }
-    int str_lower = tolower((unsigned char)(*s));
-    if (str_lower == 't' || *s == '1')
-    {
-        return true;
-    }
-    // in all cases, return false
-    return false;
-}
-
 static int interpolation_input_handler(void* user, const char* section,
                                        const char* name, const char* value)
 {
