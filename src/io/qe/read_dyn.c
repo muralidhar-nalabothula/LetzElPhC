@@ -88,8 +88,7 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
     fgets(read_buf, DYN_READ_BUF_SIZE, fp);
     fgets(read_buf, DYN_READ_BUF_SIZE, fp);
     fgets(read_buf, DYN_READ_BUF_SIZE, fp);  // this line has 9 floats
-    if (parser_doubles_from_string(read_buf, read_fbuf, DYN_FLOAT_BUF_SIZE) !=
-        9)
+    if (parse_floats_from_string(read_buf, read_fbuf, DYN_FLOAT_BUF_SIZE) != 9)
     {
         error_msg("Error reading line 3 in dyn file");
     }
@@ -135,8 +134,8 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
     for (ND_int i = 0; i < natom; ++i)
     {
         fgets(read_buf, DYN_READ_BUF_SIZE, fp);
-        if (parser_doubles_from_string(read_buf, read_fbuf,
-                                       DYN_FLOAT_BUF_SIZE) != 5)
+        if (parse_floats_from_string(read_buf, read_fbuf, DYN_FLOAT_BUF_SIZE) !=
+            5)
         {
             error_msg("Failed to read atomic masses from dyn file");
         }
@@ -187,7 +186,7 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
 
         ELPH_float* qpt_tmp = qpts + nq_found * 3;
 
-        if (parser_doubles_from_string(read_buf, qpt_tmp, 3) != 3)
+        if (parse_floats_from_string(read_buf, qpt_tmp, 3) != 3)
         {
             error_msg("error reading qpoint from dynamat files");
         }
@@ -220,8 +219,8 @@ static ND_int read_dyn_qe_old(FILE* fp, struct Lattice* lattice,
                 {
                     fgets(read_buf, DYN_READ_BUF_SIZE, fp);  // read dynmat
                     // get the values of dynamical matrix
-                    if (parser_doubles_from_string(read_buf, read_fbuf,
-                                                   DYN_FLOAT_BUF_SIZE) != 6)
+                    if (parse_floats_from_string(read_buf, read_fbuf,
+                                                 DYN_FLOAT_BUF_SIZE) != 6)
                     {
                         error_msg(
                             "error reading dynamical matrix from dynamat "
@@ -442,7 +441,7 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
             error_msg("Error reading q-point from XML");
         }
         const char* q_str = qpt_xml->txt;
-        if (parser_doubles_from_string(q_str, qpt_tmp, 3) != 3)
+        if (parse_floats_from_string(q_str, qpt_tmp, 3) != 3)
         {
             error_msg("Error reading q-point from XML");
         }
@@ -463,8 +462,8 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
                 const char* phi_str = dynr_xml->txt;
 
                 ELPH_float phi_vals[18];
-                if (parser_doubles_from_string(phi_str, phi_vals,
-                                               sizeof(phi_vals)) != 18)
+                if (parse_floats_from_string(phi_str, phi_vals,
+                                             sizeof(phi_vals)) != 18)
                 {
                     error_msg("Error reading dynamical matrix from XML");
                 }

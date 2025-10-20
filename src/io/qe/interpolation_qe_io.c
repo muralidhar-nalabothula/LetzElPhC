@@ -92,7 +92,7 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
             }
             tmp_xml_str = xml_tmp->txt;
             if (!tmp_xml_str ||
-                parser_doubles_from_string(tmp_xml_str, a_tmp_read, 3) != 3)
+                parse_floats_from_string(tmp_xml_str, a_tmp_read, 3) != 3)
             {
                 error_msg("Error parsing vector vec from data-file-schema.xml");
             }
@@ -226,8 +226,8 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
             *(*Zvals + ia) = Zval_type[itype];
 
             tmp_xml_str = xml_tmp->txt;
-            if (parser_doubles_from_string(
-                    tmp_xml_str, lattice->atomic_pos + 3 * ia, 3) != 3)
+            if (parse_floats_from_string(tmp_xml_str,
+                                         lattice->atomic_pos + 3 * ia, 3) != 3)
             {
                 error_msg("Error parsing atomic positions");
             }

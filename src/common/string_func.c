@@ -34,8 +34,8 @@ void lowercase_str(char* str)
     }
 }
 
-ND_int parser_doubles_from_string(const char* str, ELPH_float* out,
-                                  ND_int out_size)
+ND_int parse_floats_from_string(const char* str, ELPH_float* out,
+                                ND_int out_size)
 {
     /*
     Extract atmost out_size float values from given string
