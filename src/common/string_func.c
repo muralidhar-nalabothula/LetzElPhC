@@ -193,7 +193,7 @@ void str_replace_chars(char* str_in, const char* delimters,
 {
     ND_int ndelimters = strlen(delimters);
     // if  ndelimters != strlen(replace_chars) buffer overflow
-    if (ndelimters != strlen(replace_chars))
+    if (ndelimters != (ND_int)strlen(replace_chars))
     {
         error_msg("Number of delimiters not equal to replace_chars.");
         return;
