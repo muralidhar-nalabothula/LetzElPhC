@@ -96,11 +96,6 @@ static void Bcast_interpolation_input_data(
                   sizeof(input->qgrid_fine) / sizeof(input->qgrid_fine[0]),
                   ELPH_MPI_ND_INT, root, comm);
     MPI_error_msg(mpi_error);
-
-    if (strlen(input->qlist_file) == 0)
-    {
-        input->qlist_file = NULL;
-    }
 }
 
 static int interpolation_input_handler(void* user, const char* section,
