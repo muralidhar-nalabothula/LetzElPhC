@@ -462,8 +462,9 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
                 const char* phi_str = dynr_xml->txt;
 
                 ELPH_float phi_vals[18];
-                if (parse_floats_from_string(phi_str, phi_vals,
-                                             sizeof(phi_vals)) != 18)
+                if (parse_floats_from_string(
+                        phi_str, phi_vals,
+                        sizeof(phi_vals) / sizeof(phi_vals[0])) != 18)
                 {
                     error_msg("Error reading dynamical matrix from XML");
                 }

@@ -28,13 +28,12 @@ void interpolation_driver(const char* ELPH_input_file,
                           enum ELPH_dft_code dft_code, MPI_Comm comm_world)
 {
     //
-    /* ND_int LLLLLLLL[3] = {6, 6, 1}; */
-    /* const char* ph_save = "../MoS2_SOC_2D/ph_save"; */
-    /* const char* ph_save_interpolated = "../ph_interpolated"; */
-    ND_int LLLLLLLL[3] = {9, 9, 1};
-    const char* ph_save = "../MoS2_SOC_2D/ph_save";
-    const char* ph_save_interpolated = "../ph_interpolated";
-    const ND_int* qgrid_new = LLLLLLLL;
+    struct interpolation_usr_input* input_data;
+    read_interpolation_input_file(ELPH_input_file, &input_data, comm_world);
+    //
+    const char* ph_save = input_data->ph_save_dir;
+    const char* ph_save_interpolated = input_data->ph_save_interpolation_dir;
+    const ND_int* qgrid_new = input_data->qgrid_fine;
 
     init_ELPH_clocks();
 
@@ -57,7 +56,7 @@ void interpolation_driver(const char* ELPH_input_file,
     CHECK_ALLOC(phonon);
     init_phonon_type(phonon);
 
-    bool interpolate_dvscf = true;
+    bool interpolate_dvscf = input_data->interpolate_dvscf;
 
     ELPH_float* Zvals = NULL;
     ELPH_float alat_scale[3];
@@ -497,6 +496,8 @@ void interpolation_driver(const char* ELPH_input_file,
     free(Zvals);
     free(lattice->atomic_pos);
     free_phonon_data(phonon);
+    // free user input
+    free_interpolation_usr_input(input_data);
     //
     free(lattice);
     free(phonon);

@@ -235,6 +235,8 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
     // Zborn_k, born charges for atom k
     // zlat : lattice parameter along z parameter.
 
+    UNUSED_VAR(qz);
+
     if (!Zval && !Zborn_k && !Qpole_k)
     {
         return;

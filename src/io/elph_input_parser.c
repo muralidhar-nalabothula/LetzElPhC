@@ -80,6 +80,7 @@ static void Bcast_elph_input_data(struct elph_usr_input* input, int root,
 static int elph_input_handler(void* user, const char* section, const char* name,
                               const char* value)
 {
+    UNUSED_VAR(section);
     // All the new inputs are added here.
     // Note : Set the defaults in init_elph_usr_input function.
     struct elph_usr_input* inp = user;
@@ -150,7 +151,7 @@ static int elph_input_handler(void* user, const char* section, const char* name,
     }
     else
     {
-        error_msg("Invalid variable in input file.");
+        error_msg("Invalid variable in the elph input file.");
     }
 
     return 1;

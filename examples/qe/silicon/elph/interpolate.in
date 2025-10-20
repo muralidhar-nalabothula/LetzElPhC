@@ -1,0 +1,13 @@
+## input for interpolation of dynamical matrices and dvscfs
+ph_save_dir = 'ph_save'
+ph_save_interpolation_dir = 'ph_save_interpolation'
+asr = true # you can use .true., .True. .TRUE., 1, or false, False, FALSE, .FALSE., 0
+asr_kind = "simple"
+interpolate_dvscf = true
+loto = false
+loto_dir = 0.1 0.1 0
+nq1 = 1
+nq2 = 1
+nq3 = 1
+qlist_file = ""
+
