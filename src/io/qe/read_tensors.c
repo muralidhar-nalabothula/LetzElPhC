@@ -91,7 +91,7 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
 
         tmp_str = txml->txt;
 
-        if (parser_doubles_from_string(tmp_str, phonon->epsilon) != 9)
+        if (parser_doubles_from_string(tmp_str, phonon->epsilon, 9) != 9)
         {
             error_msg("Parsing epsilon failed");
         }
@@ -106,7 +106,8 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
             }
             tmp_str = txml->txt;
 
-            if (parser_doubles_from_string(tmp_str, phonon->Zborn) != 9 * natom)
+            if (parser_doubles_from_string(tmp_str, phonon->Zborn, 9 * natom) !=
+                9 * natom)
             {
                 error_msg("Parsing Born charges failed");
             }

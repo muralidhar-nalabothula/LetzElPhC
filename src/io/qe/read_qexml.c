@@ -174,7 +174,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         error_msg("Parsing a1 from data-file-schema.xml file");
     }
     tmp_str = xml_tmp->txt;
-    if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
+    if (parser_doubles_from_string(tmp_str, a_tmp_read, 3) != 3)
     {
         error_msg("Error parsing a1 vec from data-file-schema.xml");
     }
@@ -190,7 +190,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         error_msg("Parsing a2 from data-file-schema.xml file");
     }
     tmp_str = xml_tmp->txt;
-    if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
+    if (parser_doubles_from_string(tmp_str, a_tmp_read, 3) != 3)
     {
         error_msg("Error parsing a2 vec from data-file-schema.xml");
     }
@@ -206,7 +206,7 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
         error_msg("Parsing a3 from data-file-schema.xml file");
     }
     tmp_str = xml_tmp->txt;
-    if (parser_doubles_from_string(tmp_str, a_tmp_read) != 3)
+    if (parser_doubles_from_string(tmp_str, a_tmp_read, 3) != 3)
     {
         error_msg("Error parsing a3 vec from data-file-schema.xml");
     }
@@ -394,7 +394,8 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
             error_msg("Parsing rotation from data-file-schema.xml file");
         }
         tmp_str = xml_tmp->txt;
-        if (parser_doubles_from_string(tmp_str, (*ph_sym_mats) + 9 * isym) != 9)
+        if (parser_doubles_from_string(tmp_str, (*ph_sym_mats) + 9 * isym, 9) !=
+            9)
         {
             error_msg(
                 "Error parsing symmetry matrices from data-file-schema.xml");
@@ -412,7 +413,8 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
                 "file");
         }
         tmp_str = xml_tmp->txt;
-        if (parser_doubles_from_string(tmp_str, (*ph_sym_tau) + 3 * isym) != 3)
+        if (parser_doubles_from_string(tmp_str, (*ph_sym_tau) + 3 * isym, 3) !=
+            3)
         {
             error_msg(
                 "Error parsing frac. trans. vecs from data-file-schema.xml");

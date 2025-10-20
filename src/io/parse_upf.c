@@ -173,16 +173,18 @@ static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo)
     loc_pseudo->rab_grid = malloc(sizeof(ELPH_float) * ngrid);
     CHECK_ALLOC(loc_pseudo->rab_grid);
 
-    if (parser_doubles_from_string(loc_pot->txt, loc_pseudo->Vloc_atomic) !=
-        ngrid)
+    if (parser_doubles_from_string(loc_pot->txt, loc_pseudo->Vloc_atomic,
+                                   ngrid) != ngrid)
     {
         error_msg("Parsing local potential from upf-2 failed");
     }
-    if (parser_doubles_from_string(mesh->txt, loc_pseudo->r_grid) != ngrid)
+    if (parser_doubles_from_string(mesh->txt, loc_pseudo->r_grid, ngrid) !=
+        ngrid)
     {
         error_msg("Parsing radial mesh from upf-2 failed");
     }
-    if (parser_doubles_from_string(dmesh->txt, loc_pseudo->rab_grid) != ngrid)
+    if (parser_doubles_from_string(dmesh->txt, loc_pseudo->rab_grid, ngrid) !=
+        ngrid)
     {
         error_msg("Parsing Rab from upf-2 failed");
     }
@@ -324,16 +326,18 @@ static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo)
     loc_pseudo->rab_grid = malloc(sizeof(ELPH_float) * ngrid);
     CHECK_ALLOC(loc_pseudo->rab_grid);
 
-    if (parser_doubles_from_string(loc_pot->txt, loc_pseudo->Vloc_atomic) !=
-        ngrid)
+    if (parser_doubles_from_string(loc_pot->txt, loc_pseudo->Vloc_atomic,
+                                   ngrid) != ngrid)
     {
         error_msg("Parsing local potential from upf-1 failed");
     }
-    if (parser_doubles_from_string(mesh->txt, loc_pseudo->r_grid) != ngrid)
+    if (parser_doubles_from_string(mesh->txt, loc_pseudo->r_grid, ngrid) !=
+        ngrid)
     {
         error_msg("Parsing radial mesh from upf-1 failed");
     }
-    if (parser_doubles_from_string(dmesh->txt, loc_pseudo->rab_grid) != ngrid)
+    if (parser_doubles_from_string(dmesh->txt, loc_pseudo->rab_grid, ngrid) !=
+        ngrid)
     {
         error_msg("Parsing Rab from upf-1 failed");
     }

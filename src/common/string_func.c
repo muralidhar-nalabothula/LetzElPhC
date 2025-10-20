@@ -34,12 +34,19 @@ void lowercase_str(char* str)
     }
 }
 
-ND_int parser_doubles_from_string(const char* str, ELPH_float* out)
+ND_int parser_doubles_from_string(const char* str, ELPH_float* out,
+                                  ND_int out_size)
 {
     /*
-    Extract all float values from given string
+    Extract atmost out_size float values from given string
 
-    if out == NULL, it return number of float it parsed
+    out_size is size of the out buffer. In case more floats
+    found than the buffer size, only the first out_size floats
+    are written.
+
+    returns  number of floats found (this can be different than out_size)
+    when number of floats in the string are different than the buffer size.
+    if out == NULL, it returns number of floats found in the string.
     */
     const char* p = str;
     char* q;
@@ -62,7 +69,7 @@ ND_int parser_doubles_from_string(const char* str, ELPH_float* out)
                 p = q;
             }
 
-            if (out != NULL)
+            if (out != NULL && count < out_size)
             {
                 out[count] = temp_val;
             }
@@ -81,6 +88,11 @@ bool string_start_with(char* str, char* compare_str, bool trim)
     /*
     Check if given string starts with a substring
     */
+    if (str == NULL || compare_str == NULL)
+    {
+        return false;
+    }
+    //
     char* a;
     char* b;
     a = str;
@@ -108,6 +120,11 @@ bool string_end_with(char* str, char* compare_str, bool trim)
     /*
     Check if given string ends with a substring
     */
+    if (str == NULL || compare_str == NULL)
+    {
+        return false;
+    }
+    //
     char* temp_str =
         malloc(sizeof(char) * (strlen(str) + strlen(compare_str) + 2));
     CHECK_ALLOC(temp_str);
@@ -146,6 +163,11 @@ char* str_reverse_in_place(char* str)
     /*
     Do a inplace reversing of string
     */
+    if (str == NULL)
+    {
+        return NULL;
+    }
+    //
     ND_int len = strlen(str);
 
     if (len == 0)
@@ -171,6 +193,11 @@ void str_replace_chars(char* str_in, const char* delimters,
 {
     ND_int ndelimters = strlen(delimters);
     // if  ndelimters != strlen(replace_chars) buffer overflow
+    if (ndelimters != strlen(replace_chars))
+    {
+        error_msg("Number of delimiters not equal to replace_chars.");
+        return;
+    }
 
     ND_int str_in_len = strlen(str_in);
 
