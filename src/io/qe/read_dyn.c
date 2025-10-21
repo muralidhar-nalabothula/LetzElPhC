@@ -10,6 +10,7 @@
 #include "common/constants.h"
 #include "common/dtypes.h"
 #include "common/error.h"
+#include "common/numerical_func.h"
 #include "common/string_func.h"
 #include "elphC.h"
 #include "io/ezxml/ezxml.h"
@@ -462,9 +463,8 @@ static ND_int read_dyn_xml(FILE* fp, struct Lattice* lattice, ELPH_float* qpts,
                 const char* phi_str = dynr_xml->txt;
 
                 ELPH_float phi_vals[18];
-                if (parse_floats_from_string(
-                        phi_str, phi_vals,
-                        sizeof(phi_vals) / sizeof(phi_vals[0])) != 18)
+                if (parse_floats_from_string(phi_str, phi_vals,
+                                             ARRAY_LEN(phi_vals)) != 18)
                 {
                     error_msg("Error reading dynamical matrix from XML");
                 }

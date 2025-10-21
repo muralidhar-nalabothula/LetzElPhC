@@ -7,6 +7,7 @@
 
 #include "common/dtypes.h"
 #include "common/error.h"
+#include "common/numerical_func.h"
 #include "common/string_func.h"
 #include "elphC.h"
 #include "io.h"
@@ -86,15 +87,12 @@ static void Bcast_interpolation_input_data(
     mpi_error = MPI_Bcast(&input->loto, 1, MPI_C_BOOL, root, comm);
     MPI_error_msg(mpi_error);
 
-    mpi_error = MPI_Bcast(input->loto_dir,
-                          sizeof(input->loto_dir) / sizeof(input->loto_dir[0]),
+    mpi_error = MPI_Bcast(input->loto_dir, ARRAY_LEN(input->loto_dir),
                           ELPH_MPI_float, root, comm);
     MPI_error_msg(mpi_error);
 
-    mpi_error =
-        MPI_Bcast(input->qgrid_fine,
-                  sizeof(input->qgrid_fine) / sizeof(input->qgrid_fine[0]),
-                  ELPH_MPI_ND_INT, root, comm);
+    mpi_error = MPI_Bcast(input->qgrid_fine, ARRAY_LEN(input->qgrid_fine),
+                          ELPH_MPI_ND_INT, root, comm);
     MPI_error_msg(mpi_error);
 }
 
@@ -143,9 +141,8 @@ static int interpolation_input_handler(void* user, const char* section,
     }
     else if (strcmp(name, "loto_dir") == 0)
     {
-        ND_int lt_parsed = parse_floats_from_string(
-            value, inp->loto_dir,
-            sizeof(inp->loto_dir) / sizeof(inp->loto_dir[0]));
+        ND_int lt_parsed = parse_floats_from_string(value, inp->loto_dir,
+                                                    ARRAY_LEN(inp->loto_dir));
         if (lt_parsed != 3)
         {
             error_msg(

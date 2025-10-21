@@ -20,6 +20,10 @@ void get_KplusQ_idxs(const ND_int Nbz, const ELPH_float* kpoints,
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
+#if !defined(ARRAY_LEN)
+#define ARRAY_LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
+
 /* numerical_func.c */
 ELPH_float legendre(int l_val, int m_val, ELPH_float x_in);
 ELPH_float Ylm(int l_val, int m_val, ELPH_float* vec);
