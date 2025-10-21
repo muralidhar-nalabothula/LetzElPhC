@@ -44,8 +44,8 @@ ND_int parse_floats_from_string(const char* str, ELPH_float* out,
     found than the buffer size, only the first out_size floats
     are written.
 
-    returns  number of floats found (this can be different than out_size)
-    when number of floats in the string are different than the buffer size.
+    Returns: Total number of floats found in the string (may exceed out_size).
+    Compare return value with out_size to detect truncation.
     if out == NULL, it returns number of floats found in the string.
     */
     const char* p = str;
