@@ -34,7 +34,6 @@ void apply_trans_wfc(const ELPH_float* trans_vec, const ELPH_float* kvec,
     {
         ELPH_cmplx* wfc_G_tmp = wfc_G + iset * npw;
 
-        ELPH_OMP_PAR_FOR_SIMD
         for (ND_int ig = 0; ig < npw; ++ig)
         {
             const ELPH_float* gvec_tmp = gvecs + 3 * ig;
