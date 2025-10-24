@@ -19,6 +19,7 @@
 #include "interpolation_utilities.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"
+#include "parser/parser.h"
 #include "phonon/phonon.h"
 #include "symmetries/symmetries.h"
 #include "wfc/wfc.h"

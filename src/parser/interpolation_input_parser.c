@@ -10,8 +10,8 @@
 #include "common/numerical_func.h"
 #include "common/string_func.h"
 #include "elphC.h"
-#include "io.h"
-#include "io/inih/ini.h"
+#include "parser.h"
+#include "parser/inih/ini.h"
 
 #define READ_STR_LEN 600
 

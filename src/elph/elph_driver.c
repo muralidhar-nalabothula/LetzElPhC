@@ -22,6 +22,7 @@ THe starting point for the entire code
 #include "fft/fft.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"
+#include "parser/parser.h"
 #include "symmetries/symmetries.h"
 
 void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
