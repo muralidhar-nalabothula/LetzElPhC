@@ -139,9 +139,8 @@ void interpolation_driver(const char* ELPH_input_file,
     if (interpolate_dvscf)
     {
         n_ws_vecs_dvscf = build_wigner_seitz_vectors(
-            q_grid_co, lattice->alat_vec, ELPH_EPS, NULL, 0,
-            lattice->atomic_pos, lattice->natom, &ws_vecs_dvscf,
-            &ws_degen_dvscf);
+            q_grid_co, lattice->alat_vec, ELPH_EPS, lattice->atomic_pos,
+            lattice->natom, NULL, 0, &ws_vecs_dvscf, &ws_degen_dvscf);
     }
     // find qBZ to fft grid indices
     ND_int* indices_q2fft = malloc(2 * phonon->nq_BZ * sizeof(*indices_q2fft));
