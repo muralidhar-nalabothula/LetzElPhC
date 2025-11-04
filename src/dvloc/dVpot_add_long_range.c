@@ -116,7 +116,7 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
     CHECK_ALLOC(gvecs);
 
     ELPH_float* Gvecs_z = malloc(3 * Gbox[2] * sizeof(*Gvecs_z));
-    CHECK_ALLOC(gvecs);
+    CHECK_ALLOC(Gvecs_z);
 
     ELPH_cmplx* VlocGz_cart = calloc(Gbox[2] * nmodes, sizeof(ELPH_cmplx));
     CHECK_ALLOC(VlocGz_cart);
