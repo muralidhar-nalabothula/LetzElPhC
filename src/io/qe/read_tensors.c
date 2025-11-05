@@ -158,8 +158,18 @@ void read_quadrupole_fmt(const char* filename, ELPH_float** Qpole_buf,
     //
     while (fgets(line, sizeof(line), fp))
     {
+        bool is_empty = true;
+        for (ND_int i = 0; line[i] != '\0'; i++)
+        {
+            if (!isspace((unsigned char)line[i]))
+            {
+                is_empty = false;
+                break;
+            }
+        }
+
         // Skip empty lines
-        if (line[0] == '\n' || line[0] == '\0')
+        if (is_empty || line[0] == '\n' || line[0] == '\0')
         {
             continue;
         }
