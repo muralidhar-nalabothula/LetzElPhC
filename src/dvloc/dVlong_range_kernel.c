@@ -175,12 +175,12 @@ static void long_range_3D_kernel(const ELPH_float* qplusG,
         }
     }
     // compute (q+G).Z
-    if (Zborn_k)
+    if (epslion && Zborn_k)
     {
         MatVec3f(Zborn_k, qplusG, true, Zborn_buf);
     }
     // compute (q+G)_x Q_xyz * (q+G)_y
-    if (Qpole_k)
+    if (epslion && Qpole_k)
     {
         for (int i = 0; i < 3; ++i)
         {
@@ -294,13 +294,13 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
         }
     }
     // compute (q+G).Z
-    if (Zborn_k)
+    if (epslion && Zborn_k)
     {
         MatVec3f(Zborn_k, qplusG, true, Zborn_buf);
     }
     // compute (q+G)_x Q_xyz * (q+G)_y
     // (pol,pol,atom_dir)
-    if (Qpole_k)
+    if (epslion && Qpole_k)
     {
         for (int i = 0; i < 3; ++i)
         {
