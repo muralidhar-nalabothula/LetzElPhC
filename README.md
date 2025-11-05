@@ -11,8 +11,7 @@ be found in ```examples/qe/silicon``` folder
 **This code is currently under development. please use at your 
 own risk**.
 
-In case of any bugs or other issues, please open a gitlab issue
-at https://gitlab.com/lumen-code/LetzElPhC
+In case of any bugs or other issues, please open a issue.
 
 Any contribtions to the code are always welcomed. Thank you very much 
 incase you are willing to contribute.
