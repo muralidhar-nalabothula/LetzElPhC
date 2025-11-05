@@ -21,6 +21,9 @@ void get_interpolation_data_from_qe(struct Lattice* lattice,
 void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
                         struct Phonon* phonon);
 
+void read_quadrupole_fmt(const char* filename, ELPH_float** Qpole_buf,
+                         int natom);
+
 void read_pattern_qe(const char* pat_file, struct Lattice* lattice,
                      ELPH_cmplx* pat_vecs);
 

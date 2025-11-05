@@ -15,6 +15,8 @@
 #include "elphC.h"
 #include "io/ezxml/ezxml.h"
 
+#define MAX_LINE 1024
+
 void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
                         struct Phonon* phonon)
 {
@@ -133,4 +135,89 @@ void read_ph_tensors_qe(const char* tensor_xml_file, const ND_int natom,
 
     ezxml_free(tensor_xml);
     fclose(fp);
+}
+
+void read_quadrupole_fmt(const char* filename, ELPH_float** Qpole_buf,
+                         int natom)
+{
+    // (natom, x,y, atom_dir)
+    FILE* fp = fopen(filename, "r");
+    if (!fp)
+    {
+        return;
+    }
+    //
+    char line[MAX_LINE];
+    fgets(line, sizeof(line), fp);
+    // Read data lines
+    ND_int ndata_parsed = 0;
+    //
+    ELPH_float* buffer = malloc(sizeof(*buffer) * 27 * natom);
+    CHECK_ALLOC(buffer);
+    *Qpole_buf = buffer;
+    //
+    while (fgets(line, sizeof(line), fp))
+    {
+        // Skip empty lines
+        if (line[0] == '\n' || line[0] == '\0')
+        {
+            continue;
+        }
+        //
+        if (ndata_parsed >= 3 * natom)
+        {
+            free(buffer);
+            error_msg("More number of lines given im the file");
+        }
+        //
+        double Qxx, Qyy, Qzz, Qyz, Qxz, Qxy;
+        long long atom_idx, dir_idx;
+
+        // Parse the line
+        int parsed =
+            sscanf(line, "%lld %lld %lf %lf %lf %lf %lf %lf", &atom_idx,
+                   &dir_idx, &Qxx, &Qyy, &Qzz, &Qyz, &Qxz, &Qxy);
+
+        --atom_idx;
+        --dir_idx;
+        if (parsed == 8)
+        {
+            long long idx;
+            // diagonal
+            idx = atom_idx * 27 + dir_idx;
+            buffer[idx] = Qxx;
+            idx = atom_idx * 27 + 1 * 9 + 1 * 3 + dir_idx;
+            buffer[idx] = Qyy;
+            idx = atom_idx * 27 + 2 * 9 + 2 * 3 + dir_idx;
+            buffer[idx] = Qzz;
+            // off diagonal
+            idx = atom_idx * 27 + 0 * 9 + 1 * 3 + dir_idx;
+            buffer[idx] = Qxy;
+            idx = atom_idx * 27 + 1 * 9 + 0 * 3 + dir_idx;
+            buffer[idx] = Qxy;
+            //
+            idx = atom_idx * 27 + 0 * 9 + 2 * 3 + dir_idx;
+            buffer[idx] = Qxz;
+            idx = atom_idx * 27 + 2 * 9 + 0 * 3 + dir_idx;
+            buffer[idx] = Qxz;
+            // Q[1][2] = Q[2][1] = Qyz
+            idx = atom_idx * 27 + 1 * 9 + 2 * 3 + dir_idx;
+            buffer[idx] = Qyz;
+            idx = atom_idx * 27 + 2 * 9 + 1 * 3 + dir_idx;
+            buffer[idx] = Qyz;
+        }
+        else
+        {
+            free(buffer);
+            error_msg(
+                "Unable to parse atom, index Qxx, Qyy, Qzz, Qyz, Qxz, Qxy");
+        }
+        ++ndata_parsed;
+    }
+    fclose(fp);
+    if (ndata_parsed != 3 * natom)
+    {
+        free(buffer);
+        error_msg("Unable to real full quadrupole tensor.");
+    }
 }

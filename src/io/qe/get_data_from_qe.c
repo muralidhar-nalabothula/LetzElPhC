@@ -105,6 +105,10 @@ void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
         // exists)
         cwk_path_join(ph_save_dir, "tensors.xml", tmp_buffer, temp_str_len);
         read_ph_tensors_qe(tmp_buffer, natoms, phonon);
+        // read quadrupole
+        cwk_path_join(ph_save_dir, "quadrupole.fmt", tmp_buffer, temp_str_len);
+        read_quadrupole_fmt(tmp_buffer, &phonon->Qpole, natoms);
+
         if (phonon->epsilon)
         {
             phTensors_present[0] = true;
