@@ -141,6 +141,8 @@ void read_quadrupole_fmt(const char* filename, ELPH_float** Qpole_buf,
                          int natom)
 {
     // (natom, x,y, atom_dir)
+    *Qpole_buf = NULL;
+    //
     FILE* fp = fopen(filename, "r");
     if (!fp)
     {
