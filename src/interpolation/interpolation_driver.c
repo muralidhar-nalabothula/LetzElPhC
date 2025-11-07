@@ -157,16 +157,6 @@ void interpolation_driver(const char* ELPH_input_file,
         indices_q2fft[indices_q2fft[phonon->nq_BZ + iq]] = iq;
     }
     //
-    ND_int nqpts_to_interpolate = qgrid_new[0] * qgrid_new[1] * qgrid_new[2];
-    // this will be over written lattern with number of qpts in iBZ
-
-    ELPH_float* qpts_interpolation =
-        malloc(sizeof(*qpts_interpolation) * 3 * nqpts_to_interpolate);
-    // in crystal coordinates
-    nqpts_to_interpolate = generate_iBZ_kpts(
-        qgrid_new, phonon->nph_sym, phonon->ph_syms, lattice->alat_vec,
-        lattice->blat_vec, qpts_interpolation, true);
-    //
     // read dvscf and eigen_vectors
     // allocate large buffers
     ELPH_cmplx* dVscfs_co = NULL;
@@ -176,37 +166,10 @@ void interpolation_driver(const char* ELPH_input_file,
                            lattice->nfftz_loc * lattice->fft_dims[0] *
                            lattice->fft_dims[1];
 
-    ELPH_cmplx* Vlocr = NULL;
-
     if (interpolate_dvscf)
     {
         dVscfs_co = malloc(phonon->nq_BZ * dvscf_loc_len * sizeof(*dVscfs_co));
         CHECK_ALLOC(dVscfs_co);
-
-        // ALso we need to initiaite Vloc table
-        ELPH_float qmax_val = fabs(phonon->qpts_iBZ[0]);
-        for (ND_int imax = 0; imax < (phonon->nq_iBZ * 3); ++imax)
-        {
-            if (fabs(phonon->qpts_iBZ[imax]) > qmax_val)
-            {
-                qmax_val = fabs(phonon->qpts_iBZ[imax]);
-            }
-        }
-        //
-        for (ND_int imax = 0; imax < (nqpts_to_interpolate * 3); ++imax)
-        {
-            if (fabs(qpts_interpolation[imax]) > qmax_val)
-            {
-                qmax_val = fabs(qpts_interpolation[imax]);
-            }
-        }
-        // Note this needs to be set before compute the Vlocg table
-        pseudo->vloc_table->qmax_abs = ceil(fabs(qmax_val)) + 1;
-        create_vlocg_table(lattice, pseudo, mpi_comms);
-
-        Vlocr = malloc(sizeof(*Vlocr) * dvscf_loc_len / lattice->nmag);
-        // buffer to store local part of the pseudo potential
-        CHECK_ALLOC(Vlocr);
     }
 
     dyns_co = malloc(phonon->nq_BZ * lattice->nmodes * lattice->nmodes *
@@ -265,23 +228,10 @@ void interpolation_driver(const char* ELPH_input_file,
         }
         if (dV_co_tmp)
         {
-            if (!only_induced_part_long_range)
-            {
-                dVlocq(phonon->qpts_iBZ + iqco * 3, lattice, pseudo, eigs_co,
-                       Vlocr, mpi_comms->commK);
-                // add bare local to induce part
-                if (dft_code == DFT_CODE_QE)
-                {
-                    add_dvscf_qe(dV_co_tmp, Vlocr, lattice);
-                }
-                else
-                {
-                    error_msg("Currently only quantum espresso supported");
-                }
-            }
             // remore long range
             dV_add_longrange(phonon->qpts_iBZ + iqco * 3, lattice, phonon,
-                             Zvals, eigs_co, dV_co_tmp, -1, true, EcutRy,
+                             Zvals, eigs_co, dV_co_tmp, -1,
+                             only_induced_part_long_range, EcutRy,
                              nmags_add_long_range, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
             // so multiply with e^iqr factor to make it q periodic.
@@ -404,6 +354,16 @@ void interpolation_driver(const char* ELPH_input_file,
 
     // fourier transform phonons
     fft_q2R(dyns_co, q_grid_co, lattice->nmodes * lattice->nmodes);
+    //
+    ND_int nqpts_to_interpolate = qgrid_new[0] * qgrid_new[1] * qgrid_new[2];
+    // this will be over written lattern with number of qpts in iBZ
+
+    ELPH_float* qpts_interpolation =
+        malloc(sizeof(*qpts_interpolation) * 3 * nqpts_to_interpolate);
+    // in crystal coordinates
+    nqpts_to_interpolate = generate_iBZ_kpts(
+        qgrid_new, phonon->nph_sym, phonon->ph_syms, lattice->alat_vec,
+        lattice->blat_vec, qpts_interpolation, true);
 
     ELPH_cmplx* dvscf_interpolated = NULL;
     if (dVscfs_co)
@@ -517,7 +477,6 @@ void interpolation_driver(const char* ELPH_input_file,
                       qgrid_new);
     }
 
-    free(Vlocr);
     free(ws_vecs_dvscf);
     free(ws_degen_dvscf);
 
