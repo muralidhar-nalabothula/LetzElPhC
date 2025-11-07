@@ -23,10 +23,6 @@ void free_phonon_data(struct Phonon* phonon);
 void free_save_data(struct WFC* wfcs, struct Lattice* lattice,
                     struct Pseudo* pseudo, struct Phonon* phonon);
 
-// parse_upf.c // get pseudo data from upfs
-void parse_upf(const char* filename, struct local_pseudo* loc_pseudo);
-void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval);
-
 //======= nc4 function
 void def_ncVar(const int ncid, int* varid, ND_int rank, nc_type xtype,
                ND_int* dims, const char* var_name, char** dim_names,

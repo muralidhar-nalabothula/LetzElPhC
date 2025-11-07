@@ -10,10 +10,13 @@ void parse_qexml(const char* xml_file, ND_int* natoms, ELPH_float* lat_vec,
                  ND_int* nmag, ND_int* fft_dims, ND_int* nph_sym,
                  ELPH_float** ph_sym_mats, ELPH_float** ph_sym_tau,
                  bool** ph_trevs, bool* ph_mag_symm, bool* ph_tim_rev,
-                 char** pseudo_dir, char*** pseudo_pots);
+                 char** pseudo_dir, char*** pseudo_pots, int* nspinor,
+                 ND_int* ntype, int** atomic_type,
+                 ELPH_float** atomic_positons);
 
 void get_interpolation_data_from_qe(struct Lattice* lattice,
                                     struct Phonon* phonon,
+                                    struct Pseudo* pseudo,
                                     const char* ph_save_dir, ELPH_float** Zvals,
                                     ELPH_float* alat,
                                     const struct ELPH_MPI_Comms* Comm);
@@ -39,7 +42,8 @@ ND_int read_dyn_qe(const char* dyn_file, struct Lattice* lattice,
                    ELPH_float* amass);
 
 void get_data_from_qe(struct Lattice* lattice, struct Phonon* phonon,
-                      const char* ph_save_dir, char*** pseudo_pots,
+                      struct Pseudo* pseudo, const char* ph_save_dir,
+                      ELPH_float* alat_param,
                       const struct ELPH_MPI_Comms* Comm);
 
 void get_dvscf_dyn_qe(const char* ph_save_dir, struct Lattice* lattice,

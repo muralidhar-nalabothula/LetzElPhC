@@ -4,6 +4,8 @@ Only Local part, grids , valance electron info are read rest are available in
 yambo
 */
 
+#include "parse_upf.h"
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -14,16 +16,11 @@ yambo
 #include "common/error.h"
 #include "common/string_func.h"
 #include "elphC.h"
-#include "io.h"
 #include "io/ezxml/ezxml.h"
 
 static void parse_upf2(FILE* fp, struct local_pseudo* loc_pseudo);
 
 static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo);
-
-static void get_upf2_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
-
-static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval);
 
 static int get_upf_version(FILE* fp);
 // ===================================================================================
@@ -50,41 +47,6 @@ void parse_upf(const char* filename, struct local_pseudo* loc_pseudo)
     {
         error_msg("Only UPF-1 or UPF-2 file formats supported");
     }
-    fclose(fp);
-}
-
-void get_upf_element(const char* filename, char* atomic_sym, ELPH_float* Zval)
-{
-    // if Zval is NULL, will be ignored
-    FILE* fp = fopen(filename, "r");
-    if (fp == NULL)
-    {
-        error_msg("Unable to open the upf file");
-    }
-
-    int upf_version = get_upf_version(fp);
-
-    if (upf_version == 1)
-    {
-        get_upf1_element(fp, atomic_sym, Zval);
-    }
-    else if (upf_version == 2)
-    {
-        get_upf2_element(fp, atomic_sym, Zval);
-    }
-    else
-    {
-        error_msg("Only UPF-1 or UPF-2 file formats supported");
-    }
-    // Make sure in case of single alphabet element, there is no
-    // whitespace in the start.
-    if (isspace((unsigned char)atomic_sym[0]))
-    {
-        char temp = atomic_sym[0];
-        atomic_sym[0] = atomic_sym[1];
-        atomic_sym[1] = temp;
-    }
-
     fclose(fp);
 }
 
@@ -345,122 +307,6 @@ static void parse_upf1(FILE* fp, struct local_pseudo* loc_pseudo)
 }
 
 //----
-
-static void get_upf2_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
-{
-    /*
-    atomic_sym must be atleast 3 bytes long
-    if Zval is NULL, will be ignored
-    */
-    if (fseek(fp, 0, SEEK_SET) != 0)
-    {
-        error_msg("error setting the start seek for upf file");
-    }
-
-    atomic_sym[2] = '\0';
-
-    ezxml_t upfFP = ezxml_parse_fp(fp);
-    if (upfFP == NULL)
-    {
-        error_msg("Reading from pseudo potential file failed");
-    }
-
-    /* Read header details */
-
-    ezxml_t header = ezxml_get(upfFP, "PP_HEADER", -1);
-    if (header == NULL)
-    {
-        error_msg("Reading header from pseudo potential file failed");
-    }
-
-    const char* temp_upf_ptr = ezxml_attr(header, "element");
-    if (temp_upf_ptr == NULL)
-    {
-        error_msg("Reading element from pseudo potential file failed");
-    }
-
-    if (Zval)
-    {
-        const char* xml_attr = ezxml_attr(header, "z_valence");
-        if (!xml_attr)
-        {
-            error_msg("Reading z_valence from pseudo potential file failed");
-        }
-        *Zval = atof(xml_attr);
-    }
-    // get the element
-    memcpy(atomic_sym, temp_upf_ptr, sizeof(char) * 2);
-    ezxml_free(upfFP);
-}
-
-//----
-
-static void get_upf1_element(FILE* fp, char* atomic_sym, ELPH_float* Zval)
-{
-    /*
-    atomic_sym must be atleast 3 bytes long
-    if Zval is NULL, will be ignored
-    */
-    if (fseek(fp, 0, SEEK_SET) != 0)
-    {
-        error_msg("error setting the start seek for upf file");
-    }
-
-    atomic_sym[2] = '\0';
-    char* xml_buf = malloc(1000);
-    CHECK_ALLOC(xml_buf);
-
-    bool read_header = false;
-    while (fgets(xml_buf, 1000, fp))
-    {
-        if (strstr(xml_buf, "<PP_HEADER>"))
-        {
-            read_header = true;
-            break;
-        }
-    }
-    if (!read_header)
-    {
-        error_msg("Unable to parse header info from upf file");
-    }
-
-    // Now read line by line
-    fgets(xml_buf, 1000, fp);  // version number
-    fgets(xml_buf, 1000, fp);  // element label
-    char tmp_read[32];
-    char* token_tmp = strtok(xml_buf, " ");
-    sscanf(token_tmp, "%s", tmp_read);
-    size_t atm_lab_size = strlen(tmp_read);
-    if (atm_lab_size > 2)
-    {
-        error_msg("Buffer overflow when reading element from upf file");
-    }
-    strcpy(atomic_sym, tmp_read);
-    if (atm_lab_size == 1)
-    {
-        atomic_sym[1] = ' ';
-    }
-
-    fgets(xml_buf, 1000, fp);  // pseudo type
-    if (!strstr(xml_buf, "NC"))
-    {
-        error_msg("Pseudo potential is not norm conserving");
-    }
-    if (Zval)
-    {
-        float Zval_tmp;
-        fgets(xml_buf, 1000, fp);  // nlcc
-        fgets(xml_buf, 1000, fp);  // XC info
-        fgets(xml_buf, 1000, fp);  // Valence electrons
-        char* tmp_token = strtok(xml_buf, " ");
-        sscanf(tmp_token, "%f", &Zval_tmp);
-        *Zval = Zval_tmp;
-    }
-
-    free(xml_buf);
-    xml_buf = NULL;
-}
-
 static int get_upf_version(FILE* fp)
 {
     // This funtion must rewind(fp)
