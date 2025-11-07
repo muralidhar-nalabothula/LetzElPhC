@@ -1,4 +1,4 @@
-![screenshot](docs/logo.png)
+![screenshot](docs/images/logo.png)
 
 LetzElPhC abbreviates to _"Lëtzebuerg Electron Phonon Code"_.
 _"Lëtzebuerg"_ is the Luxembourgish name for the Luxembourg Country.

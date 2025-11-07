@@ -1,0 +1,71 @@
+site_name: LetzElPhC
+site_description: "A complementary C code for Yambo to compute electron-phonon coupling"
+site_author: Muralidhar Nalabothula 
+
+# Important for project pages hosted under /repo/
+site_url: https://muralidhar-nalabothula.github.io/LetzElPhC/
+
+# Theme configuration
+theme:
+  name: material
+  # logo: images/logo.png
+  language: en
+  palette:
+    primary: black
+    accent: grey
+  font:
+    text: Helvetica
+    code: Roboto Mono  # or keep monospace
+  features:
+    - navigation.instant       # instant page load on nav click
+    - navigation.tabs          # tabs instead of sidebar
+    - navigation.top           # top navigation bar
+    - header.autohide          # hide header on scroll
+    - content.code.annotate    # show code language labels
+    - toc.integrate            # integrated table of contents
+    - search.highlight         # highlight search terms in page
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      prebuild_index: true
+  - git-revision-date-localized:    # shows last updated timestamp
+      fallback_to_build_date: false
+      locale: en
+  - minify:
+      minify_html: true             # optional for smaller output size
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Installing the Code: installing.md
+  - Running the Code: running.md
+  # - API Reference: api.md
+  # - FAQ: faq.md
+  # - Changelog: changelog.md
+
+# Extra JavaScript / CSS
+extra_css:
+  - 'css/custom.css'     # add custom styles
+extra_javascript:
+  - 'js/custom.js'       # add custom JS if needed
+
+# Repository integration (adds "Edit on GitHub" links)
+repo_url: https://github.com/muralidhar-nalabothula/LetzElPhC
+repo_name: GitHub
+
+# Markdown extensions
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.tabbed
+
+copyright: "© 2025 Muralidhar Nalabothula"
+extra:
+    generator: false

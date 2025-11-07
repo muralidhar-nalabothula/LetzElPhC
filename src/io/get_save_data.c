@@ -241,7 +241,20 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
         ELPH_float* kiBZtmp = malloc(sizeof(ELPH_float) * 3 * nibz);
         CHECK_ALLOC(kiBZtmp);
 
-        quick_read(dbid, "LATTICE_VECTORS", lattice->alat_vec);
+        // Do a basic check if lattice vectors are same
+        {
+            ELPH_float latvec_tmp[9];
+            quick_read(dbid, "LATTICE_VECTORS",
+                       latvec_tmp);  // lattice->alat_vec);
+            for (int i = 0; i < 9; ++i)
+            {
+                if (fabs(latvec_tmp[i] - lattice->alat_vec[i]) > 1e-4)
+                {
+                    error_msg(
+                        "Lattice vectors mismatch b/w yambo and dft code.");
+                }
+            }
+        }
         quick_read(dbid, "SYMMETRY",
                    sym_temp);                   // transpose is read (nsym, 3,3)
         quick_read(dbid, "K-POINTS", kiBZtmp);  // (3,nibz)
@@ -303,10 +316,11 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
     mpi_error = MPI_Bcast(lattice->alat_vec, 9, ELPH_MPI_float, 0, Comm->commW);
     MPI_error_msg(mpi_error);
 
+    // These are already set in get_data_from_qe.
     // compute reciprocal vectors and volume
-    reciprocal_vecs(lattice->alat_vec, lattice->blat_vec);
+    // reciprocal_vecs(lattice->alat_vec, lattice->blat_vec);
     // b[:,i]  are blat. blat comes with 2*pi factor
-    lattice->volume = fabs(det3x3(lattice->alat_vec));
+    // lattice->volume = fabs(det3x3(lattice->alat_vec));
 
     lattice->kpt_fullBZ_crys = calloc(3 * nkBZ, sizeof(ELPH_float));
     CHECK_ALLOC(lattice->kpt_fullBZ_crys);
