@@ -2,14 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://muralidhar-nalabothula.github.io/LetzElPhC/</loc>
-         <lastmod>2025-11-07</lastmod>
+         <lastmod>2025-11-08</lastmod>
     </url>
     <url>
          <loc>https://muralidhar-nalabothula.github.io/LetzElPhC/installing/</loc>
-         <lastmod>2025-11-07</lastmod>
+         <lastmod>2025-11-08</lastmod>
+    </url>
+    <url>
+         <loc>https://muralidhar-nalabothula.github.io/LetzElPhC/license/</loc>
+         <lastmod>2025-11-08</lastmod>
     </url>
     <url>
          <loc>https://muralidhar-nalabothula.github.io/LetzElPhC/running/</loc>
-         <lastmod>2025-11-07</lastmod>
+         <lastmod>2025-11-08</lastmod>
     </url>
 </urlset>
