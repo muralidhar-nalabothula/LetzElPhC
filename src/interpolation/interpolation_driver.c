@@ -232,7 +232,8 @@ void interpolation_driver(const char* ELPH_input_file,
             dV_add_longrange(phonon->qpts_iBZ + iqco * 3, lattice, phonon,
                              Zvals, eigs_co, dV_co_tmp, -1,
                              only_induced_part_long_range, EcutRy,
-                             nmags_add_long_range, mpi_comms->commK);
+                             nmags_add_long_range, input_data->eta_bare,
+                             input_data->eta_induced, mpi_comms->commK);
             // THe potential here is lattice periodic and not q peridoic.
             // so multiply with e^iqr factor to make it q periodic.
             // Before we make it q periodic, we must rotate the dvscfs
@@ -331,7 +332,7 @@ void interpolation_driver(const char* ELPH_input_file,
     CHECK_ALLOC(dyn_mat_asr_lr);
 
     compute_dyn_lr_asr_correction(lattice, phonon, Ggrid_phonon, atomic_masses,
-                                  dyn_mat_asr_lr);
+                                  input_data->eta_induced, dyn_mat_asr_lr);
 
     // FIX ME need to parallize
     for (ND_int i = 0; i < phonon->nq_BZ; ++i)
@@ -348,7 +349,8 @@ void interpolation_driver(const char* ELPH_input_file,
         const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * i;
         // remove long range part
         add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
-                              atomic_masses, dyn_mat_asr_lr, pol_vecs_iq);
+                              atomic_masses, dyn_mat_asr_lr,
+                              input_data->eta_induced, pol_vecs_iq);
         //
     }
 
@@ -421,7 +423,8 @@ void interpolation_driver(const char* ELPH_input_file,
             dV_add_longrange(qpt_interpolate, lattice, phonon, Zvals,
                              ref_pat_basis, dvscf_interpolated, 1,
                              only_induced_part_long_range, EcutRy,
-                             nmags_add_long_range, mpi_comms->commK);
+                             nmags_add_long_range, input_data->eta_bare,
+                             input_data->eta_induced, mpi_comms->commK);
 
             // write to file
             if (dft_code == DFT_CODE_QE)
@@ -446,7 +449,8 @@ void interpolation_driver(const char* ELPH_input_file,
             // add back the long range part
             add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
                                   Ggrid_phonon, 1, atomic_masses,
-                                  dyn_mat_asr_lr, dyn_interpolated);
+                                  dyn_mat_asr_lr, input_data->eta_induced,
+                                  dyn_interpolated);
             // write dyn file
             // FIX me write qpoint in alat units q.e
             // Convert qpoints to

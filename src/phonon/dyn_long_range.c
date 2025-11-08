@@ -22,16 +22,17 @@
 static void add_ph_dyn_long_range_internal(
     const ELPH_float* qpt, struct Lattice* lattice, struct Phonon* phonon,
     const ND_int* Ggrid, const ND_int sign, const ELPH_float* atomic_masses,
-    ELPH_cmplx* dyn_mat);
+    const ELPH_float eta, ELPH_cmplx* dyn_mat);
 
 void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
                            struct Phonon* phonon, const ND_int* Ggrid,
                            const ND_int sign, const ELPH_float* atomic_masses,
-                           ELPH_cmplx* dyn_mat_asr, ELPH_cmplx* dyn_mat)
+                           ELPH_cmplx* dyn_mat_asr, const ELPH_float eta,
+                           ELPH_cmplx* dyn_mat)
 {
     // compute the long range part
     add_ph_dyn_long_range_internal(qpt, lattice, phonon, Ggrid, sign,
-                                   atomic_masses, dyn_mat);
+                                   atomic_masses, eta, dyn_mat);
     // now subtract the asr correction
     //
     ELPH_float factor = -1;
@@ -59,6 +60,7 @@ void add_ph_dyn_long_range(const ELPH_float* qpt, struct Lattice* lattice,
 void compute_dyn_lr_asr_correction(struct Lattice* lattice,
                                    struct Phonon* phonon, const ND_int* Ggrid,
                                    const ELPH_float* atomic_masses,
+                                   const ELPH_float eta,
                                    ELPH_cmplx* dyn_mat_asr)
 {
     // ASR for the lr non-analytical dynamical matrix.
@@ -85,7 +87,7 @@ void compute_dyn_lr_asr_correction(struct Lattice* lattice,
 
     ELPH_float qpt_zero[3] = {0.0, 0.0, 0.0};
     add_ph_dyn_long_range_internal(qpt_zero, lattice, phonon, Ggrid, 1,
-                                   atomic_masses, tmp_dyn_mat);
+                                   atomic_masses, eta, tmp_dyn_mat);
 
     //
     for (ND_int ia = 0; ia < lattice->natom; ++ia)
@@ -109,7 +111,7 @@ void compute_dyn_lr_asr_correction(struct Lattice* lattice,
 static void add_ph_dyn_long_range_internal(
     const ELPH_float* qpt, struct Lattice* lattice, struct Phonon* phonon,
     const ND_int* Ggrid, const ND_int sign, const ELPH_float* atomic_masses,
-    ELPH_cmplx* dyn_mat)
+    const ELPH_float eta, ELPH_cmplx* dyn_mat)
 {
     // adds or subtracts non-analytical term to the dynamical matrix.
     // sign < 0 : subtract else add
@@ -204,12 +206,12 @@ static void add_ph_dyn_long_range_internal(
         MatVec3f(eps_alpha, qplusG, false, tmp_buf);
         ELPH_float q_eps_q = dot3_macro(tmp_buf, qplusG);
 
-        ELPH_float decay_fac = exp(-q_eps_q * q_eps_q * 0.125);
+        ELPH_float decay_fac = exp(-q_eps_q * q_eps_q * 0.125 / eta);
 
         if (lattice->dimension == '2')
         {
             q_eps_q += qplusG_norm;
-            decay_fac = exp(-qplusG_norm * qplusG_norm * 0.125);
+            decay_fac = exp(-qplusG_norm * qplusG_norm * 0.125 / eta);
         }
         //
         for (ND_int ia = 0; ia < natom; ++ia)

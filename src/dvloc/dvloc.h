@@ -27,13 +27,15 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
                          const ELPH_float* Qpole, const ND_int natom,
                          const ELPH_float* atom_pos, const char diminsion,
                          const ELPH_float volume, const ELPH_float zlat,
-                         const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out);
+                         const ELPH_float EcutRy, const ELPH_float eta_bare,
+                         const ELPH_float eta_induced, ELPH_cmplx* elph_lr_out);
 
 void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
                       struct Phonon* phonon, const ELPH_float* Zvals,
                       const ELPH_cmplx* eigVec, ELPH_cmplx* dVscf,
                       const ND_int sign, const bool only_induced_part,
                       const ELPH_float EcutRy, const bool* nmags_add,
+                      const ELPH_float eta_bare, const ELPH_float eta_induced,
                       MPI_Comm commK);
 
 void dVscf_change_basis(ELPH_cmplx* dvscf, const ELPH_cmplx* rot_vecs,

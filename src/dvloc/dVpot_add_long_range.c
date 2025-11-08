@@ -20,6 +20,7 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
                       const ELPH_cmplx* eigVec, ELPH_cmplx* dVscf,
                       const ND_int sign, const bool only_induced_part,
                       const ELPH_float EcutRy, const bool* nmags_add,
+                      const ELPH_float eta_bare, const ELPH_float eta_induced,
                       MPI_Comm commK)
 {
     /**
@@ -36,6 +37,8 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
      quadrupoles are considered else Valance charge( Z_val/r),
     dipoles and quadrupoles are consider.
     nmags_add : is list of bools for which the potential is add or subtraced
+    eta_bare is ewald summation parameter for bare
+    eta_induced is ewald summation parameter for induced part
     if nmags_add[imag] == true, the potential is added/sub to dvscf[:,imag,:]
      *
      * @param[in] qpt         q-point in crystal coordinates (range: [-1, 1]).
@@ -166,7 +169,7 @@ void dV_add_longrange(const ELPH_float* qpt, struct Lattice* lattice,
         }
         dVlong_range_kernel(qcart, Gvecs_z, Gbox[2], Zvals_tmp, epslion, Zeu,
                             Qpole, natom, atom_pos, cutoff, volume, latvec[8],
-                            EcutRy, VlocGz_cart);
+                            EcutRy, eta_bare, eta_induced, VlocGz_cart);
         // VlocG -> (nffs,atom,3),
         //  get it in mode basis @ (nu,atom,3) @(nffs,atom,3)^T
         matmul_cmplx('N', 'T', eigVec, VlocGz_cart, VlocG + Gbox[2] * ig, 1.0,

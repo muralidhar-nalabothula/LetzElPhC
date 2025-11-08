@@ -15,20 +15,18 @@
 #include "dvloc.h"
 #include "elphC.h"
 
-static void long_range_3D_kernel(const ELPH_float* qplusG,
-                                 const ELPH_float* Zval,
-                                 const ELPH_float* Zborn_k,
-                                 const ELPH_float* Qpole_k,
-                                 const ELPH_float* epslion,
-                                 const ELPH_float* tau_k, ELPH_cmplx* out_buf);
+static void long_range_3D_kernel(
+    const ELPH_float* qplusG, const ELPH_float* Zval, const ELPH_float* Zborn_k,
+    const ELPH_float* Qpole_k, const ELPH_float* epslion,
+    const ELPH_float* tau_k, const ELPH_float eta_bare,
+    const ELPH_float eta_induced, ELPH_cmplx* out_buf);
 
-static void long_range_2D_kernel(const ELPH_float* qplusG,
-                                 const ELPH_float* Zval,
-                                 const ELPH_float* Zborn_k,
-                                 const ELPH_float* Qpole_k,
-                                 const ELPH_float* epslion,
-                                 const ELPH_float* tau_k, const ELPH_float zlat,
-                                 const ELPH_float qz, ELPH_cmplx* out_buf);
+static void long_range_2D_kernel(
+    const ELPH_float* qplusG, const ELPH_float* Zval, const ELPH_float* Zborn_k,
+    const ELPH_float* Qpole_k, const ELPH_float* epslion,
+    const ELPH_float* tau_k, const ELPH_float zlat, const ELPH_float qz,
+    const ELPH_float eta_bare, const ELPH_float eta_induced,
+    ELPH_cmplx* out_buf);
 
 void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
                          const ND_int npw_loc, const ELPH_float* Zvals,
@@ -36,7 +34,8 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
                          const ELPH_float* Qpole, const ND_int natom,
                          const ELPH_float* atom_pos, const char diminsion,
                          const ELPH_float volume, const ELPH_float zlat,
-                         const ELPH_float EcutRy, ELPH_cmplx* elph_lr_out)
+                         const ELPH_float EcutRy, const ELPH_float eta_bare,
+                         const ELPH_float eta_induced, ELPH_cmplx* elph_lr_out)
 {
     // gvecs in cartisian coordinates  ( no 2*pi)
     // qpt in cart units             ( no 2*pi)
@@ -99,12 +98,13 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
             if (diminsion == '3')
             {
                 long_range_3D_kernel(qplusG, Zval, Z_k, Q_k, epslion, tau_k,
-                                     out_tmp_buf);
+                                     eta_bare, eta_induced, out_tmp_buf);
             }
             else if (diminsion == '2')
             {
                 long_range_2D_kernel(qplusG, Zval, Z_k, Q_k, epslion, tau_k,
-                                     zlat, 2 * ELPH_PI * qpt[2], out_tmp_buf);
+                                     zlat, 2 * ELPH_PI * qpt[2], eta_bare,
+                                     eta_induced, out_tmp_buf);
             }
             // multiply with prefactor
             for (ND_int i = 0; i < 3; ++i)
@@ -117,12 +117,11 @@ void dVlong_range_kernel(const ELPH_float* qpt, const ELPH_float* gvecs,
     return;
 }
 
-static void long_range_3D_kernel(const ELPH_float* qplusG,
-                                 const ELPH_float* Zval,
-                                 const ELPH_float* Zborn_k,
-                                 const ELPH_float* Qpole_k,
-                                 const ELPH_float* epslion,
-                                 const ELPH_float* tau_k, ELPH_cmplx* out_buf)
+static void long_range_3D_kernel(
+    const ELPH_float* qplusG, const ELPH_float* Zval, const ELPH_float* Zborn_k,
+    const ELPH_float* Qpole_k, const ELPH_float* epslion,
+    const ELPH_float* tau_k, const ELPH_float eta_bare,
+    const ELPH_float eta_induced, ELPH_cmplx* out_buf)
 {
     // Compute long range part of the electron-phonon matrix elements for 3D
     // case. Zval -> valence charge (for monopole) Z_born_k-> born charges (for
@@ -196,25 +195,27 @@ static void long_range_3D_kernel(const ELPH_float* qplusG,
         }
     }
     // compute and multiply with a decay factor
-    qdot_tau *= exp(-q_G_square * 0.25);
+    // qdot_tau *= exp(-q_G_square * 0.25);
+    // compute decay factors
+    ELPH_float df_bare = exp(-q_G_square * 0.25 / eta_bare);
+    ELPH_float df_ind = exp(-q_G_square * 0.25 / eta_induced);
 
     for (int i = 0; i < 3; ++i)
     {
-        out_buf[i] =
-            qdot_tau *
-            ((Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) / q_eps_q + Zval_buf[i]);
+        out_buf[i] = qdot_tau * ((Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) *
+                                     df_ind / q_eps_q +
+                                 df_bare * Zval_buf[i]);
     }
 
     return;
 }
 
-static void long_range_2D_kernel(const ELPH_float* qplusG,
-                                 const ELPH_float* Zval,
-                                 const ELPH_float* Zborn_k,
-                                 const ELPH_float* Qpole_k,
-                                 const ELPH_float* epslion,
-                                 const ELPH_float* tau_k, const ELPH_float zlat,
-                                 const ELPH_float qz, ELPH_cmplx* out_buf)
+static void long_range_2D_kernel(
+    const ELPH_float* qplusG, const ELPH_float* Zval, const ELPH_float* Zborn_k,
+    const ELPH_float* Qpole_k, const ELPH_float* epslion,
+    const ELPH_float* tau_k, const ELPH_float zlat, const ELPH_float qz,
+    const ELPH_float eta_bare, const ELPH_float eta_induced,
+    ELPH_cmplx* out_buf)
 {
     // Compute long range part of the electron-phonon matrix elements for 2D
     // case. Zval -> valence charge (for monopole) Z_born_k-> born charges (for
@@ -320,14 +321,16 @@ static void long_range_2D_kernel(const ELPH_float* qplusG,
             Qpole_buf[i] -= (q_G_square * Qpole_k[i + 24]);
         }
     }
-    // compute and multiply with a decay factor
-    qdot_tau *= exp(-q_G_square * 0.25);
+    // compute decay factors
+    ELPH_float df_bare = exp(-q_G_square * 0.25 / eta_bare);
+    ELPH_float df_ind = exp(-q_G_square * 0.25 / eta_induced);
 
     for (int i = 0; i < 3; ++i)
     {
         out_buf[i] =
             qdot_tau * cutoff_fac *
-            (Zval_buf[i] + (Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) / q_eps_q) /
+            (Zval_buf[i] * df_bare +
+             (Zborn_buf[i] - I * 0.5 * Qpole_buf[i]) * df_ind / q_eps_q) /
             q_G_square;
     }
 

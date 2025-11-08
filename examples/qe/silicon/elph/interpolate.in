@@ -20,5 +20,9 @@ nq2 = 1
 
 nq3 = 1
 
+eta_bare = 1.0
+
+eta_induced = 1.0
+
 #qlist_file = ""
 

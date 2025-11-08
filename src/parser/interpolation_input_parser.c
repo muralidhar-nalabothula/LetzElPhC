@@ -55,6 +55,10 @@ void init_interpolation_usr_input(struct interpolation_usr_input** input)
     inp->qgrid_fine[0] = 1;
     inp->qgrid_fine[1] = 1;
     inp->qgrid_fine[2] = 1;
+    //
+    // The below two defaults are set else where
+    inp->eta_bare = 1.0;
+    inp->eta_induced = 1.0;
 }
 
 // function to free interpolation_usr_input struct data
@@ -93,6 +97,12 @@ static void Bcast_interpolation_input_data(
 
     mpi_error = MPI_Bcast(input->qgrid_fine, ARRAY_LEN(input->qgrid_fine),
                           ELPH_MPI_ND_INT, root, comm);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(&input->eta_bare, 1, ELPH_MPI_float, root, comm);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(&input->eta_induced, 1, ELPH_MPI_float, root, comm);
     MPI_error_msg(mpi_error);
 }
 
@@ -169,6 +179,16 @@ static int interpolation_input_handler(void* user, const char* section,
     {
         inp->qgrid_fine[2] = atoll(value);
     }
+    //
+    else if (strcmp(name, "eta_bare") == 0)
+    {
+        inp->eta_bare = atof(value);
+    }
+    else if (strcmp(name, "eta_induced") == 0)
+    {
+        inp->eta_induced = atof(value);
+    }
+    //
     else if (strcmp(name, "qlist_file") == 0)
     {
         strncpy_custom(inp->qlist_file, value, READ_STR_LEN);
