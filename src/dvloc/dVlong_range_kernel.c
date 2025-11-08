@@ -198,7 +198,7 @@ static void long_range_3D_kernel(
     // qdot_tau *= exp(-q_G_square * 0.25);
     // compute decay factors
     ELPH_float df_bare = exp(-q_G_square * 0.25 / eta_bare);
-    ELPH_float df_ind = exp(-q_G_square * 0.25 / eta_induced);
+    ELPH_float df_ind = exp(-fabs(q_eps_q) * 0.25 / eta_induced);
 
     for (int i = 0; i < 3; ++i)
     {

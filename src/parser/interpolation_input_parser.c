@@ -182,11 +182,11 @@ static int interpolation_input_handler(void* user, const char* section,
     //
     else if (strcmp(name, "eta_bare") == 0)
     {
-        inp->eta_bare = atof(value);
+        inp->eta_bare = fabs(atof(value));
     }
     else if (strcmp(name, "eta_induced") == 0)
     {
-        inp->eta_induced = atof(value);
+        inp->eta_induced = fabs(atof(value));
     }
     //
     else if (strcmp(name, "qlist_file") == 0)
