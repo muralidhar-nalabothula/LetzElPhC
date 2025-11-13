@@ -60,6 +60,7 @@ void init_interpolation_usr_input(struct interpolation_usr_input** input)
     // The below two defaults are set else where
     inp->eta_bare = 1.0;
     inp->eta_induced = 1.0;
+    inp->eta_ph = 1.0;
 }
 
 // function to free interpolation_usr_input struct data
@@ -104,6 +105,9 @@ static void Bcast_interpolation_input_data(
     MPI_error_msg(mpi_error);
 
     mpi_error = MPI_Bcast(&input->eta_induced, 1, ELPH_MPI_float, root, comm);
+    MPI_error_msg(mpi_error);
+
+    mpi_error = MPI_Bcast(&input->eta_ph, 1, ELPH_MPI_float, root, comm);
     MPI_error_msg(mpi_error);
 }
 
@@ -188,6 +192,10 @@ static int interpolation_input_handler(void* user, const char* section,
     else if (strcmp(name, "eta_induced") == 0)
     {
         inp->eta_induced = fabs(atof(value));
+    }
+    else if (strcmp(name, "eta_ph") == 0)
+    {
+        inp->eta_ph = fabs(atof(value));
     }
     //
     else if (strcmp(name, "qlist_file") == 0)

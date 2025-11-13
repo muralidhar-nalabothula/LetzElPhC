@@ -33,10 +33,12 @@ struct interpolation_usr_input
     ELPH_float
         eta_bare;  // ewald parameter for bare treatment of long range of bare
     ELPH_float
-        eta_induced;   // ewald parameter for screened long range screened
-                       // interactions (dipoles, quadrupoles, phonon dynmats)
-    char* qlist_file;  // in case you want to interpolate over a given list,
-                       // file name
+        eta_induced;    // ewald parameter for screened long range screened
+                        // interactions (dipoles, quadrupoles, phonon dynmats)
+    ELPH_float eta_ph;  // ewald summation parameter for interpolation of
+                        // dynamical matrices.
+    char* qlist_file;   // in case you want to interpolate over a given list,
+                        // file name
 };
 
 // electron-phonon input file parser

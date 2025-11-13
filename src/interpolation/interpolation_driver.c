@@ -332,7 +332,7 @@ void interpolation_driver(const char* ELPH_input_file,
     CHECK_ALLOC(dyn_mat_asr_lr);
 
     compute_dyn_lr_asr_correction(lattice, phonon, Ggrid_phonon, atomic_masses,
-                                  input_data->eta_induced, dyn_mat_asr_lr);
+                                  input_data->eta_ph, dyn_mat_asr_lr);
 
     // FIX ME need to parallize
     for (ND_int i = 0; i < phonon->nq_BZ; ++i)
@@ -349,8 +349,8 @@ void interpolation_driver(const char* ELPH_input_file,
         const ELPH_float* qpt_iq_tmp = phonon->qpts_BZ + 3 * i;
         // remove long range part
         add_ph_dyn_long_range(qpt_iq_tmp, lattice, phonon, Ggrid_phonon, -1,
-                              atomic_masses, dyn_mat_asr_lr,
-                              input_data->eta_induced, pol_vecs_iq);
+                              atomic_masses, dyn_mat_asr_lr, input_data->eta_ph,
+                              pol_vecs_iq);
         //
     }
 
@@ -449,7 +449,7 @@ void interpolation_driver(const char* ELPH_input_file,
             // add back the long range part
             add_ph_dyn_long_range(qpt_interpolate, lattice, phonon,
                                   Ggrid_phonon, 1, atomic_masses,
-                                  dyn_mat_asr_lr, input_data->eta_induced,
+                                  dyn_mat_asr_lr, input_data->eta_ph,
                                   dyn_interpolated);
             // write dyn file
             // FIX me write qpoint in alat units q.e

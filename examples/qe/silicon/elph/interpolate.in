@@ -24,5 +24,7 @@ eta_bare = 1.0
 
 eta_induced = 1.0
 
+eta_ph = 1.0
+
 #qlist_file = ""
 
