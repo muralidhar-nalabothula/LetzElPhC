@@ -358,7 +358,49 @@ void read_and_alloc_save_data(char* SAVEdir, const struct ELPH_MPI_Comms* Comm,
     {
         error_msg("Number of types in save not same as dft code.");
     }
+    // Check if the atom_type is exactly same as in yambo.
+    // If they are not same, something is really fishy.
+    if (Comm->commW_rank == 0)
+    {
+        ELPH_float* natom_per_type = malloc(sizeof(ELPH_float) * pseudo->ntype);
+        CHECK_ALLOC(natom_per_type);
+        quick_read(dbid, "N_ATOMS", natom_per_type);
 
+        int natom_yambo = 0;
+        for (ND_int ia = 0; ia < pseudo->ntype; ++ia)
+        {
+            natom_yambo += (int)rint(natom_per_type[ia]);
+        }
+        if (natom_yambo != lattice->natom)
+        {
+            error_msg("Number of atoms different in yambo and qexml.");
+        }
+
+        ND_int nspec_max = rint(find_maxfloat(natom_per_type, pseudo->ntype));
+
+        ELPH_float* atomic_map =
+            malloc(sizeof(ELPH_float) * pseudo->ntype * nspec_max);
+        CHECK_ALLOC(atomic_map);
+        quick_read(dbid, "ATOM_MAP", atomic_map);
+
+        // NM : TODO, calso check atomic positions.
+        for (ND_int it = 0; it < pseudo->ntype; ++it)
+        {
+            ND_int nspec = rint(natom_per_type[it]);
+            for (ND_int ispec = 0; ispec < nspec; ++ispec)
+            {
+                ND_int iatom = rint(atomic_map[ispec + it * nspec_max] - 1);
+                if (lattice->atom_type[iatom] != it)
+                {
+                    error_msg("Atomic type mismatch in yambo and qexml");
+                }
+            }
+        }
+        free(atomic_map);
+        free(natom_per_type);
+    }
+    //
+    /////////////////////
     ELPH_float* nGmax =
         malloc(sizeof(ELPH_float) *
                nibz);  // max number of gvectors for each wfc in iBZ
