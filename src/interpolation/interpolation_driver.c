@@ -1,8 +1,6 @@
 #include <complex.h>
 #include <math.h>
 #include <mpi.h>
-#include <netcdf.h>
-#include <netcdf_par.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +18,7 @@
 #include "elphC.h"
 #include "interpolation.h"
 #include "interpolation_utilities.h"
+#include "io/elph_hdf5.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"
 #include "parser/parser.h"
@@ -386,8 +385,8 @@ void interpolation_driver(const char* ELPH_input_file,
 
     // netcdf variable for writing dVbare (only used when the user asks to
     // write)
-    int ncid_dVbare = 0, nc_err = 0;
-    int ncvar_dVbare = 0, ncvar_ph_freq = 0, ncvar_ph_eig = 0;
+    hid_t file_id_dVbare = 0;
+    hid_t dset_id_dVbare = 0, dset_id_ph_freq = 0, dset_id_ph_eig = 0;
     //
     if (write_dVbare)
     {
@@ -415,61 +414,49 @@ void interpolation_driver(const char* ELPH_input_file,
         // Create a netcdf and define netcdf dimensions.
         // World comm must open it (even though for now it is same as CommK and
         // commQ)
-        if ((nc_err =
-                 nc_create_par("ndb.dVbare", NC_NETCDF4 | NC_CLOBBER,
-                               mpi_comms->commW, MPI_INFO_NULL, &ncid_dVbare)))
-        {
-            ERR(nc_err);
-        }
-        // Donot do prefilling
-        if ((nc_err = ncsetfill(ncid_dVbare, NC_NOFILL)))
-        {
-            fprintf(stderr, "Error setting nc_fill to ndb.dVbare file.");
-            ERR(nc_err);
-        }
+        file_id_dVbare = elph_h5_create_file_par("ndb.dVbare", mpi_comms->commW,
+                                                 MPI_INFO_NULL);
+
         // Define variables (dVbare, freq, eigs, qpts_reduced)
         // dVbare
         ND_int dims[6] = {nqpts_to_interpolate, lattice->nmodes,
                           lattice->fft_dims[0], lattice->fft_dims[1],
                           lattice->fft_dims[2], 2};
         //
-        size_t chunksize[6] = {1, 1, lattice->fft_dims[0], lattice->fft_dims[1],
-                               1, 2};
-        def_ncVar(ncid_dVbare, &ncvar_dVbare, 6, ELPH_NC4_IO_FLOAT, dims,
-                  "dVbare_local",
-                  (char*[]){"nq", "nmodes", "Nx", "Ny", "Nz", "re_im"},
-                  chunksize);
-        // Collective IO
-        if ((nc_err =
-                 nc_var_par_access(ncid_dVbare, ncvar_dVbare, NC_COLLECTIVE)))
-        {
-            ERR(nc_err);
-        }
+        size_t chunksize[6] = {
+            1, 1, (size_t)lattice->fft_dims[0], (size_t)lattice->fft_dims[1],
+            1, 2};
+        elph_h5_def_var(
+            file_id_dVbare, "dVbare_local", ELPH_H5_IO_FLOAT, 6, dims,
+            (const char*[]){"nq", "nmodes", "Nx", "Ny", "Nz", "re_im"},
+            chunksize, &dset_id_dVbare);
+
         // freq
-        def_ncVar(ncid_dVbare, &ncvar_ph_freq, 2, ELPH_NC4_IO_FLOAT, dims,
-                  "FREQ", (char*[]){"nq", "nmodes"}, NULL);
+        elph_h5_def_var(file_id_dVbare, "FREQ", ELPH_H5_IO_FLOAT, 2, dims,
+                        (const char*[]){"nq", "nmodes"}, NULL,
+                        &dset_id_ph_freq);
         // eigs
         dims[2] = lattice->natom;
         dims[3] = 3;
         dims[4] = 2;
-        def_ncVar(ncid_dVbare, &ncvar_ph_eig, 5, ELPH_NC4_IO_FLOAT, dims,
-                  "POLARIZATION_VECTORS",
-                  (char*[]){"nq", "nmodes", "atom", "pol", "re_im"}, NULL);
+        elph_h5_def_var(file_id_dVbare, "POLARIZATION_VECTORS",
+                        ELPH_H5_IO_FLOAT, 5, dims,
+                        (const char*[]){"nq", "nmodes", "atom", "pol", "re_im"},
+                        NULL, &dset_id_ph_eig);
         // qpts_reduced
-        int ncvar_qpt_tmp = 0;
+        hid_t dset_id_qpt_tmp = 0;
         dims[1] = 3;
-        def_ncVar(ncid_dVbare, &ncvar_qpt_tmp, 2, ELPH_NC4_IO_FLOAT, dims,
-                  "qpoints", (char*[]){"nq", "pol"}, NULL);
+        elph_h5_def_var(file_id_dVbare, "qpoints", ELPH_H5_IO_FLOAT, 2, dims,
+                        (const char*[]){"nq", "pol"}, NULL, &dset_id_qpt_tmp);
+
         // write qpoints now
         if (0 == mpi_comms->commW_rank)
         {
             // qpts in reduced units
-            if ((nc_err = nc_put_var(ncid_dVbare, ncvar_qpt_tmp,
-                                     qpts_interpolation)))
-            {
-                ERR(nc_err);
-            }
+            elph_h5_write_var(dset_id_qpt_tmp, ELPH_H5_IO_FLOAT,
+                              qpts_interpolation);
         }
+        elph_h5_close_var(dset_id_qpt_tmp);
     }
 
     ELPH_cmplx* dvscf_interpolated = NULL;
@@ -637,35 +624,28 @@ void interpolation_driver(const char* ELPH_input_file,
                    mpi_comms->commW);
             // now write
 
-            size_t startp[6] = {iq, 0, 0, 0, lattice->nfftz_loc_shift, 0};
-            size_t countp[6] = {1,
-                                lattice->nmodes,
-                                lattice->fft_dims[0],
-                                lattice->fft_dims[1],
-                                lattice->nfftz_loc,
-                                2};
+            hsize_t startp[6] = {
+                (hsize_t)iq, 0, 0, 0, (hsize_t)lattice->nfftz_loc_shift, 0};
+            hsize_t countp[6] = {1,
+                                 (hsize_t)lattice->nmodes,
+                                 (hsize_t)lattice->fft_dims[0],
+                                 (hsize_t)lattice->fft_dims[1],
+                                 (hsize_t)lattice->nfftz_loc,
+                                 2};
             //
-            if ((nc_err = nc_put_vara(ncid_dVbare, ncvar_dVbare, startp, countp,
-                                      Vlocr)))
-            {
-                ERR(nc_err);
-            }
+            elph_h5_write_vara(dset_id_dVbare, ELPH_H5_IO_FLOAT, startp, countp,
+                               Vlocr);
+
             if (0 == mpi_comms->commW_rank)
             {
                 startp[4] = 0;
-                countp[2] = lattice->natom;
+                countp[2] = (hsize_t)lattice->natom;
                 countp[3] = 3;
                 countp[4] = 2;
-                if ((nc_err = nc_put_vara(ncid_dVbare, ncvar_ph_eig, startp,
-                                          countp, dyn_interpolated)))
-                {
-                    ERR(nc_err);
-                }
-                if ((nc_err = nc_put_vara(ncid_dVbare, ncvar_ph_freq, startp,
-                                          countp, ph_freq_iq_interp)))
-                {
-                    ERR(nc_err);
-                }
+                elph_h5_write_vara(dset_id_ph_eig, ELPH_H5_IO_FLOAT, startp,
+                                   countp, dyn_interpolated);
+                elph_h5_write_vara(dset_id_ph_freq, ELPH_H5_IO_FLOAT, startp,
+                                   countp, ph_freq_iq_interp);
             }
         }
         if (dft_code == DFT_CODE_QE)
@@ -694,10 +674,10 @@ void interpolation_driver(const char* ELPH_input_file,
     // close the netcdf file incase opened
     if (write_dVbare)
     {
-        if ((nc_err = nc_close(ncid_dVbare)))
-        {
-            ERR(nc_err);
-        }
+        elph_h5_close_var(dset_id_dVbare);
+        elph_h5_close_var(dset_id_ph_freq);
+        elph_h5_close_var(dset_id_ph_eig);
+        elph_h5_close_file(file_id_dVbare);
     }
 
     free(ph_freq_iq_interp);

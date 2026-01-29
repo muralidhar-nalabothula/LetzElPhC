@@ -4,6 +4,7 @@
 
 #include "common/dtypes.h"
 #include "elphC.h"
+#include "io/elph_hdf5.h"
 
 void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
                  MPI_Comm comm_world);
@@ -11,9 +12,9 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
                              struct Pseudo* pseudo, struct Phonon* phonon,
                              const ND_int iqpt, ELPH_cmplx* eigVec,
-                             ELPH_cmplx* dVscfq, const int ncid_elph,
-                             const int varid_elph, const int ncid_dmat,
-                             const int varid_dmat, const bool non_loc,
+                             ELPH_cmplx* dVscfq, const hid_t file_id_elph,
+                             const hid_t dset_id_elph, const hid_t file_id_dmat,
+                             const hid_t dset_id_dmat, const bool non_loc,
                              const bool kminusq,
                              const struct ELPH_MPI_Comms* Comm);
 

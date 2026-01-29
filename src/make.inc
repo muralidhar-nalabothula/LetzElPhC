@@ -7,7 +7,9 @@ CC                  :=  mpicc
 
 ##Debug flags, incase of testing always turn on the address sanitizer ! (clang is recommanded for this)
 CFLAGS       	    := -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer # for mkl add 
-LD_FLAGS            := -g -fsanitize=address,undefined  -Wl,-no_compact_unwind
+LD_FLAGS            := -g -fsanitize=address,undefined  -Wl,-no_compact_unwind  -Wno-deprecated-declarations
+
+CFLAGS += -Wno-deprecated-declarations
 
 OPENMP_FLAGS   	    :=  #-DELPH_OMP_PARALLEL_BUILD ## uncomment for openmp build
 

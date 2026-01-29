@@ -43,13 +43,6 @@
         }                                                    \
     }
 
-// Netcdf error macro
-#define ERR(e)                                            \
-    {                                                     \
-        fprintf(stderr, "Error: %s\n", nc_strerror((e))); \
-        error_msg("netcdf_error");                        \
-    }
-
 void elph_error_msg(const char* error_msg, const char* file,
                     const long long int line, const char* func_name);
 

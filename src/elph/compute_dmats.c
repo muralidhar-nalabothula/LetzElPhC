@@ -1,5 +1,3 @@
-#include <netcdf.h>
-#include <netcdf_par.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +7,7 @@
 #include "common/progess_bar.h"
 #include "elph.h"
 #include "elphC.h"
+#include "io/elph_hdf5.h"
 #include "io/io.h"
 #include "symmetries/symmetries.h"
 
@@ -26,13 +25,17 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
     ND_int nk_totalBZ = lattice->nkpts_BZ;
     ELPH_cmplx* Dkmn_rep_ptr = NULL;
 
-    int ncid, varid, nc_err;
+    hid_t file_id, dset_id;
 
-    size_t startp[6] = {0, 0, 0, 0, 0, 0};
-    size_t countp[6] = {1, 1, lattice->nspin, lattice->nbnds, lattice->nbnds,
-                        2};
+    hsize_t startp[6] = {0, 0, 0, 0, 0, 0};
+    hsize_t countp[6] = {1,
+                         1,
+                         (hsize_t)lattice->nspin,
+                         (hsize_t)lattice->nbnds,
+                         (hsize_t)lattice->nbnds,
+                         2};
 
-    ND_int nk_chunk_size = NC4_DEFAULT_CHUCK_KB * 1024;  // now this is in bytes
+    ND_int nk_chunk_size = H5_DEFAULT_CHUNK_KB * 1024;  // now this is in bytes
     // scale with complex number size to get the number of elements
     nk_chunk_size /=
         (sizeof(ELPH_cmplx) * lattice->nspin * lattice->nbnds * lattice->nbnds);
@@ -49,34 +52,22 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
     if (Comm->commK_rank == 0)
     {
         // we overwrite any existing file
-        if ((nc_err = nc_create_par(file_name, NC_NETCDF4 | NC_CLOBBER,
-                                    Comm->commR, MPI_INFO_NULL, &ncid)))
-        {
-            fprintf(stderr, "Error creating Dmat file");
-            ERR(nc_err);
-        }
-        // set no fill mode (to avoid writting twice)
-        if ((nc_err = ncsetfill(ncid, NC_NOFILL)))
-        {
-            fprintf(stderr, "Error setting nc_fill to dmat file.");
-            ERR(nc_err);
-        }
+        file_id =
+            elph_h5_create_file_par(file_name, Comm->commR, MPI_INFO_NULL);
 
-        def_ncVar(ncid, &varid, 6, ELPH_NC4_IO_FLOAT,
-                  (ND_int[]){nph_sym, nk_totalBZ, lattice->nspin,
-                             lattice->nbnds, lattice->nbnds, 2},
-                  "Dmats",
-                  (char*[]){"nsym_ph", "nkpts", "nspin", "Rk_band", "k_band",
+        // Define variable
+        elph_h5_def_var(
+            file_id, "Dmats", ELPH_H5_IO_FLOAT, 6,
+            (ND_int[]){nph_sym, nk_totalBZ, lattice->nspin, lattice->nbnds,
+                       lattice->nbnds, 2},
+            (const char*[]){"nsym_ph", "nkpts", "nspin", "Rk_band", "k_band",
                             "re_im"},
-                  (size_t[]){1, nk_chunk_size, lattice->nspin, lattice->nbnds,
-                             lattice->nbnds, 2});
+            (size_t[]){1, (size_t)nk_chunk_size, (size_t)lattice->nspin,
+                       (size_t)lattice->nbnds, (size_t)lattice->nbnds, 2},
+            &dset_id);
 
-        // Make the access INDEPENDENT as not all can call the put_var function
-        // simultaneously
-        if ((nc_err = nc_var_par_access(ncid, varid, NC_INDEPENDENT)))
-        {
-            ERR(nc_err);
-        }
+        // HDF5 parallel access is handled via property lists in write calls if
+        // needed. We leave dset_id open for writing.
 
         Dkmn_rep_ptr = calloc(lattice->nspin * lattice->nbnds * lattice->nbnds,
                               sizeof(ELPH_cmplx));
@@ -99,8 +90,8 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
         ND_int isym = (idmat + dmat_shift) / nk_totalBZ;
         ND_int ikBZ = (idmat + dmat_shift) % nk_totalBZ;
 
-        startp[0] = isym;
-        startp[1] = ikBZ;
+        startp[0] = (hsize_t)isym;
+        startp[1] = (hsize_t)ikBZ;
 
         // compute the dmats
         electronic_reps(wfcs, lattice, sym_data[isym].Rmat, sym_data[isym].tau,
@@ -109,11 +100,8 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
         if (Comm->commK_rank == 0)
         {
             // write data to file
-            if ((nc_err =
-                     nc_put_vara(ncid, varid, startp, countp, Dkmn_rep_ptr)))
-            {
-                ERR(nc_err);
-            }
+            elph_h5_write_vara(dset_id, ELPH_H5_IO_FLOAT, startp, countp,
+                               Dkmn_rep_ptr);
         }
 
         // update the progress bar
@@ -122,10 +110,7 @@ void compute_and_write_dmats(const char* file_name, const struct WFC* wfcs,
     if (Comm->commK_rank == 0)
     {
         free(Dkmn_rep_ptr);
-
-        if ((nc_err = nc_close(ncid)))
-        {
-            ERR(nc_err);
-        }
+        elph_h5_close_var(dset_id);
+        elph_h5_close_file(file_id);
     }
 }

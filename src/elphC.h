@@ -20,7 +20,6 @@ typedef double _Complex ELPH_cmplx;
 #define ELPH_MPI_float MPI_DOUBLE
 #define ELPH_MPI_cmplx MPI_C_DOUBLE_COMPLEX
 
-#define ELPH_NC4_IO_FLOAT NC_DOUBLE
 #else
 typedef float ELPH_float;
 typedef float _Complex ELPH_cmplx;
@@ -28,5 +27,4 @@ typedef float _Complex ELPH_cmplx;
 #define ELPH_MPI_float MPI_FLOAT
 #define ELPH_MPI_cmplx MPI_C_FLOAT_COMPLEX
 
-#define ELPH_NC4_IO_FLOAT NC_FLOAT
 #endif

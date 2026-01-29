@@ -17,8 +17,8 @@ INCS = $(wildcard *.h $(foreach fd, $(SUBDIR), $(fd)/*.h))
 SRCS = $(wildcard *.c $(foreach fd, $(SUBDIR), $(fd)/*.c))
 OBJS = $(addprefix ./, $(SRCS:c=o)) 
 
-INC_DIRS += -I. $(FFTW_INC) $(NETCDF_INC)
-LIBS     += $(FFTW3_LIB) $(BLAS_LIB) $(NETCDF_LIB) $(HDF5_LIB) -lm
+INC_DIRS += -I. $(FFTW_INC) $(HDF5_INC)
+LIBS     += $(FFTW3_LIB) $(BLAS_LIB) $(HDF5_LIB) -lm
 
 
 PHONY := $(TARGET)

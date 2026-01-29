@@ -1,6 +1,4 @@
 #include <mpi.h>
-#include <netcdf.h>
-#include <netcdf_par.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,15 +12,16 @@
 #include "dvloc/dvloc.h"
 #include "elph.h"
 #include "elphC.h"
+#include "io/elph_hdf5.h"
 #include "nonloc/Vnonloc.h"
 #include "symmetries/symmetries.h"
 
 void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
                              struct Pseudo* pseudo, struct Phonon* phonon,
                              const ND_int iqpt, ELPH_cmplx* eigVec,
-                             ELPH_cmplx* dVscfq, const int ncid_elph,
-                             const int varid_elph, const int ncid_dmat,
-                             const int varid_dmat, const bool non_loc,
+                             ELPH_cmplx* dVscfq, const hid_t file_id_elph,
+                             const hid_t dset_id_elph, const hid_t file_id_dmat,
+                             const hid_t dset_id_dmat, const bool non_loc,
                              const bool kminusq,
                              const struct ELPH_MPI_Comms* Comm)
 {
@@ -89,8 +88,14 @@ void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
     //// (nu, nspin, mk, nk+q)
     /* Now Compute elph-matrix elements for each kpoint */
 
-    size_t startp[7] = {0, 0, 0, 0, 0, 0, 0};
-    size_t countp[7] = {1, 1, nmodes, lattice->nspin, nbnds, nbnds, 2};
+    hsize_t startp[7] = {0, 0, 0, 0, 0, 0, 0};
+    hsize_t countp[7] = {1,
+                         1,
+                         (hsize_t)nmodes,
+                         (hsize_t)lattice->nspin,
+                         (hsize_t)nbnds,
+                         (hsize_t)nbnds,
+                         2};
 
     ELPH_cmplx* gSq_buff = NULL;
     ELPH_cmplx* D_mat_l = NULL;
@@ -141,16 +146,13 @@ void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
             add_elphNonLocal(wfcs, lattice, pseudo, ikq, ik, kqsym, ksym,
                              eigVec, elph_kq_mn, Comm);
         }
-        startp[0] = qpos;
-        startp[1] = i;
-        int nc_err;
+        startp[0] = (hsize_t)qpos;
+        startp[1] = (hsize_t)i;
+
         if (Comm->commK_rank == 0)
         {
-            if ((nc_err = nc_put_vara(ncid_elph, varid_elph, startp, countp,
-                                      elph_kq_mn)))
-            {
-                ERR(nc_err);
-            }
+            elph_h5_write_vara(dset_id_elph, ELPH_H5_IO_FLOAT, startp, countp,
+                               elph_kq_mn);
         }
 
         // expand the el-ph matrix elements in full BZ
@@ -165,22 +167,21 @@ void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
                 // get the symmetry
                 int istar_symm = phonon->qmap[2 * qpos_star + 1];
 
-                size_t D_mat_sp[6] = {istar_symm, idx_kq, 0, 0, 0, 0};
-                size_t D_mat_cp[6] = {
-                    1, 1, lattice->nspin, lattice->nbnds, lattice->nbnds, 2};
-                // read D_mats //const int ncid_dmat, const int varid_dmat,
-                if ((nc_err = nc_get_vara(ncid_dmat, varid_dmat, D_mat_sp,
-                                          D_mat_cp, D_mat_l)))
-                {  // k + q
-                    ERR(nc_err);
-                }
+                hsize_t D_mat_sp[6] = {
+                    (hsize_t)istar_symm, (hsize_t)idx_kq, 0, 0, 0, 0};
+                hsize_t D_mat_cp[6] = {1,
+                                       1,
+                                       (hsize_t)lattice->nspin,
+                                       (hsize_t)lattice->nbnds,
+                                       (hsize_t)lattice->nbnds,
+                                       2};
+                // read D_mats //const int file_id_dmat, const int dset_id_dmat,
+                elph_h5_read_vara(dset_id_dmat, ELPH_H5_IO_FLOAT, D_mat_sp,
+                                  D_mat_cp, D_mat_l);
 
-                D_mat_sp[1] = idx_k;
-                if ((nc_err = nc_get_vara(ncid_dmat, varid_dmat, D_mat_sp,
-                                          D_mat_cp, D_mat_r)))
-                {  // k
-                    ERR(nc_err);
-                }
+                D_mat_sp[1] = (hsize_t)idx_k;
+                elph_h5_read_vara(dset_id_dmat, ELPH_H5_IO_FLOAT, D_mat_sp,
+                                  D_mat_cp, D_mat_r);
 
                 // gSq_buff
                 elph_q_rotate(D_mat_l, elph_kq_mn, D_mat_r, lattice,
@@ -206,14 +207,11 @@ void compute_and_write_elphq(struct WFC* wfcs, struct Lattice* lattice,
                         "This is due to incommenserate k and q grids.");
                 }
 
-                startp[0] = qpos_star;
-                startp[1] = idx_Sk;
+                startp[0] = (hsize_t)qpos_star;
+                startp[1] = (hsize_t)idx_Sk;
                 // Write it for Sq and Sk point
-                if ((nc_err = nc_put_vara(ncid_elph, varid_elph, startp, countp,
-                                          gSq_buff)))
-                {
-                    ERR(nc_err);
-                }
+                elph_h5_write_vara(dset_id_elph, ELPH_H5_IO_FLOAT, startp,
+                                   countp, gSq_buff);
             }
         }
         mpi_error = MPI_Barrier(Comm->commK);

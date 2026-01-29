@@ -3,8 +3,6 @@ THe starting point for the entire code
 */
 #include <complex.h>
 #include <fftw3.h>
-#include <netcdf.h>
-#include <netcdf_par.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +18,7 @@ THe starting point for the entire code
 #include "elph.h"
 #include "elphC.h"
 #include "fft/fft.h"
+#include "io/elph_hdf5.h"
 #include "io/io.h"
 #include "io/qe/qe_io.h"
 #include "parser/parser.h"
@@ -108,61 +107,34 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
     // buffer for storing phonon freq
     CHECK_ALLOC(omega_ph);
 
-    int ncid_elph, ncid_dmat, nc_err;
-    int varid_eig, varid_elph, varid_omega, varid_dmat;
+    hid_t file_id_elph, file_id_dmat;
+    hid_t dset_id_eig, dset_id_elph, dset_id_omega, dset_id_dmat;
+
     // Define netcdf variables
     if (mpi_comms->commK_rank == 0)
     {
         // open Dmat file
-        if ((nc_err = nc_open_par("ndb.Dmats", NC_NOWRITE, mpi_comms->commR,
-                                  MPI_INFO_NULL, &ncid_dmat)))
-        {
-            ERR(nc_err);
-        }
+        file_id_dmat = elph_h5_open_file_par("ndb.Dmats", 1, mpi_comms->commR,
+                                             MPI_INFO_NULL);
 
         // get dmat var id for dmats
-        if ((nc_err = nc_inq_varid(ncid_dmat, "Dmats", &varid_dmat)))
-        {
-            ERR(nc_err);
-        }
-
-        size_t Dmat_counts[6] = {0, 0, 0, 0, 0, 0};
-        // Make a no-op call to nc_get_vara to avoid deadlocks in some
-        // suitiations. This happens when a procces doesnot make atleast
-        // single read call (for ex when qpool = qiBZ)
-        if ((nc_err = nc_get_vara(ncid_dmat, varid_dmat, Dmat_counts,
-                                  Dmat_counts, NULL)))
-        {
-            ERR(nc_err);
-        }
+        dset_id_dmat = elph_h5_open_var(file_id_dmat, "Dmats");
 
         // create elph file. Note: we overwrite any existing file
-        if ((nc_err =
-                 nc_create_par("ndb.elph", NC_NETCDF4 | NC_CLOBBER,
-                               mpi_comms->commR, MPI_INFO_NULL, &ncid_elph)))
-        {
-            fprintf(stderr, "Error creating ndb.elph file.");
-            ERR(nc_err);
-        }
+        file_id_elph = elph_h5_create_file_par("ndb.elph", mpi_comms->commR,
+                                               MPI_INFO_NULL);
 
-        // set no fill mode (to avoid writting twice)
-        if ((nc_err = ncsetfill(ncid_elph, NC_NOFILL)))
-        {
-            fprintf(stderr, "Error setting nc_fill to ndb.elph file.");
-            ERR(nc_err);
-        }
+        elph_h5_def_var(file_id_elph, "POLARIZATION_VECTORS", ELPH_H5_IO_FLOAT,
+                        5, (ND_int[]){phonon->nq_BZ, nmodes, nmodes / 3, 3, 2},
+                        (const char*[]){"nq", "nmodes", "atom", "pol", "re_im"},
+                        NULL, &dset_id_eig);
 
-        def_ncVar(ncid_elph, &varid_eig, 5, ELPH_NC4_IO_FLOAT,
-                  (ND_int[]){phonon->nq_BZ, nmodes, nmodes / 3, 3, 2},
-                  "POLARIZATION_VECTORS",
-                  (char*[]){"nq", "nmodes", "atom", "pol", "re_im"}, NULL);
-
-        def_ncVar(ncid_elph, &varid_omega, 2, ELPH_NC4_IO_FLOAT,
-                  (ND_int[]){phonon->nq_BZ, nmodes}, "FREQ",
-                  (char*[]){"nq", "nmodes"}, NULL);
+        elph_h5_def_var(file_id_elph, "FREQ", ELPH_H5_IO_FLOAT, 2,
+                        (ND_int[]){phonon->nq_BZ, nmodes},
+                        (const char*[]){"nq", "nmodes"}, NULL, &dset_id_omega);
 
         ND_int nk_chunk_size =
-            NC4_DEFAULT_CHUCK_KB * 1024;  // now this is in bytes
+            H5_DEFAULT_CHUNK_KB * 1024;  // now this is in bytes
         // scale with complex number size to get the number of elements
         nk_chunk_size /= (sizeof(ELPH_cmplx) * nmodes * lattice->nspin *
                           lattice->nbnds * lattice->nbnds);
@@ -176,14 +148,16 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
             nk_chunk_size = lattice->nkpts_BZ;
         }
 
-        def_ncVar(ncid_elph, &varid_elph, 7, ELPH_NC4_IO_FLOAT,
-                  (ND_int[]){phonon->nq_BZ, lattice->nkpts_BZ, nmodes,
-                             lattice->nspin, lattice->nbnds, lattice->nbnds, 2},
-                  "elph_mat",
-                  (char*[]){"nq", "nk", "nmodes", "nspin", "initial_band",
+        elph_h5_def_var(
+            file_id_elph, "elph_mat", ELPH_H5_IO_FLOAT, 7,
+            (ND_int[]){phonon->nq_BZ, lattice->nkpts_BZ, nmodes, lattice->nspin,
+                       lattice->nbnds, lattice->nbnds, 2},
+            (const char*[]){"nq", "nk", "nmodes", "nspin", "initial_band",
                             "final_band_PH_abs", "re_im"},
-                  (size_t[]){1, nk_chunk_size, nmodes, lattice->nspin,
-                             lattice->nbnds, lattice->nbnds, 2});
+            (size_t[]){1, (size_t)nk_chunk_size, (size_t)nmodes,
+                       (size_t)lattice->nspin, (size_t)lattice->nbnds,
+                       (size_t)lattice->nbnds, 2},
+            &dset_id_elph);
     }
 
     ELPH_cmplx* eig_Sq = NULL;
@@ -259,19 +233,14 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
         // write eigen vectors and frequencies
         if (mpi_comms->commQ_rank == 0)
         {
-            size_t startp[5] = {qpos, 0, 0, 0, 0};
-            size_t countp[5] = {1, nmodes, nmodes / 3, 3, 2};
-            if ((nc_err =
-                     nc_put_vara(ncid_elph, varid_eig, startp, countp, eigVec)))
-            {
-                ERR(nc_err);
-            }
+            hsize_t startp[5] = {(hsize_t)qpos, 0, 0, 0, 0};
+            hsize_t countp[5] = {1, (hsize_t)nmodes, (hsize_t)(nmodes / 3), 3,
+                                 2};
+            elph_h5_write_vara(dset_id_eig, ELPH_H5_IO_FLOAT, startp, countp,
+                               eigVec);
+            elph_h5_write_vara(dset_id_omega, ELPH_H5_IO_FLOAT, startp, countp,
+                               omega_ph);
 
-            if ((nc_err = nc_put_vara(ncid_elph, varid_omega, startp, countp,
-                                      omega_ph)))
-            {
-                ERR(nc_err);
-            }
             // write down the rotate eigen vectors;
             for (ND_int istar = 1; istar < phonon->nqstar[iqpt_iBZg]; ++istar)
             {
@@ -284,25 +253,17 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
                                 phonon->qpts_iBZ + iqpt_iBZg * 3, eigVec,
                                 eig_Sq);
                 //
-                startp[0] = qpos_star;
-                if ((nc_err = nc_put_vara(ncid_elph, varid_eig, startp, countp,
-                                          eig_Sq)))
-                {
-                    ERR(nc_err);
-                }
-
-                if ((nc_err = nc_put_vara(ncid_elph, varid_omega, startp,
-                                          countp, omega_ph)))
-                {
-                    ERR(nc_err);
-                }
-                //
+                startp[0] = (hsize_t)qpos_star;
+                elph_h5_write_vara(dset_id_eig, ELPH_H5_IO_FLOAT, startp,
+                                   countp, eig_Sq);
+                elph_h5_write_vara(dset_id_omega, ELPH_H5_IO_FLOAT, startp,
+                                   countp, omega_ph);
             }
         }
         // Now compute and write the electron-phonon matrix elements
         compute_and_write_elphq(wfcs, lattice, pseudo, phonon, iqpt_iBZg,
-                                eigVec, dVscf, ncid_elph, varid_elph, ncid_dmat,
-                                varid_dmat, kernel->non_loc,
+                                eigVec, dVscf, file_id_elph, dset_id_elph,
+                                file_id_dmat, dset_id_dmat, kernel->non_loc,
                                 input_data->kminusq, mpi_comms);
     }
 
@@ -310,16 +271,15 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 
     if (mpi_comms->commK_rank == 0)
     {
-        // close files
-        if ((nc_err = nc_close(ncid_elph)))
-        {
-            ERR(nc_err);
-        }
+        // Close variables/datasets
+        elph_h5_close_var(dset_id_eig);
+        elph_h5_close_var(dset_id_elph);
+        elph_h5_close_var(dset_id_omega);
+        elph_h5_close_var(dset_id_dmat);
 
-        if ((nc_err = nc_close(ncid_dmat)))
-        {
-            ERR(nc_err);
-        }
+        // close files
+        elph_h5_close_file(file_id_elph);
+        elph_h5_close_file(file_id_dmat);
     }
 
     // finally write some basic info to ndb.elph file (only master node writes
@@ -327,10 +287,8 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
 
     if (mpi_comms->commW_rank == 0)
     {
-        if ((nc_err = nc_open("ndb.elph", NC_WRITE, &ncid_elph)))
-        {
-            ERR(nc_err);
-        }
+        file_id_elph =
+            elph_h5_open_file_par("ndb.elph", 0, MPI_COMM_SELF, MPI_INFO_NULL);
 
         char convention_str[32];
         strcpy(convention_str, "standard");
@@ -338,13 +296,10 @@ void elph_driver(const char* ELPH_input_file, enum ELPH_dft_code dft_code,
         {
             strcpy(convention_str, "yambo");
         }
-        write_basic_data(ncid_elph, lattice, phonon, input_data->kernel_str,
+        write_basic_data(file_id_elph, lattice, phonon, input_data->kernel_str,
                          convention_str);
 
-        if ((nc_err = nc_close(ncid_elph)))
-        {
-            ERR(nc_err);
-        }
+        elph_h5_close_file(file_id_elph);
     }
 
     int World_rank_tmp = mpi_comms->commW_rank;
