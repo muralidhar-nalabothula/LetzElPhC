@@ -10,9 +10,9 @@ BINS := $(SRCS:.c=)
 
 # We also need to link against the object files in the src directory 
 # Assuming they are already built when running unit tests
-SRC_OBJS := $(wildcard ../../src/*/*.o ../../src/*.o)
+SRC_OBJS := $(wildcard ../../src/*/*.o ../../src/*/*/*.o ../../src/*.o)
 # Filter out main.o if it exists so we don't get multiple main() definitions
-SRC_OBJS := $(filter-out ../../src/lelphc.o ../../src/main.o, $(SRC_OBJS))
+SRC_OBJS := $(filter-out ../../src/lelphc.o ../../src/main.o ../../src/main_elphC.o, $(SRC_OBJS))
 
 all: $(BINS)
 

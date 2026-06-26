@@ -7,8 +7,8 @@ def test_c_unit_tests(pytestconfig):
     if not pytestconfig.getoption("unittest"):
         pytest.skip("Skipping C unit tests. Pass --unittest to execute them.")
 
-    cwd = os.getcwd()
-    unit_test_dir = os.path.join(cwd, "tests", "unit_tests")
+    base_dir = os.path.dirname(__file__)
+    unit_test_dir = os.path.join(base_dir, "unit_tests")
     
     # 1. Compile the unit tests
     print("\n=> Compiling C unit tests...")
@@ -34,7 +34,7 @@ def test_c_unit_tests(pytestconfig):
         res_run = subprocess.run(f"./{bin_name}", cwd=unit_test_dir, shell=True, capture_output=True, text=True)
         
         # Log to the same TEST_RUN_OUTPUT for consistency
-        with open(os.path.join(cwd, "tests", "TEST_RUN_OUTPUT"), "a") as out_f:
+        with open(os.path.join(base_dir, "TEST_RUN_OUTPUT"), "a") as out_f:
             out_f.write(f"\n--- UNIT TEST: {bin_name} ---\n")
             out_f.write(res_run.stdout)
             out_f.write(res_run.stderr)

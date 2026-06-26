@@ -30,3 +30,16 @@ tests/dft_qe/*/*
 __pycache__
 tests/dft_qe/LICENSE
 tests/TEST_RUN_OUTPUT
+
+# Pytest and runtime artifacts
+.pytest_cache/
+test_input.in
+TEST_RUN_OUTPUT
+ndb.elph
+ndb.Dmats
+
+# C Unit Tests
+tests/unit_tests/*
+!tests/unit_tests/*.c
+!tests/unit_tests/Makefile
+!tests/unit_tests/*.h
