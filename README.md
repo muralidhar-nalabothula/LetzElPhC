@@ -1,68 +1,80 @@
-![screenshot](docs/logo.png)
-[Project Documentation](https://yambo-code.github.io/LetzElPhC/)
+![LetzElPhC Logo](docs/logo.png)
 
-LetzElPhC abbreviates to _"Lëtzebuerg Electron Phonon Code"_.
-_"Lëtzebuerg"_ is the Luxembourgish name for the Luxembourg Country.
+# LetzElPhC
 
-LetzElPhC is distributed under the MIT license.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://yambo-code.github.io/LetzElPhC/)
 
-Please refer to the (currently evolving) [LetzElPhC documentation](https://yambo-code.github.io/LetzElPhC/) for usage.
+**LetzElPhC** (_Lëtzebuerg Electron Phonon Code_) is a high-performance C package designed explicitly to compute electron–phonon matrix elements to complement electron-phonon calculations in the [YAMBO](https://www.yambo-code.eu/) code.
 
-**This code is currently under development. please use at your 
-own risk**.
+*Note: This code strictly focuses on computing only the electron-phonon matrix elements. It does not natively compute any physical quantities.*
 
-In case of any bugs or other issues, please open a issue.
+---
 
-Any contribtions to the code are always welcomed.
+## 📖 Documentation
 
-**Contributors note:** This project is released under the MIT License. To preserve that licensing, please avoid incorporating code from GPL-licensed software, including small snippets or translations of GPL code. Algorithmic ideas and published descriptions are fine, but implementations should be written independently or derived from permissively licensed sources (MIT, BSD, Apache-2.0, etc.) with appropriate attribution.
+Please visit the **[Official Documentation Site](https://yambo-code.github.io/LetzElPhC/)** (actively evolving) for inputs/outputs and usage.
+
+## 🛠 Installation & Usage
+
+LetzElPhC requires standard C compilers, MPI, and external mathematical libraries (FFTW3, NetCDF). 
+
+For a complete step-by-step installation guide—including configuring your `make.inc`—please refer to the [Installation Documentation](https://yambo-code.github.io/LetzElPhC/install_usage/).
+
+## 🧪 Testing
+
+The codebase maintains strict numerical integrity via a massive, highly-parallelized integration test suite driven by `pytest`.
+
+To run the complete suite on your local compilation:
+```bash
+# 1. Download the required test databases
+pytest --download
+
+# 2. Run the C Unit Tests and the Physics Integration Tests
+pytest --unittest --testsuite --ncpus=4
+```
+See the [Test Suite Manual](tests/README.md) on how to use or develop the test suite.
+
+---
+
+## 📝 Roadmap & TODOs
+
+We are actively developing and expanding LetzElPhC. Current objectives:
+- [x] Support XML format for dynamical matrices
+- [x] Implement image parallelization of `ph.x` (preprocessor)
+- [x] Implement automated integration testing
+- [x] Custom kernel options
+- [ ] Improve OpenMP scaling constraints
+- [ ] Implement basic Acoustic Sum Rule (ASR)
+- [ ] Fröhlich Interpolation
+- [ ] DFT + U support
+
+## ⚖️ License & Open Source Integrity
+
+LetzElPhC is distributed under the **MIT License**.
+
+**Contributors Note:** To preserve our permissive licensing, please strictly avoid incorporating code from GPL-licensed software. Algorithmic concepts and published descriptions are welcome, but implementations must be written independently or derived from permissively licensed sources (MIT, BSD, Apache-2.0).
+
+### FFT Backend Licensing Warning
+While LetzElPhC is MIT-licensed, it relies on Fast Fourier Transform backends whose licenses may impose downstream obligations:
+- **FFTW3**: Licensed under GPLv2+. Compiling and distributing binaries linked against FFTW3 may subject the compiled executable to the GPL. 
+- **Intel MKL**: If using the Intel oneAPI Math Kernel Library via its FFTW3 compatibility layer, you are subject to Intel's specific proprietary or community licensing terms.
+
+---
+
+## 👥 Authors & Acknowledgments
+
+**Authors:**
+* **Muralidhar Nalabothula** (Lead Developer)
+* **Prof. Ludger Wirtz** (Supervisor)
+
+**Acknowledgments:**
+* **Henry Fried**: Project Logo Design
+* **Fulvio Paleari**: Testing and Yambopy interface integration
+* **Riccardo Reho**: Testing 
+* **University of Luxembourg**: Research Funding
+* **HPC @ Uni.lu**: High-Performance Computing resources
+
+*In case of any bugs, feature requests, or inquiries, please open an issue on the repository. Contributions are always highly welcome!*
 
 
-It should be noted that this code computes only electron–phonon matrix elements and does not evaluate any additional physical quantities. If you wish to calculate physical properties using Wannier-based interpolation techniques, you should instead use specialized tools such as [EPW](https://epw-code.org/), [Perturbo](https://perturbo-code.github.io/), [Epiq](https://the-epiq-team.gitlab.io/epiq-site/), or [Phoebe](https://phoebe-team.github.io/phoebe/).
-
-<!-- # Citation -->
-<!-- In case you wish to acknowledge the use of this code, please cite the following reference. -->
-<!-- ``` -->
-<!-- @phdthesis{Nalabothula2025May, -->
-<!-- 	author = {Nalabothula, Muralidhar}, -->
-<!-- 	title = {{Symmetries of Excitons: Implications for Exciton-Phonon Coupling and Optical Spectroscopy}}, -->
-<!-- 	year = {2025}, -->
-<!-- 	month = may, -->
-<!-- 	address = {Luxembourg}, -->
-<!-- 	school = {Unilu - Universit{\ifmmode\acute{e}\else\'{e}\fi} du Luxembourg [The Faculty of Science, Technology and Medicine]}, -->
-<!-- 	url = {https://orbilu.uni.lu/handle/10993/65236} -->
-<!-- } -->
-<!-- ``` -->
-
-# Authors 
-Muralidhar Nalabothula\
-Prof. Ludger Wirtz (Supervisor)
-
-# Acknowledgments
-Riccardo Reho (Testing and Documentation)\
-Fulvio Paleari (Testing and Yambopy interface)\
-University of Luxembourg (Funding)\
-HPC @ Uni.lu (Computing resources)\
-Henry Fried (Logo)
-
-# TODO  
-1) ~~Support XML format for dynamical matrices~~
-2) ~~Work on suporting image parallelization of ph.x (preprocessor)~~
-3) ~~Prepare automatic test cases~~
-4) Improve OPENMP
-5) Implement basic Acoustic sum rule
-6) ~~Turn on different kernel options for the user~~
-7) Frohlich Interpolation
-8) DFT + U
-
-
-
-## FFT Backend Licensing
-
-This package is licensed under the MIT License. However, FFT computations are performed through a backend library, and the license terms applicable to that backend may impose additional obligations.
-
-* **FFTW backend**: If the FFTW3 library is used, the library itself is licensed under GPLv2 or later. Programs that are distributed together with, or otherwise incorporate, the FFTW library may therefore be subject to the GPL. Merely distributing source code that depends on this package, while requiring users to obtain FFTW separately, may avoid these obligations, but users should consult the FFTW license.
-
-* **Intel MKL backend**: If Intel oneAPI Math Kernel Library (MKL) is used via its FFTW3 compatibility interface, use of the backend is subject to Intel's licensing terms rather than the FFTW license. Users distributing software linked against MKL are responsible for complying with the applicable Intel license.
-
-In all cases, this package itself remains licensed under MIT. Users are responsible for ensuring compliance with the license terms of the FFT backend they choose.
